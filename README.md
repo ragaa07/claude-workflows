@@ -1,6 +1,7 @@
 # claude-workflows
 
-[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](VERSION)
+[![Version](https://img.shields.io/badge/version-1.1.1-blue.svg)](VERSION)
+[![npm](https://img.shields.io/npm/v/claude-dev-workflows)](https://www.npmjs.com/package/claude-dev-workflows)
 
 **Portable, spec-driven development workflows for Claude Code AI agents.**
 
@@ -75,7 +76,7 @@ bash /tmp/claude-workflows/install.sh --type android --team android
 
 ```bash
 cat .claude/.workflows-version
-# Should print: 1.1.0
+# Should print: 1.1.1
 ```
 
 Then start a Claude Code session and run:
@@ -529,19 +530,16 @@ npx claude-dev-workflows init --type android --team android
 | Team rules | No | Yes |
 | Team review checklist | No | Yes |
 
-### Multiple Teams Example
+### Built-in Teams
 
-A company with Android, iOS, and Backend teams:
+Four teams ship out of the box, each with a template skeleton ready for customization:
 
-```
-teams/
-  _template/          # Skeleton for new teams
-  android/            # Android team skills and conventions
-  ios/                # iOS team skills and conventions
-  backend/            # Backend team skills and conventions
-```
-
-Each project installs with its team:
+| Team | `--team` | `--type` | Description |
+|------|----------|----------|-------------|
+| Android | `android` | `android` | Kotlin/Compose, MVVM, Hilt |
+| iOS | `ios` | `swift` | Swift/SwiftUI conventions |
+| Frontend | `frontend` | `react` | React/TypeScript conventions |
+| Backend | `backend` | `python` | Python backend conventions |
 
 ```bash
 # Android project
@@ -550,8 +548,19 @@ npx claude-dev-workflows init --type android --team android
 # iOS project
 npx claude-dev-workflows init --type swift --team ios
 
+# Frontend project
+npx claude-dev-workflows init --type react --team frontend
+
 # Backend project
 npx claude-dev-workflows init --type python --team backend
+```
+
+### Adding a New Team
+
+```bash
+# In the claude-workflows repo
+cp -r teams/_template teams/<your-team-name>
+# Edit the manifest, add skills, publish a new version
 ```
 
 ---
