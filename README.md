@@ -10,49 +10,52 @@ claude-workflows provides 17 structured workflow skills that guide AI agents thr
 
 ## Quick Start
 
-### Basic Installation
+### Installation
 
-Clone the repository and run the installer from your project root:
+From your project root, run:
 
 ```bash
-git clone https://github.com/4SaleTech/claude-workflows.git /tmp/claude-workflows
-cd /path/to/your/project
-bash /tmp/claude-workflows/install.sh
+npx claude-workflows init
 ```
 
 ### Install with Language Type
 
 ```bash
 # Android/Kotlin project
-bash /tmp/claude-workflows/install.sh --type android
+npx claude-workflows init --type android
 
 # React/TypeScript project
-bash /tmp/claude-workflows/install.sh --type react
+npx claude-workflows init --type react
 
 # Python project
-bash /tmp/claude-workflows/install.sh --type python
+npx claude-workflows init --type python
 
 # Swift/iOS project
-bash /tmp/claude-workflows/install.sh --type swift
+npx claude-workflows init --type swift
 
 # Go project
-bash /tmp/claude-workflows/install.sh --type go
-
-# Core only, no language rules
-bash /tmp/claude-workflows/install.sh --type generic
+npx claude-workflows init --type go
 ```
 
 ### Install with Team Skills
 
 ```bash
 # Android project with Android team skills
-bash /tmp/claude-workflows/install.sh --type android --team android
+npx claude-workflows init --type android --team android
 
 # React project with frontend team skills
-bash /tmp/claude-workflows/install.sh --type react --team frontend
+npx claude-workflows init --type react --team frontend
 
-# Include safety guards
-bash /tmp/claude-workflows/install.sh --type android --team android --with-guards
+# Full setup with safety guards
+npx claude-workflows init --type android --team android --with-guards
+```
+
+### Alternative: Install via Git Clone
+
+```bash
+git clone https://github.com/ragaa07/claude-workflows.git /tmp/claude-workflows
+cd /path/to/your/project
+bash /tmp/claude-workflows/install.sh --type android --team android
 ```
 
 ### What Gets Installed
@@ -512,7 +515,7 @@ git commit -m "feat: add android team skills and conventions"
 **6. Developers install with the team flag:**
 
 ```bash
-bash install.sh --type android --team android
+npx claude-workflows init --type android --team android
 ```
 
 ### What Each Developer Gets
@@ -542,34 +545,39 @@ Each project installs with its team:
 
 ```bash
 # Android project
-bash install.sh --type android --team android
+npx claude-workflows init --type android --team android
 
 # iOS project
-bash install.sh --type swift --team ios
+npx claude-workflows init --type swift --team ios
 
 # Backend project
-bash install.sh --type python --team backend
+npx claude-workflows init --type python --team backend
 ```
 
 ---
 
 ## Upgrading
 
-To upgrade core skills to the latest version:
+To upgrade to the latest version:
 
 ```bash
-cd /path/to/your/project
-bash /path/to/claude-workflows/upgrade.sh
+npx claude-workflows@latest upgrade
 ```
 
-To also upgrade team skills:
+To also upgrade team skills and language rules:
 
 ```bash
-bash /path/to/claude-workflows/upgrade.sh --team android
-bash /path/to/claude-workflows/upgrade.sh --type android --team android --with-guards
+npx claude-workflows@latest upgrade --team android
+npx claude-workflows@latest upgrade --type android --team android --with-guards
 ```
 
-The upgrade script:
+Pin to a specific version:
+
+```bash
+npx claude-workflows@1.2.0 upgrade
+```
+
+The upgrade:
 1. Replaces core skills in `.claude/skills/_core/`
 2. Replaces team skills in `.claude/skills/_team/` (if `--team` specified)
 3. Updates language rules (if `--type` specified)
@@ -585,6 +593,9 @@ The upgrade script:
 
 ```
 claude-workflows/
+  package.json                # npm package definition
+  bin/
+    cli.js                    # CLI entry point (init, upgrade, version, list-teams)
   config/
     defaults.yml              # Default configuration template
   core/

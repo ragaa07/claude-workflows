@@ -1,0 +1,11 @@
+.git/
+.idea/
+.claude/
+docs/
+install.sh
+upgrade.sh
+.gitignore
+.DS_Store
+*.swp
+*.swo
+*~
