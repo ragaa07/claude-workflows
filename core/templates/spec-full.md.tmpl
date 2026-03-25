@@ -1,0 +1,234 @@
+# Feature: {feature_name}
+
+Date: {date}
+Status: Draft
+Type: full
+Source: {source}
+
+## Overview
+
+{overview}
+
+## User Stories
+
+- As a {user_type}, I want to {action}, so that {benefit}
+
+## Acceptance Criteria
+
+- [ ] {criterion_1}
+- [ ] {criterion_2}
+
+---
+
+## UI
+
+### Screens & Navigation
+
+| Screen | Status | Entry Point | Notes |
+|--------|--------|-------------|-------|
+| {screen_name} | NEW/MODIFY | {entry_point} | {notes} |
+
+#### Screen Flow
+
+```
+{screen_a} --> {screen_b} --> {screen_c}
+```
+
+### Design
+
+#### Figma Links
+
+| Screen | Link | Status |
+|--------|------|--------|
+| {screen_name} | {figma_url} | Ready/In Progress |
+
+#### Components
+
+| Component | Type | Reusable | Notes |
+|-----------|------|----------|-------|
+| {component_name} | NEW/EXISTING | Yes/No | {notes} |
+
+#### Design Tokens
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| {color/spacing/typography} | {value} | {where_used} |
+
+### Interactions
+
+| Trigger | Action | Animation | Duration |
+|---------|--------|-----------|----------|
+| {user_action} | {result} | {animation_type} | {ms} |
+
+#### States
+
+| Component | Default | Loading | Error | Empty | Success |
+|-----------|---------|---------|-------|-------|---------|
+| {component} | {desc} | {desc} | {desc} | {desc} | {desc} |
+
+### Accessibility
+
+- [ ] All interactive elements have content descriptions
+- [ ] Minimum touch target size: 48dp
+- [ ] Color contrast ratio meets WCAG AA (4.5:1 text, 3:1 large text)
+- [ ] Screen reader navigation order is logical
+
+### RTL / LTR Support
+
+- [ ] Layout mirrors correctly in RTL mode
+- [ ] Icons that convey direction are flipped
+- [ ] Text alignment follows locale direction
+
+---
+
+## API
+
+### Endpoints
+
+#### {endpoint_name}
+
+- **Method**: {GET/POST/PUT/PATCH/DELETE}
+- **Path**: `{path}`
+- **Auth**: {auth_type}
+- **Purpose**: {purpose}
+
+##### Request
+
+```json
+{
+  "{field}": "{type} — {description}"
+}
+```
+
+**Query Parameters**:
+| Param | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| {param} | {type} | Yes/No | {default} | {description} |
+
+##### Response
+
+**Success (200)**:
+```json
+{
+  "{field}": "{type} — {description}"
+}
+```
+
+**Error Responses**:
+| Code | Reason | Body |
+|------|--------|------|
+| 400 | {reason} | `{"error": "{message}"}` |
+| 401 | Unauthorized | `{"error": "Invalid token"}` |
+| 404 | {reason} | `{"error": "{message}"}` |
+
+### Data Models
+
+#### {model_name}
+
+| Field | Type | Nullable | Description |
+|-------|------|----------|-------------|
+| {field} | {type} | Yes/No | {description} |
+
+### Pagination
+
+- **Strategy**: {offset/cursor/keyset}
+- **Default page size**: {size}
+- **Max page size**: {max}
+
+### Caching
+
+| Endpoint | Strategy | TTL | Invalidation |
+|----------|----------|-----|--------------|
+| {endpoint} | {memory/disk/none} | {duration} | {trigger} |
+
+### Error Handling
+
+| Scenario | Behavior | Retry | Fallback |
+|----------|----------|-------|----------|
+| Network timeout | {behavior} | {count}x with {backoff} | {fallback} |
+| Server error (5xx) | {behavior} | {count}x with {backoff} | {fallback} |
+| Auth expired | {behavior} | Refresh token | {fallback} |
+
+---
+
+## Background
+
+### Workers
+
+#### {worker_name}
+
+- **Type**: {OneTimeWorkRequest/PeriodicWorkRequest/Service}
+- **Purpose**: {purpose}
+
+##### Scheduling
+
+| Property | Value |
+|----------|-------|
+| Trigger | {event/schedule/manual} |
+| Schedule | {cron_expression_or_interval} |
+| Backoff Policy | {LINEAR/EXPONENTIAL} |
+
+##### Constraints
+
+| Constraint | Required |
+|------------|----------|
+| Network | {CONNECTED/UNMETERED/NOT_REQUIRED} |
+| Battery | {NOT_LOW/any} |
+| Charging | {Yes/No} |
+
+##### Error Handling & Retry
+
+| Error Type | Action | Max Retries |
+|------------|--------|-------------|
+| Network failure | Retry | {count} |
+| Auth expired | Retry after refresh | {count} |
+| Unknown | Retry then fail | {count} |
+
+### Monitoring
+
+| Event | Level | Data |
+|-------|-------|------|
+| Worker started | INFO | {data} |
+| Worker completed | INFO | {data} |
+| Worker failed | ERROR | {data} |
+
+---
+
+## Analytics Events
+
+| Event | Trigger | Properties |
+|-------|---------|------------|
+| {event_name} | {trigger} | {properties} |
+
+---
+
+## Testing
+
+### Test Plan
+
+| Layer | Scope | Approach |
+|-------|-------|----------|
+| Unit | {scope} | {approach} |
+| Integration | {scope} | {approach} |
+| UI | {scope} | {approach} |
+| E2E | {scope} | {approach} |
+
+### Key Scenarios
+
+- [ ] {scenario_1}
+- [ ] {scenario_2}
+- [ ] {scenario_3}
+
+---
+
+## Technical Notes
+
+{technical_notes}
+
+## Dependencies
+
+{dependencies}
+
+## Out of Scope
+
+{out_of_scope}

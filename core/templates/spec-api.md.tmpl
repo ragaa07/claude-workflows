@@ -1,0 +1,122 @@
+# Feature: {feature_name}
+
+Date: {date}
+Status: Draft
+Type: api
+Source: {source}
+
+## Overview
+
+{overview}
+
+## User Stories
+
+- As a {user_type}, I want to {action}, so that {benefit}
+
+## Acceptance Criteria
+
+- [ ] {criterion_1}
+- [ ] {criterion_2}
+
+## API Endpoints
+
+### {endpoint_name}
+
+- **Method**: {GET/POST/PUT/PATCH/DELETE}
+- **Path**: `{path}`
+- **Auth**: {auth_type}
+- **Purpose**: {purpose}
+
+#### Request
+
+```json
+{
+  "{field}": "{type} — {description}"
+}
+```
+
+**Headers**:
+| Header | Value | Required |
+|--------|-------|----------|
+| {header_name} | {value} | Yes/No |
+
+**Query Parameters**:
+| Param | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| {param} | {type} | Yes/No | {default} | {description} |
+
+#### Response
+
+**Success (200)**:
+```json
+{
+  "{field}": "{type} — {description}"
+}
+```
+
+**Error Responses**:
+| Code | Reason | Body |
+|------|--------|------|
+| 400 | {reason} | `{"error": "{message}"}` |
+| 401 | Unauthorized | `{"error": "Invalid token"}` |
+| 404 | {reason} | `{"error": "{message}"}` |
+| 500 | Server error | `{"error": "Internal server error"}` |
+
+## Data Models
+
+### {model_name}
+
+| Field | Type | Nullable | Description |
+|-------|------|----------|-------------|
+| {field} | {type} | Yes/No | {description} |
+
+## Pagination
+
+- **Strategy**: {offset/cursor/keyset}
+- **Default page size**: {size}
+- **Max page size**: {max}
+- **Response fields**: `page`, `pageSize`, `total`, `hasNext`
+
+## Caching
+
+| Endpoint | Strategy | TTL | Invalidation |
+|----------|----------|-----|--------------|
+| {endpoint} | {memory/disk/none} | {duration} | {trigger} |
+
+## Rate Limits
+
+| Endpoint | Limit | Window | Retry-After |
+|----------|-------|--------|-------------|
+| {endpoint} | {requests} | {seconds} | Yes/No |
+
+## Error Handling
+
+| Scenario | Behavior | Retry | Fallback |
+|----------|----------|-------|----------|
+| Network timeout | {behavior} | {count}x with {backoff} | {fallback} |
+| Server error (5xx) | {behavior} | {count}x with {backoff} | {fallback} |
+| Auth expired | {behavior} | Refresh token | {fallback} |
+
+## UI Impact (Minimal)
+
+| Screen | Change | Notes |
+|--------|--------|-------|
+| {screen} | {change} | {notes} |
+
+## Analytics Events
+
+| Event | Trigger | Properties |
+|-------|---------|------------|
+| {event_name} | {trigger} | {properties} |
+
+## Technical Notes
+
+{technical_notes}
+
+## Dependencies
+
+{dependencies}
+
+## Out of Scope
+
+{out_of_scope}

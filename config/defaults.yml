@@ -89,6 +89,8 @@ workflows:
 
   review:
     standards: []                      # Custom review checklist items
+    checklist: "auto"                  # auto (detect from project.language) | none | path
+    auto_self_review: false            # Chain self-review before PR
 
   brainstorm:
     default_depth: "standard"          # quick | standard | deep
@@ -116,3 +118,36 @@ skills:
     build: "new-feature"               # /workflow:build → /workflow:new-feature
     fix: "hotfix"                      # /workflow:fix → /workflow:hotfix
     ship: "release"                    # /workflow:ship → /workflow:release
+
+# ============================================================
+# Workflow Composition (Chaining)
+# ============================================================
+chains:
+  new-feature:
+    TEST: "/workflow:test"             # Chain test workflow during TEST phase
+  extend-feature:
+    TEST: "/workflow:test"
+  refactor:
+    VERIFY: "/workflow:test --full-suite"
+
+# ============================================================
+# Safety Guards
+# ============================================================
+guards:
+  enabled: false                       # Enable with --with-guards during install
+  config: ".claude/guards.yml"         # Path to guards configuration
+
+# ============================================================
+# Auto-Learning
+# ============================================================
+learning:
+  enabled: true                        # Auto-capture patterns from completed workflows
+  min_confidence: 0.5                  # Minimum confidence to surface in brainstorming
+  storage: ".workflows/learned"        # Where learned patterns are stored
+
+# ============================================================
+# Spec Templates
+# ============================================================
+specs:
+  default_template: "auto"             # auto | ui | api | background | full
+  # auto: Ask user during GATHER phase which template to use

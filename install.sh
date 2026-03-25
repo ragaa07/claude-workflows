@@ -4,8 +4,44 @@ set -euo pipefail
 # ============================================================
 # claude-workflows installer
 # ============================================================
+# Usage:
+#   bash install.sh                    # Install everything (default)
+#   bash install.sh --type android     # Install core + kotlin + compose rules + Android review checklist
+#   bash install.sh --type react       # Install core + typescript + react rules + TS review checklist
+#   bash install.sh --type python      # Install core + python rules + Python review checklist
+#   bash install.sh --type swift       # Install core + swift rules + Swift review checklist
+#   bash install.sh --type go          # Install core + go rules + Go review checklist
+#   bash install.sh --type generic     # Install core only, no language rules
+#   bash install.sh --with-guards      # Also install safety guards
+# ============================================================
 
+# ============================================================
+# Parse arguments
+# ============================================================
+INSTALL_TYPE="all"
+WITH_GUARDS=false
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --type)
+      INSTALL_TYPE="${2:-all}"
+      shift 2
+      ;;
+    --with-guards)
+      WITH_GUARDS=true
+      shift
+      ;;
+    *)
+      echo "Unknown option: $1"
+      echo "Usage: bash install.sh [--type android|react|python|swift|go|generic] [--with-guards]"
+      exit 1
+      ;;
+  esac
+done
+
+# ============================================================
 # Determine where the installer source files live
+# ============================================================
 if [[ -n "${BASH_SOURCE[0]:-}" && -f "${BASH_SOURCE[0]}" ]]; then
   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 else
@@ -31,7 +67,43 @@ fi
 
 echo "=== claude-workflows installer v${VERSION} ==="
 echo "Project root: ${PROJECT_ROOT}"
+echo "Install type: ${INSTALL_TYPE}"
+echo "With guards:  ${WITH_GUARDS}"
 echo ""
+
+# ============================================================
+# Helper: map --type to language rule files
+# ============================================================
+get_rule_files() {
+  local type="$1"
+  case "$type" in
+    android)  echo "kotlin.md" ;;
+    react)    echo "typescript.md" ;;
+    python)   echo "python.md" ;;
+    swift)    echo "swift.md" ;;
+    go)       echo "go.md" ;;
+    generic)  echo "" ;;
+    all)      echo "kotlin.md typescript.md python.md swift.md go.md" ;;
+    *)
+      echo "ERROR: Unknown type '$type'. Valid types: android, react, python, swift, go, generic, all" >&2
+      exit 1
+      ;;
+  esac
+}
+
+get_review_label() {
+  local type="$1"
+  case "$type" in
+    android)  echo "android" ;;
+    react)    echo "typescript" ;;
+    python)   echo "python" ;;
+    swift)    echo "swift" ;;
+    go)       echo "go" ;;
+    generic)  echo "" ;;
+    all)      echo "all" ;;
+    *)        echo "" ;;
+  esac
+}
 
 # ============================================================
 # 1. Create directory structure
@@ -40,8 +112,11 @@ echo "Creating directory structure..."
 
 mkdir -p "$PROJECT_ROOT/.claude/skills/_core"
 mkdir -p "$PROJECT_ROOT/.claude/templates"
+mkdir -p "$PROJECT_ROOT/.claude/rules"
+mkdir -p "$PROJECT_ROOT/.claude/reviews"
 mkdir -p "$PROJECT_ROOT/.workflows/specs"
 mkdir -p "$PROJECT_ROOT/.workflows/history"
+mkdir -p "$PROJECT_ROOT/.workflows/learned"
 
 # ============================================================
 # 2. Copy core skills
@@ -68,7 +143,86 @@ else
 fi
 
 # ============================================================
-# 4. Create workflows.yml from defaults (only if not exists)
+# 4. Copy language rules (based on --type)
+# ============================================================
+echo "Installing language rules..."
+
+RULE_FILES="$(get_rule_files "$INSTALL_TYPE")"
+
+if [[ -n "$RULE_FILES" && -d "$SCRIPT_DIR/core/rules" ]]; then
+  for rule_file in $RULE_FILES; do
+    if [[ -f "$SCRIPT_DIR/core/rules/$rule_file" ]]; then
+      cp "$SCRIPT_DIR/core/rules/$rule_file" "$PROJECT_ROOT/.claude/rules/"
+      echo "  Copied rule: $rule_file"
+    else
+      echo "  WARNING: Rule file not found: $rule_file"
+    fi
+  done
+elif [[ -z "$RULE_FILES" ]]; then
+  echo "  Skipping language rules (type: $INSTALL_TYPE)"
+else
+  echo "  WARNING: No rules directory found at $SCRIPT_DIR/core/rules/"
+fi
+
+# ============================================================
+# 5. Copy review checklists (based on --type)
+# ============================================================
+echo "Installing review checklists..."
+
+REVIEW_LABEL="$(get_review_label "$INSTALL_TYPE")"
+
+if [[ -n "$REVIEW_LABEL" && -d "$SCRIPT_DIR/core/reviews" ]]; then
+  if [[ "$REVIEW_LABEL" == "all" ]]; then
+    # Copy all review checklists
+    if ls "$SCRIPT_DIR/core/reviews/"*.md &>/dev/null; then
+      cp "$SCRIPT_DIR/core/reviews/"*.md "$PROJECT_ROOT/.claude/reviews/" 2>/dev/null || true
+      echo "  Copied all review checklists"
+    else
+      echo "  No review checklists found yet"
+    fi
+  else
+    # Copy specific review checklist
+    if [[ -f "$SCRIPT_DIR/core/reviews/${REVIEW_LABEL}.md" ]]; then
+      cp "$SCRIPT_DIR/core/reviews/${REVIEW_LABEL}.md" "$PROJECT_ROOT/.claude/reviews/"
+      echo "  Copied review checklist: ${REVIEW_LABEL}.md"
+    else
+      echo "  No review checklist found for: ${REVIEW_LABEL} (not yet available)"
+    fi
+  fi
+elif [[ -z "$REVIEW_LABEL" ]]; then
+  echo "  Skipping review checklists (type: $INSTALL_TYPE)"
+else
+  echo "  WARNING: No reviews directory found at $SCRIPT_DIR/core/reviews/"
+fi
+
+# ============================================================
+# 6. Install safety guards (if --with-guards)
+# ============================================================
+if [[ "$WITH_GUARDS" == true ]]; then
+  echo "Installing safety guards..."
+  if [[ -f "$SCRIPT_DIR/core/skills/guards/guards.yml.tmpl" ]]; then
+    if [[ ! -f "$PROJECT_ROOT/.claude/guards.yml" ]]; then
+      cp "$SCRIPT_DIR/core/skills/guards/guards.yml.tmpl" "$PROJECT_ROOT/.claude/guards.yml"
+      echo "  Created .claude/guards.yml from template"
+    else
+      echo "  Skipping .claude/guards.yml (already exists)"
+    fi
+  elif [[ -f "$SCRIPT_DIR/config/guards.yml.tmpl" ]]; then
+    if [[ ! -f "$PROJECT_ROOT/.claude/guards.yml" ]]; then
+      cp "$SCRIPT_DIR/config/guards.yml.tmpl" "$PROJECT_ROOT/.claude/guards.yml"
+      echo "  Created .claude/guards.yml from template"
+    else
+      echo "  Skipping .claude/guards.yml (already exists)"
+    fi
+  else
+    echo "  WARNING: guards.yml.tmpl not found — guards skill installed but no template available"
+  fi
+else
+  echo "Skipping safety guards (use --with-guards to install)"
+fi
+
+# ============================================================
+# 7. Create workflows.yml from defaults (only if not exists)
 # ============================================================
 if [[ ! -f "$PROJECT_ROOT/.claude/workflows.yml" ]]; then
   if [[ -f "$SCRIPT_DIR/config/defaults.yml" ]]; then
@@ -82,13 +236,13 @@ else
 fi
 
 # ============================================================
-# 5. Write version marker
+# 8. Write version marker
 # ============================================================
 echo "$VERSION" > "$PROJECT_ROOT/.claude/.workflows-version"
 echo "Wrote version $VERSION to .claude/.workflows-version"
 
 # ============================================================
-# 6. Append workflow instructions to CLAUDE.md (idempotent)
+# 9. Append workflow instructions to CLAUDE.md (idempotent)
 # ============================================================
 CLAUDE_MD="$PROJECT_ROOT/CLAUDE.md"
 MARKER_START="<!-- claude-workflows:start -->"
@@ -107,18 +261,36 @@ This project uses [claude-workflows](https://github.com/4SaleTech/claude-workflo
 - \`/workflow:release\` — Create a release
 - \`/workflow:review\` — Code review workflow
 - \`/workflow:brainstorm\` — Brainstorm solutions
+- \`/workflow:learn\` — Capture patterns from completed workflows
 - \`/workflow:status\` — Check current workflow state
 - \`/workflow:resume\` — Resume an in-progress workflow
 
 ### Configuration
 - Workflow config: \`.claude/workflows.yml\`
 - Core skills: \`.claude/skills/_core/\`
+- Language rules: \`.claude/rules/\`
+- Review checklists: \`.claude/reviews/\`
 - Workflow state: \`.workflows/\`
+- Learned patterns: \`.workflows/learned/\`
+
+### Dry Run
+Append \`--dry-run\` to any workflow command to preview without executing.
 $MARKER_END"
 
 if [[ -f "$CLAUDE_MD" ]]; then
   if grep -qF "$MARKER_START" "$CLAUDE_MD"; then
-    echo "Skipping CLAUDE.md (workflow section already present)"
+    echo "Updating workflow section in CLAUDE.md..."
+    # Remove old block and replace
+    TEMP_FILE="$(mktemp)"
+    awk -v start="$MARKER_START" -v end="$MARKER_END" '
+      $0 == start { skip=1; next }
+      $0 == end { skip=0; next }
+      !skip { print }
+    ' "$CLAUDE_MD" > "$TEMP_FILE"
+    echo "" >> "$TEMP_FILE"
+    echo "$WORKFLOW_BLOCK" >> "$TEMP_FILE"
+    mv "$TEMP_FILE" "$CLAUDE_MD"
+    echo "  Updated workflow instructions in CLAUDE.md"
   else
     echo "" >> "$CLAUDE_MD"
     echo "$WORKFLOW_BLOCK" >> "$CLAUDE_MD"
@@ -130,7 +302,7 @@ else
 fi
 
 # ============================================================
-# 7. Update .gitignore
+# 10. Update .gitignore
 # ============================================================
 GITIGNORE="$PROJECT_ROOT/.gitignore"
 
@@ -148,12 +320,23 @@ add_to_gitignore() {
 echo "Updating .gitignore..."
 add_to_gitignore ".workflows/current-state.md"
 add_to_gitignore ".workflows/history/"
+add_to_gitignore ".workflows/learned/"
 
 # ============================================================
 # Done
 # ============================================================
 echo ""
 echo "=== Installation complete! ==="
+echo ""
+echo "Installed:"
+echo "  Core skills:       .claude/skills/_core/"
+echo "  Templates:         .claude/templates/"
+if [[ -n "$RULE_FILES" ]]; then
+echo "  Language rules:    .claude/rules/ ($RULE_FILES)"
+fi
+if [[ "$WITH_GUARDS" == true ]]; then
+echo "  Safety guards:     .claude/guards.yml"
+fi
 echo ""
 echo "Next steps:"
 echo "  1. Edit .claude/workflows.yml to configure for your project"
