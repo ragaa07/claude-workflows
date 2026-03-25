@@ -285,6 +285,20 @@ WORKFLOW_BLOCK="$MARKER_START
 
 This project uses [claude-workflows](https://github.com/ragaa07/claude-workflows) for structured development.
 
+### Session Start — ALWAYS DO THIS
+At the start of every session:
+1. Check \`.workflows/current-state.md\` — if it exists, report the active workflow and current phase to the user. Offer to resume, restart, or abandon.
+2. Check \`.workflows/paused-*.md\` — if paused workflows exist, mention them.
+3. Read \`tasks/todo.md\` — check for in-progress items.
+4. Read \`tasks/lessons.md\` — apply relevant lessons.
+
+### Workflow State
+- Active workflow state is tracked in \`.workflows/current-state.md\`
+- Update this file at EVERY phase transition (phase name, status, timestamp)
+- When pausing: rename to \`.workflows/paused-<name>.md\`
+- When resuming: rename back to \`.workflows/current-state.md\`
+- When done: move to \`.workflows/history/\`
+
 ### Available Skills
 All workflow skills are auto-discovered from \`.claude/skills/\`. Key workflows:
 - \`/new-feature\` — Full feature workflow: spec, brainstorm, plan, implement, test, PR
