@@ -1,6 +1,6 @@
 # claude-workflows
 
-[![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)](VERSION)
+[![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)](VERSION)
 [![npm](https://img.shields.io/npm/v/claude-dev-workflows)](https://www.npmjs.com/package/claude-dev-workflows)
 
 **Portable, spec-driven development workflows for Claude Code AI agents.**
@@ -69,8 +69,8 @@ bash /tmp/claude-workflows/install.sh --type android --team android
 
 | Component | Path | Source |
 |-----------|------|--------|
-| Core skills (17) | `.claude/skills/_core/` | Always installed |
-| Team skills | `.claude/skills/_team/` | Only with `--team` |
+| Core skills (17) | `.claude/skills/` | Always installed |
+| Team skills | `.claude/skills/` | Merged with `--team` |
 | Language rules | `.claude/rules/` | Based on `--type` |
 | Review checklists | `.claude/reviews/` | Based on `--type` + `--team` |
 | Templates | `.claude/templates/` | Always installed |
@@ -82,7 +82,7 @@ bash /tmp/claude-workflows/install.sh --type android --team android
 
 ```bash
 cat .claude/.workflows-version
-# Should print: 1.2.0
+# Should print: 1.3.0
 ```
 
 Then start a Claude Code session and run:
@@ -374,34 +374,27 @@ Skills are organized in three tiers. Higher tiers override lower ones.
 ```
 .claude/
   skills/
-    _core/                    # Tier 3: Core skills (installed by claude-workflows)
-      new-feature/SKILL.md
-      hotfix/SKILL.md
-      ...
-    _team/                    # Tier 2: Team skills (installed with --team)
-      add-analytics-event/SKILL.md
-      create-screen/SKILL.md
-      ...
-    my-custom-skill/          # Tier 1: Project-specific skills (manual)
-      SKILL.md
+    new-feature/SKILL.md      # Core skill (auto-discovered as /new-feature)
+    hotfix/SKILL.md            # Core skill
+    brainstorm/SKILL.md        # Core skill
+    example-skill/SKILL.md     # Team skill (same level)
+    my-custom-skill/SKILL.md   # Project-specific skill (same level)
+    ...
 ```
 
-### Resolution Priority
+All skills are **auto-discovered** by Claude Code as slash commands. No registration needed.
 
-1. **Project skills**: `.claude/skills/<name>/SKILL.md` (highest priority)
-2. **Team skills**: `.claude/skills/_team/<name>/SKILL.md`
-3. **Core skills**: `.claude/skills/_core/<name>/SKILL.md`
-4. **Fallback**: Skill not found error
+### Install-Time Priority
+
+The installer copies skills in order — last write wins:
+
+1. **Core skills** are copied first
+2. **Team skills** overwrite core if same name (via `--team`)
+3. **Project skills** can be added manually after install to override anything
 
 ### Override Pattern
 
-To override any skill, create a skill with the same name at a higher tier:
-
-```
-.claude/skills/review/SKILL.md       # Project override (used)
-.claude/skills/_team/review/SKILL.md  # Team version (skipped)
-.claude/skills/_core/review/SKILL.md  # Core version (skipped)
-```
+To override a core skill, the team defines a skill with the same name in `teams/<team>/skills/`. Or a developer creates one manually in `.claude/skills/`.
 
 ---
 
@@ -605,13 +598,12 @@ npx claude-dev-workflows@1.2.0 upgrade
 ```
 
 The upgrade:
-1. Replaces core skills in `.claude/skills/_core/`
-2. Replaces team skills in `.claude/skills/_team/` (if `--team` specified)
+1. Replaces core skills in `.claude/skills/` (tracked via manifest)
+2. Copies team skills on top (if `--team` specified)
 3. Updates language rules (if `--type` specified)
-4. Re-registers all slash commands in `.claude/commands/workflow/`
-5. Preserves your `.claude/workflows.yml` configuration
-6. Preserves any project-specific skills in `.claude/skills/`
-7. Updates the version marker in `.claude/.workflows-version`
+4. Preserves your `.claude/workflows.yml` configuration
+5. Preserves project-specific skills not in the core manifest
+6. Updates the version marker in `.claude/.workflows-version`
 
 ---
 
@@ -680,10 +672,8 @@ When a `/workflow:<command>` is invoked:
 
 1. Check if it is a **utility command** (status, resume, pause, abandon, history)
 2. Check if it is an **alias** defined in `skills.aliases`
-3. Resolve to a **project skill** (`.claude/skills/<name>/SKILL.md`)
-4. Resolve to a **team skill** (`.claude/skills/_team/<name>/SKILL.md`)
-5. Fall back to a **core skill** (`.claude/skills/_core/<name>/SKILL.md`)
-6. Report **skill not found**
+3. Resolve to a **skill** (`.claude/skills/<name>/SKILL.md`)
+4. Report **skill not found**
 
 ---
 

@@ -26,7 +26,6 @@ function parseArgs(argv) {
     return args;
   }
 
-  // First positional arg is the command
   if (!argv[0].startsWith("--")) {
     args.command = argv[0];
     i = 1;
@@ -95,13 +94,8 @@ function getRuleFiles(type) {
     go: ["go.md"],
     generic: [],
     all: [
-      "kotlin.md",
-      "compose.md",
-      "typescript.md",
-      "react.md",
-      "python.md",
-      "swift.md",
-      "go.md",
+      "kotlin.md", "compose.md", "typescript.md", "react.md",
+      "python.md", "swift.md", "go.md",
     ],
   };
   if (!map[type]) {
@@ -126,45 +120,6 @@ function getReviewLabel(type) {
   return map[type] || "";
 }
 
-function registerCommands(root) {
-  // Claude Code registers slash commands from .claude/commands/
-  // Subdirectories become namespaces: workflow/new-feature.md → /workflow:new-feature
-  const commandsDir = path.join(root, ".claude/commands/workflow");
-  fs.mkdirSync(commandsDir, { recursive: true });
-
-  // Collect skills in priority order: project > team > core
-  const sources = [
-    path.join(root, ".claude/skills"),       // project skills (top-level, not _core/_team)
-    path.join(root, ".claude/skills/_team"),  // team skills
-    path.join(root, ".claude/skills/_core"),  // core skills
-  ];
-
-  const registered = new Set();
-  let count = 0;
-
-  for (const sourceDir of sources) {
-    if (!fs.existsSync(sourceDir)) continue;
-
-    for (const entry of fs.readdirSync(sourceDir, { withFileTypes: true })) {
-      if (!entry.isDirectory()) continue;
-      if (entry.name.startsWith("_")) continue; // skip _core, _team when scanning project root
-
-      const skillName = entry.name;
-      if (registered.has(skillName)) continue; // higher priority already registered
-
-      const skillMd = path.join(sourceDir, entry.name, "SKILL.md");
-      if (fs.existsSync(skillMd)) {
-        const content = fs.readFileSync(skillMd, "utf8");
-        fs.writeFileSync(path.join(commandsDir, `${skillName}.md`), content);
-        registered.add(skillName);
-        count++;
-      }
-    }
-  }
-
-  return count;
-}
-
 function addToGitignore(gitignorePath, entry) {
   if (fs.existsSync(gitignorePath)) {
     const content = fs.readFileSync(gitignorePath, "utf8");
@@ -175,8 +130,25 @@ function addToGitignore(gitignorePath, entry) {
   }
 }
 
+// Write a manifest of core skill names for safe upgrades
+function writeCoreManifest(root, skillNames) {
+  const manifest = `# Core skills installed by claude-workflows v${VERSION}\n` +
+    `# Used by upgrade to know which skills to replace\n` +
+    skillNames.join("\n") + "\n";
+  fs.writeFileSync(path.join(root, ".claude/.core-skills"), manifest);
+}
+
+function readCoreManifest(root) {
+  const manifestPath = path.join(root, ".claude/.core-skills");
+  if (!fs.existsSync(manifestPath)) return [];
+  return fs.readFileSync(manifestPath, "utf8")
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l && !l.startsWith("#"));
+}
+
 // ============================================================
-// Init command (port of install.sh)
+// Init command
 // ============================================================
 function cmdInit(args) {
   const root = detectProjectRoot();
@@ -203,8 +175,7 @@ function cmdInit(args) {
   // 1. Create directory structure
   console.log("Creating directory structure...");
   for (const dir of [
-    ".claude/skills/_core",
-    ".claude/commands",
+    ".claude/skills",
     ".claude/templates",
     ".claude/rules",
     ".claude/reviews",
@@ -215,22 +186,40 @@ function cmdInit(args) {
     fs.mkdirSync(path.join(root, dir), { recursive: true });
   }
 
-  // 2. Copy core skills
+  // 2. Copy core skills (flat into .claude/skills/)
   console.log("Installing core skills...");
   const coreSkillsSrc = path.join(PKG_ROOT, "core", "skills");
+  const coreSkillNames = [];
   if (fs.existsSync(coreSkillsSrc)) {
-    copyDirRecursive(coreSkillsSrc, path.join(root, ".claude/skills/_core"));
-    console.log("  Copied core skills to .claude/skills/_core/");
+    for (const entry of fs.readdirSync(coreSkillsSrc, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      copyDirRecursive(
+        path.join(coreSkillsSrc, entry.name),
+        path.join(root, ".claude/skills", entry.name)
+      );
+      coreSkillNames.push(entry.name);
+    }
+    console.log(`  Installed ${coreSkillNames.length} core skills to .claude/skills/`);
   }
 
-  // 2b. Copy team skills
+  // Write core manifest for upgrade tracking
+  writeCoreManifest(root, coreSkillNames);
+
+  // 3. Copy team skills (flat into .claude/skills/, overwrites core if same name)
   if (team && teamDir) {
     console.log(`Installing team skills for: ${team}...`);
     const teamSkills = path.join(teamDir, "skills");
     if (fs.existsSync(teamSkills)) {
-      fs.mkdirSync(path.join(root, ".claude/skills/_team"), { recursive: true });
-      copyDirRecursive(teamSkills, path.join(root, ".claude/skills/_team"));
-      console.log("  Copied team skills to .claude/skills/_team/");
+      let teamCount = 0;
+      for (const entry of fs.readdirSync(teamSkills, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue;
+        copyDirRecursive(
+          path.join(teamSkills, entry.name),
+          path.join(root, ".claude/skills", entry.name)
+        );
+        teamCount++;
+      }
+      console.log(`  Installed ${teamCount} team skills to .claude/skills/`);
     }
     const teamRules = path.join(teamDir, "rules");
     if (fs.existsSync(teamRules)) {
@@ -254,7 +243,7 @@ function cmdInit(args) {
     }
   }
 
-  // 3. Copy templates
+  // 4. Copy templates
   console.log("Installing templates...");
   const templatesSrc = path.join(PKG_ROOT, "core", "templates");
   if (fs.existsSync(templatesSrc)) {
@@ -265,7 +254,7 @@ function cmdInit(args) {
     console.log("  Copied templates to .claude/templates/");
   }
 
-  // 4. Copy language rules
+  // 5. Copy language rules
   console.log("Installing language rules...");
   const ruleFiles = getRuleFiles(type);
   const rulesSrc = path.join(PKG_ROOT, "core", "rules");
@@ -283,7 +272,7 @@ function cmdInit(args) {
     console.log(`  Skipping language rules (type: ${type})`);
   }
 
-  // 5. Copy review checklists
+  // 6. Copy review checklists
   console.log("Installing review checklists...");
   const reviewLabel = getReviewLabel(type);
   const reviewsSrc = path.join(PKG_ROOT, "core", "reviews");
@@ -307,7 +296,7 @@ function cmdInit(args) {
     }
   }
 
-  // 6. Safety guards
+  // 7. Safety guards
   if (withGuards) {
     console.log("Installing safety guards...");
     const guardsSrc = path.join(PKG_ROOT, "core", "templates", "guards.yml.tmpl");
@@ -324,7 +313,7 @@ function cmdInit(args) {
     console.log("Skipping safety guards (use --with-guards to install)");
   }
 
-  // 7. Create workflows.yml
+  // 8. Create workflows.yml
   const workflowsYml = path.join(root, ".claude/workflows.yml");
   if (!fs.existsSync(workflowsYml)) {
     const defaultsSrc = path.join(PKG_ROOT, "config", "defaults.yml");
@@ -339,11 +328,6 @@ function cmdInit(args) {
   } else {
     console.log("Skipping .claude/workflows.yml (already exists)");
   }
-
-  // 8. Register slash commands
-  console.log("Registering workflow commands...");
-  const cmdCount = registerCommands(root);
-  console.log(`  Registered ${cmdCount} commands in .claude/commands/`);
 
   // 9. Write version marker
   fs.writeFileSync(path.join(root, ".claude/.workflows-version"), VERSION + "\n");
@@ -364,8 +348,7 @@ function cmdInit(args) {
   console.log("=== Installation complete! ===");
   console.log();
   console.log("Installed:");
-  console.log("  Core skills:       .claude/skills/_core/");
-  if (team) console.log(`  Team skills:       .claude/skills/_team/ (${team})`);
+  console.log("  Skills:            .claude/skills/");
   console.log("  Templates:         .claude/templates/");
   if (ruleFiles.length > 0)
     console.log(`  Language rules:    .claude/rules/ (${ruleFiles.join(", ")})`);
@@ -373,56 +356,44 @@ function cmdInit(args) {
   console.log();
   console.log("Next steps:");
   console.log("  1. Edit .claude/workflows.yml to configure for your project");
-  console.log("  2. Run /workflow:new-feature to start your first workflow");
+  console.log("  2. Run /workflow-engine to start your first workflow");
   console.log("  3. Commit the .claude/ directory to your repository");
   console.log();
   console.log(`Installed version: ${VERSION}`);
 }
 
 // ============================================================
-// CLAUDE.md injection (shared by init and upgrade)
+// CLAUDE.md injection
 // ============================================================
 function updateClaudeMd(root, team) {
   const claudeMdPath = path.join(root, "CLAUDE.md");
   const MARKER_START = "<!-- claude-workflows:start -->";
   const MARKER_END = "<!-- claude-workflows:end -->";
 
-  const teamSkillsLine = team
-    ? `\n- Team skills (${team}): \`.claude/skills/_team/\``
-    : "";
-
-  const teamCommands = team
-    ? `\n\n### Team Skills (${team})\nTeam-specific workflows available via \`/workflow:<skill-name>\`. Check \`.claude/skills/_team/\` for all available team skills.`
-    : "";
+  const teamLine = team ? ` (team: ${team})` : "";
 
   const block = `${MARKER_START}
 ## Workflows
 
 This project uses [claude-workflows](https://github.com/ragaa07/claude-workflows) for structured development.
 
-### Available Commands
-- \`/workflow:new-feature\` — Start a new feature workflow
-- \`/workflow:extend-feature\` — Extend an existing feature
-- \`/workflow:hotfix\` — Quick production fix
-- \`/workflow:refactor\` — Refactor existing code
-- \`/workflow:release\` — Create a release
-- \`/workflow:review\` — Code review workflow
-- \`/workflow:brainstorm\` — Brainstorm solutions
-- \`/workflow:learn\` — Capture patterns from completed workflows
-- \`/workflow:status\` — Check current workflow state
-- \`/workflow:resume\` — Resume an in-progress workflow
-${teamCommands}
+### Available Skills
+All workflow skills are auto-discovered from \`.claude/skills/\`. Key workflows:
+- \`/new-feature\` — Full feature workflow: spec, brainstorm, plan, implement, test, PR
+- \`/extend-feature\` — Extend an existing feature
+- \`/hotfix\` — Quick production fix
+- \`/refactor\` — Refactor existing code
+- \`/release\` — Create a release
+- \`/review\` — Code review workflow
+- \`/brainstorm\` — Brainstorm solutions
+- \`/test\` — Generate tests
 
 ### Configuration
 - Workflow config: \`.claude/workflows.yml\`
-- Core skills: \`.claude/skills/_core/\`${teamSkillsLine}
+- Skills${teamLine}: \`.claude/skills/\`
 - Language rules: \`.claude/rules/\`
 - Review checklists: \`.claude/reviews/\`
 - Workflow state: \`.workflows/\`
-- Learned patterns: \`.workflows/learned/\`
-
-### Dry Run
-Append \`--dry-run\` to any workflow command to preview without executing.
 ${MARKER_END}`;
 
   if (fs.existsSync(claudeMdPath)) {
@@ -451,7 +422,7 @@ function escapeRegex(str) {
 }
 
 // ============================================================
-// Upgrade command (port of upgrade.sh)
+// Upgrade command
 // ============================================================
 function cmdUpgrade(args) {
   const root = detectProjectRoot();
@@ -462,7 +433,7 @@ function cmdUpgrade(args) {
     console.error("ERROR: No existing claude-workflows installation found.");
     console.error(`  Expected version file at: ${versionFile}`);
     console.error();
-    console.error("Run 'claude-workflows init' first.");
+    console.error("Run 'claude-dev-workflows init' first.");
     process.exit(1);
   }
 
@@ -491,26 +462,53 @@ function cmdUpgrade(args) {
     return;
   }
 
-  // 1. Replace core skills
+  // 1. Replace core skills (only those tracked in manifest)
   console.log("Upgrading core skills...");
-  const coreSkillsDest = path.join(root, ".claude/skills/_core");
-  const coreSkillsSrc = path.join(PKG_ROOT, "core", "skills");
-  if (fs.existsSync(coreSkillsSrc)) {
-    fs.rmSync(coreSkillsDest, { recursive: true, force: true });
-    copyDirRecursive(coreSkillsSrc, coreSkillsDest);
-    console.log("  Replaced .claude/skills/_core/");
+  const oldCoreSkills = readCoreManifest(root);
+  const skillsDir = path.join(root, ".claude/skills");
+
+  // Remove old core skills
+  for (const name of oldCoreSkills) {
+    const skillDir = path.join(skillsDir, name);
+    if (fs.existsSync(skillDir)) {
+      fs.rmSync(skillDir, { recursive: true, force: true });
+    }
   }
 
-  // 1b. Replace team skills
+  // Copy new core skills
+  const coreSkillsSrc = path.join(PKG_ROOT, "core", "skills");
+  const newCoreSkillNames = [];
+  if (fs.existsSync(coreSkillsSrc)) {
+    for (const entry of fs.readdirSync(coreSkillsSrc, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      copyDirRecursive(
+        path.join(coreSkillsSrc, entry.name),
+        path.join(skillsDir, entry.name)
+      );
+      newCoreSkillNames.push(entry.name);
+    }
+    console.log(`  Replaced ${newCoreSkillNames.length} core skills`);
+  }
+
+  // Update manifest
+  writeCoreManifest(root, newCoreSkillNames);
+
+  // 2. Copy team skills on top (overwrites core if same name)
   if (team) {
     console.log(`Upgrading team skills for: ${team}...`);
     const teamDir = path.join(PKG_ROOT, "teams", team);
     const teamSkillsSrc = path.join(teamDir, "skills");
     if (fs.existsSync(teamSkillsSrc)) {
-      const teamSkillsDest = path.join(root, ".claude/skills/_team");
-      fs.rmSync(teamSkillsDest, { recursive: true, force: true });
-      copyDirRecursive(teamSkillsSrc, teamSkillsDest);
-      console.log("  Replaced .claude/skills/_team/");
+      let teamCount = 0;
+      for (const entry of fs.readdirSync(teamSkillsSrc, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue;
+        copyDirRecursive(
+          path.join(teamSkillsSrc, entry.name),
+          path.join(skillsDir, entry.name)
+        );
+        teamCount++;
+      }
+      console.log(`  Updated ${teamCount} team skills`);
     }
     const teamRules = path.join(teamDir, "rules");
     if (fs.existsSync(teamRules)) {
@@ -521,7 +519,7 @@ function cmdUpgrade(args) {
           path.join(root, ".claude/rules", f)
         );
       }
-      console.log("  Updated team rules in .claude/rules/");
+      console.log("  Updated team rules");
     }
     const teamReviews = path.join(teamDir, "reviews");
     if (fs.existsSync(teamReviews)) {
@@ -532,11 +530,11 @@ function cmdUpgrade(args) {
           path.join(root, ".claude/reviews", f)
         );
       }
-      console.log("  Updated team review checklists in .claude/reviews/");
+      console.log("  Updated team review checklists");
     }
   }
 
-  // 2. Replace templates
+  // 3. Replace templates
   console.log("Upgrading templates...");
   const templatesSrc = path.join(PKG_ROOT, "core", "templates");
   const templatesDest = path.join(root, ".claude/templates");
@@ -549,7 +547,7 @@ function cmdUpgrade(args) {
     console.log("  Replaced .claude/templates/");
   }
 
-  // 3. Upgrade language rules
+  // 4. Upgrade language rules
   if (type) {
     console.log("Upgrading language rules...");
     fs.mkdirSync(path.join(root, ".claude/rules"), { recursive: true });
@@ -565,10 +563,10 @@ function cmdUpgrade(args) {
       }
     }
   } else {
-    console.log("Skipping language rules (no --type specified, preserving existing)");
+    console.log("Skipping language rules (no --type specified)");
   }
 
-  // 4. Upgrade review checklists
+  // 5. Upgrade review checklists
   if (type) {
     console.log("Upgrading review checklists...");
     fs.mkdirSync(path.join(root, ".claude/reviews"), { recursive: true });
@@ -586,53 +584,42 @@ function cmdUpgrade(args) {
       } else {
         const src = path.join(reviewsSrc, `${reviewLabel}.md`);
         if (fs.existsSync(src)) {
-          fs.copyFileSync(
-            src,
-            path.join(root, ".claude/reviews", `${reviewLabel}.md`)
-          );
+          fs.copyFileSync(src, path.join(root, ".claude/reviews", `${reviewLabel}.md`));
           console.log(`  Updated review checklist: ${reviewLabel}.md`);
         }
       }
     }
   } else {
-    console.log("Skipping review checklists (no --type specified, preserving existing)");
+    console.log("Skipping review checklists (no --type specified)");
   }
 
-  // 5. Upgrade guards
+  // 6. Upgrade guards
   if (withGuards) {
     console.log("Upgrading safety guards...");
     const guardsSrc = path.join(PKG_ROOT, "core", "templates", "guards.yml.tmpl");
     if (fs.existsSync(guardsSrc)) {
       fs.copyFileSync(guardsSrc, path.join(root, ".claude/guards.yml"));
-      console.log("  Updated .claude/guards.yml from template");
+      console.log("  Updated .claude/guards.yml");
     }
   }
 
-  // 6. Ensure directories
+  // 7. Ensure directories
   fs.mkdirSync(path.join(root, ".claude/rules"), { recursive: true });
   fs.mkdirSync(path.join(root, ".claude/reviews"), { recursive: true });
   fs.mkdirSync(path.join(root, ".workflows/learned"), { recursive: true });
 
-  // 7. Preserved
+  // 8. Preserved
   console.log();
   console.log("Preserved (not modified):");
   console.log("  .claude/workflows.yml");
-  console.log("  .claude/skills/ (project skills outside _core/ and _team/)");
+  console.log("  .claude/skills/ (project-specific skills)");
   if (!type) {
     console.log("  .claude/rules/ (use --type to update)");
     console.log("  .claude/reviews/ (use --type to update)");
   }
-  if (!team) {
-    console.log("  .claude/skills/_team/ (use --team to update)");
-  }
   if (!withGuards) {
     console.log("  .claude/guards.yml (use --with-guards to update)");
   }
-
-  // 8. Re-register slash commands
-  console.log("Registering workflow commands...");
-  const cmdCount = registerCommands(root);
-  console.log(`  Registered ${cmdCount} commands in .claude/commands/`);
 
   // 9. Update version
   fs.writeFileSync(versionFile, VERSION + "\n");
@@ -692,10 +679,10 @@ function cmdHelp() {
   console.log(`claude-workflows v${VERSION}
 
 Usage:
-  claude-workflows init     [--type TYPE] [--team TEAM] [--with-guards]
-  claude-workflows upgrade  [--type TYPE] [--team TEAM] [--with-guards]
-  claude-workflows version
-  claude-workflows list-teams
+  claude-dev-workflows init     [--type TYPE] [--team TEAM] [--with-guards]
+  claude-dev-workflows upgrade  [--type TYPE] [--team TEAM] [--with-guards]
+  claude-dev-workflows version
+  claude-dev-workflows list-teams
 
 Commands:
   init          Install workflows into the current project

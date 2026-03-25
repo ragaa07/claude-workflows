@@ -25,9 +25,7 @@ All workflow config lives in `.claude/workflows.yml`. Key sections:
 | Purpose | Path |
 |---------|------|
 | Workflow config | `.claude/workflows.yml` |
-| Core skills | `.claude/skills/_core/` |
-| Team skills | `.claude/skills/_team/` |
-| Project skills | `.claude/skills/<name>/` (overrides) |
+| All skills | `.claude/skills/<name>/SKILL.md` |
 | Language rules | `.claude/rules/` |
 | Review checklists | `.claude/reviews/` |
 | Workflow state | `.workflows/current-state.md` |
@@ -63,24 +61,20 @@ After ANY correction from the user or unexpected failure:
 - Main thread writes all implementation code -- sub-agents only read and analyze
 - Use sub-agents to keep the main context window clean for implementation work
 
-## Available Commands
+## Available Skills
 
-| Command | Description |
-|---------|-------------|
-| `/workflow:new-feature` | Full feature workflow (spec -> brainstorm -> plan -> implement -> test -> PR) |
-| `/workflow:extend-feature` | Extend existing feature |
-| `/workflow:hotfix` | Quick fix branched from production |
-| `/workflow:refactor` | Refactoring workflow |
-| `/workflow:release` | Release preparation |
-| `/workflow:review` | Code review workflow |
-| `/workflow:brainstorm` | Standalone brainstorming session |
-| `/workflow:status` | Show active workflow state |
-| `/workflow:resume` | Resume a paused workflow |
-| `/workflow:pause` | Pause current workflow |
-| `/workflow:abandon` | Discard current workflow |
-| `/workflow:history` | List completed workflows |
+All skills are auto-discovered from `.claude/skills/`. Key workflows:
+
+| Skill | Description |
+|-------|-------------|
+| `/new-feature` | Full feature workflow (spec -> brainstorm -> plan -> implement -> test -> PR) |
+| `/extend-feature` | Extend existing feature |
+| `/hotfix` | Quick fix branched from production |
+| `/refactor` | Refactoring workflow |
+| `/release` | Release preparation |
+| `/review` | Code review workflow |
+| `/brainstorm` | Standalone brainstorming session |
+| `/test` | Generate tests |
+| `/workflow-engine` | Show active workflow state, resume, pause, abandon |
 
 Aliases are defined in `.claude/workflows.yml` under `skills.aliases`.
-
-Team-specific skills (in `.claude/skills/_team/`) are also available via `/workflow:<skill-name>`.
-Skill resolution order: project overrides > team skills > core skills.

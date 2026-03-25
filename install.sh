@@ -6,15 +6,14 @@ set -euo pipefail
 # ============================================================
 # Usage:
 #   bash install.sh                    # Install everything (default)
-#   bash install.sh --type android     # Install core + kotlin + compose rules + Android review checklist
-#   bash install.sh --type react       # Install core + typescript + react rules + TS review checklist
-#   bash install.sh --type python      # Install core + python rules + Python review checklist
-#   bash install.sh --type swift       # Install core + swift rules + Swift review checklist
-#   bash install.sh --type go          # Install core + go rules + Go review checklist
+#   bash install.sh --type android     # Install core + kotlin + compose rules
+#   bash install.sh --type react       # Install core + typescript + react rules
+#   bash install.sh --type python      # Install core + python rules
+#   bash install.sh --type swift       # Install core + swift rules
+#   bash install.sh --type go          # Install core + go rules
 #   bash install.sh --type generic     # Install core only, no language rules
 #   bash install.sh --with-guards      # Also install safety guards
 #   bash install.sh --team android     # Also install team-specific skills/rules/reviews
-#   bash install.sh --type android --team android  # Full android team setup
 # ============================================================
 
 # ============================================================
@@ -52,20 +51,18 @@ done
 if [[ -n "${BASH_SOURCE[0]:-}" && -f "${BASH_SOURCE[0]}" ]]; then
   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 else
-  # Likely piped via curl — look for a local clone
   SCRIPT_DIR="$(pwd)"
 fi
 
 # Read version
 if [[ -f "$SCRIPT_DIR/VERSION" ]]; then
-  VERSION="$(cat "$SCRIPT_DIR/VERSION" | tr -d '[:space:]')"
+  VERSION="$(tr -d '[:space:]' < "$SCRIPT_DIR/VERSION")"
 else
   echo "ERROR: VERSION file not found in $SCRIPT_DIR"
-  echo "Please run this script from the claude-workflows repository root."
   exit 1
 fi
 
-# Validate team (if specified)
+# Validate team
 if [[ -n "$TEAM_NAME" ]]; then
   TEAM_DIR="$SCRIPT_DIR/teams/$TEAM_NAME"
   if [[ ! -d "$TEAM_DIR" ]]; then
@@ -79,7 +76,7 @@ if [[ -n "$TEAM_NAME" ]]; then
   fi
 fi
 
-# Detect project root (git root or cwd)
+# Detect project root
 if git rev-parse --show-toplevel &>/dev/null; then
   PROJECT_ROOT="$(git rev-parse --show-toplevel)"
 else
@@ -89,14 +86,12 @@ fi
 echo "=== claude-workflows installer v${VERSION} ==="
 echo "Project root: ${PROJECT_ROOT}"
 echo "Install type: ${INSTALL_TYPE}"
-if [[ -n "$TEAM_NAME" ]]; then
-echo "Team:         ${TEAM_NAME}"
-fi
+[[ -n "$TEAM_NAME" ]] && echo "Team:         ${TEAM_NAME}"
 echo "With guards:  ${WITH_GUARDS}"
 echo ""
 
 # ============================================================
-# Helper: map --type to language rule files
+# Helpers
 # ============================================================
 get_rule_files() {
   local type="$1"
@@ -109,7 +104,7 @@ get_rule_files() {
     generic)  echo "" ;;
     all)      echo "kotlin.md compose.md typescript.md react.md python.md swift.md go.md" ;;
     *)
-      echo "ERROR: Unknown type '$type'. Valid types: android, react, python, swift, go, generic, all" >&2
+      echo "ERROR: Unknown type '$type'" >&2
       exit 1
       ;;
   esac
@@ -129,13 +124,22 @@ get_review_label() {
   esac
 }
 
+add_to_gitignore() {
+  local entry="$1"
+  if [[ -f "$GITIGNORE" ]]; then
+    if ! grep -qxF "$entry" "$GITIGNORE"; then
+      echo "$entry" >> "$GITIGNORE"
+    fi
+  else
+    echo "$entry" > "$GITIGNORE"
+  fi
+}
+
 # ============================================================
 # 1. Create directory structure
 # ============================================================
 echo "Creating directory structure..."
-
-mkdir -p "$PROJECT_ROOT/.claude/skills/_core"
-mkdir -p "$PROJECT_ROOT/.claude/commands/workflow"
+mkdir -p "$PROJECT_ROOT/.claude/skills"
 mkdir -p "$PROJECT_ROOT/.claude/templates"
 mkdir -p "$PROJECT_ROOT/.claude/rules"
 mkdir -p "$PROJECT_ROOT/.claude/reviews"
@@ -144,28 +148,35 @@ mkdir -p "$PROJECT_ROOT/.workflows/history"
 mkdir -p "$PROJECT_ROOT/.workflows/learned"
 
 # ============================================================
-# 2. Copy core skills
+# 2. Copy core skills (flat into .claude/skills/)
 # ============================================================
 echo "Installing core skills..."
-
+CORE_SKILLS=""
 if [[ -d "$SCRIPT_DIR/core/skills" ]]; then
-  cp -R "$SCRIPT_DIR/core/skills/"* "$PROJECT_ROOT/.claude/skills/_core/" 2>/dev/null || true
-  echo "  Copied core skills to .claude/skills/_core/"
-else
-  echo "  WARNING: No core skills found at $SCRIPT_DIR/core/skills/"
+  for skill_dir in "$SCRIPT_DIR/core/skills"/*/; do
+    skill_name="$(basename "$skill_dir")"
+    cp -R "$skill_dir" "$PROJECT_ROOT/.claude/skills/$skill_name"
+    CORE_SKILLS="$CORE_SKILLS$skill_name\n"
+  done
+  echo "  Installed core skills to .claude/skills/"
 fi
 
+# Write core manifest for upgrade tracking
+printf "# Core skills installed by claude-workflows v%s\n%b" "$VERSION" "$CORE_SKILLS" > "$PROJECT_ROOT/.claude/.core-skills"
+
 # ============================================================
-# 2b. Copy team skills (if --team specified)
+# 3. Copy team skills (flat into .claude/skills/, overwrites core)
 # ============================================================
 if [[ -n "$TEAM_NAME" ]]; then
   echo "Installing team skills for: $TEAM_NAME..."
   TEAM_DIR="$SCRIPT_DIR/teams/$TEAM_NAME"
 
   if [[ -d "$TEAM_DIR/skills" ]]; then
-    mkdir -p "$PROJECT_ROOT/.claude/skills/_team"
-    cp -R "$TEAM_DIR/skills/"* "$PROJECT_ROOT/.claude/skills/_team/"
-    echo "  Copied team skills to .claude/skills/_team/"
+    for skill_dir in "$TEAM_DIR/skills"/*/; do
+      skill_name="$(basename "$skill_dir")"
+      cp -R "$skill_dir" "$PROJECT_ROOT/.claude/skills/$skill_name"
+    done
+    echo "  Installed team skills to .claude/skills/"
   fi
 
   if [[ -d "$TEAM_DIR/rules" ]]; then
@@ -180,72 +191,49 @@ if [[ -n "$TEAM_NAME" ]]; then
 fi
 
 # ============================================================
-# 3. Copy templates
+# 4. Copy templates
 # ============================================================
 echo "Installing templates..."
-
 if [[ -d "$SCRIPT_DIR/core/templates" ]]; then
   cp -R "$SCRIPT_DIR/core/templates/"* "$PROJECT_ROOT/.claude/templates/" 2>/dev/null || true
   echo "  Copied templates to .claude/templates/"
-else
-  echo "  WARNING: No templates found at $SCRIPT_DIR/core/templates/"
 fi
 
 # ============================================================
-# 4. Copy language rules (based on --type)
+# 5. Copy language rules
 # ============================================================
 echo "Installing language rules..."
-
 RULE_FILES="$(get_rule_files "$INSTALL_TYPE")"
-
 if [[ -n "$RULE_FILES" && -d "$SCRIPT_DIR/core/rules" ]]; then
   for rule_file in $RULE_FILES; do
     if [[ -f "$SCRIPT_DIR/core/rules/$rule_file" ]]; then
       cp "$SCRIPT_DIR/core/rules/$rule_file" "$PROJECT_ROOT/.claude/rules/"
       echo "  Copied rule: $rule_file"
-    else
-      echo "  WARNING: Rule file not found: $rule_file"
     fi
   done
 elif [[ -z "$RULE_FILES" ]]; then
   echo "  Skipping language rules (type: $INSTALL_TYPE)"
-else
-  echo "  WARNING: No rules directory found at $SCRIPT_DIR/core/rules/"
 fi
 
 # ============================================================
-# 5. Copy review checklists (based on --type)
+# 6. Copy review checklists
 # ============================================================
 echo "Installing review checklists..."
-
 REVIEW_LABEL="$(get_review_label "$INSTALL_TYPE")"
-
 if [[ -n "$REVIEW_LABEL" && -d "$SCRIPT_DIR/core/reviews" ]]; then
   if [[ "$REVIEW_LABEL" == "all" ]]; then
-    # Copy all review checklists
-    if ls "$SCRIPT_DIR/core/reviews/"*.md &>/dev/null; then
-      cp "$SCRIPT_DIR/core/reviews/"*.md "$PROJECT_ROOT/.claude/reviews/" 2>/dev/null || true
-      echo "  Copied all review checklists"
-    else
-      echo "  No review checklists found yet"
-    fi
+    cp "$SCRIPT_DIR/core/reviews/"*.md "$PROJECT_ROOT/.claude/reviews/" 2>/dev/null || true
+    echo "  Copied all review checklists"
   else
-    # Copy specific review checklist
     if [[ -f "$SCRIPT_DIR/core/reviews/${REVIEW_LABEL}.md" ]]; then
       cp "$SCRIPT_DIR/core/reviews/${REVIEW_LABEL}.md" "$PROJECT_ROOT/.claude/reviews/"
       echo "  Copied review checklist: ${REVIEW_LABEL}.md"
-    else
-      echo "  No review checklist found for: ${REVIEW_LABEL} (not yet available)"
     fi
   fi
-elif [[ -z "$REVIEW_LABEL" ]]; then
-  echo "  Skipping review checklists (type: $INSTALL_TYPE)"
-else
-  echo "  WARNING: No reviews directory found at $SCRIPT_DIR/core/reviews/"
 fi
 
 # ============================================================
-# 6. Install safety guards (if --with-guards)
+# 7. Safety guards
 # ============================================================
 if [[ "$WITH_GUARDS" == true ]]; then
   echo "Installing safety guards..."
@@ -256,15 +244,13 @@ if [[ "$WITH_GUARDS" == true ]]; then
     else
       echo "  Skipping .claude/guards.yml (already exists)"
     fi
-  else
-    echo "  WARNING: guards.yml.tmpl not found"
   fi
 else
   echo "Skipping safety guards (use --with-guards to install)"
 fi
 
 # ============================================================
-# 7. Create workflows.yml from defaults (only if not exists)
+# 8. Create workflows.yml
 # ============================================================
 if [[ ! -f "$PROJECT_ROOT/.claude/workflows.yml" ]]; then
   if [[ -f "$SCRIPT_DIR/config/defaults.yml" ]]; then
@@ -273,54 +259,10 @@ if [[ ! -f "$PROJECT_ROOT/.claude/workflows.yml" ]]; then
       sed -i '' "s/^  team: \"\"/  team: \"$TEAM_NAME\"/" "$PROJECT_ROOT/.claude/workflows.yml"
     fi
     echo "Created .claude/workflows.yml from defaults"
-  else
-    echo "  WARNING: defaults.yml not found at $SCRIPT_DIR/config/defaults.yml"
   fi
 else
   echo "Skipping .claude/workflows.yml (already exists)"
 fi
-
-# ============================================================
-# 8. Register slash commands (.claude/commands/workflow/)
-# ============================================================
-echo "Registering workflow commands..."
-CMD_COUNT=0
-CMD_DIR="$PROJECT_ROOT/.claude/commands/workflow"
-mkdir -p "$CMD_DIR"
-
-# Register from core skills
-if [[ -d "$PROJECT_ROOT/.claude/skills/_core" ]]; then
-  for skill_dir in "$PROJECT_ROOT/.claude/skills/_core"/*/; do
-    skill_name="$(basename "$skill_dir")"
-    if [[ -f "$skill_dir/SKILL.md" ]]; then
-      cp "$skill_dir/SKILL.md" "$CMD_DIR/${skill_name}.md"
-      CMD_COUNT=$((CMD_COUNT + 1))
-    fi
-  done
-fi
-
-# Register from team skills (overrides core)
-if [[ -d "$PROJECT_ROOT/.claude/skills/_team" ]]; then
-  for skill_dir in "$PROJECT_ROOT/.claude/skills/_team"/*/; do
-    skill_name="$(basename "$skill_dir")"
-    if [[ -f "$skill_dir/SKILL.md" ]]; then
-      cp "$skill_dir/SKILL.md" "$CMD_DIR/${skill_name}.md"
-      CMD_COUNT=$((CMD_COUNT + 1))
-    fi
-  done
-fi
-
-# Register from project skills (overrides all)
-for skill_dir in "$PROJECT_ROOT/.claude/skills"/*/; do
-  skill_name="$(basename "$skill_dir")"
-  [[ "$skill_name" == _* ]] && continue
-  if [[ -f "$skill_dir/SKILL.md" ]]; then
-    cp "$skill_dir/SKILL.md" "$CMD_DIR/${skill_name}.md"
-    CMD_COUNT=$((CMD_COUNT + 1))
-  fi
-done
-
-echo "  Registered $CMD_COUNT commands in .claude/commands/workflow/"
 
 # ============================================================
 # 9. Write version marker
@@ -329,62 +271,42 @@ echo "$VERSION" > "$PROJECT_ROOT/.claude/.workflows-version"
 echo "Wrote version $VERSION to .claude/.workflows-version"
 
 # ============================================================
-# 9. Append workflow instructions to CLAUDE.md (idempotent)
+# 10. Update CLAUDE.md
 # ============================================================
 CLAUDE_MD="$PROJECT_ROOT/CLAUDE.md"
 MARKER_START="<!-- claude-workflows:start -->"
 MARKER_END="<!-- claude-workflows:end -->"
 
-# Build team skills line for CLAUDE.md
-TEAM_SKILLS_LINE=""
-if [[ -n "$TEAM_NAME" ]]; then
-  TEAM_SKILLS_LINE="
-- Team skills ($TEAM_NAME): \`.claude/skills/_team/\`"
-fi
-
-# Build team commands section
-TEAM_COMMANDS=""
-if [[ -n "$TEAM_NAME" && -d "$SCRIPT_DIR/teams/$TEAM_NAME/skills" ]]; then
-  TEAM_COMMANDS="
-
-### Team Skills ($TEAM_NAME)
-Team-specific workflows available via \`/workflow:<skill-name>\`. Check \`.claude/skills/_team/\` for all available team skills."
-fi
+TEAM_LINE=""
+[[ -n "$TEAM_NAME" ]] && TEAM_LINE=" (team: $TEAM_NAME)"
 
 WORKFLOW_BLOCK="$MARKER_START
 ## Workflows
 
-This project uses [claude-workflows](https://github.com/4SaleTech/claude-workflows) for structured development.
+This project uses [claude-workflows](https://github.com/ragaa07/claude-workflows) for structured development.
 
-### Available Commands
-- \`/workflow:new-feature\` — Start a new feature workflow
-- \`/workflow:extend-feature\` — Extend an existing feature
-- \`/workflow:hotfix\` — Quick production fix
-- \`/workflow:refactor\` — Refactor existing code
-- \`/workflow:release\` — Create a release
-- \`/workflow:review\` — Code review workflow
-- \`/workflow:brainstorm\` — Brainstorm solutions
-- \`/workflow:learn\` — Capture patterns from completed workflows
-- \`/workflow:status\` — Check current workflow state
-- \`/workflow:resume\` — Resume an in-progress workflow
-$TEAM_COMMANDS
+### Available Skills
+All workflow skills are auto-discovered from \`.claude/skills/\`. Key workflows:
+- \`/new-feature\` — Full feature workflow: spec, brainstorm, plan, implement, test, PR
+- \`/extend-feature\` — Extend an existing feature
+- \`/hotfix\` — Quick production fix
+- \`/refactor\` — Refactor existing code
+- \`/release\` — Create a release
+- \`/review\` — Code review workflow
+- \`/brainstorm\` — Brainstorm solutions
+- \`/test\` — Generate tests
 
 ### Configuration
 - Workflow config: \`.claude/workflows.yml\`
-- Core skills: \`.claude/skills/_core/\`$TEAM_SKILLS_LINE
+- Skills${TEAM_LINE}: \`.claude/skills/\`
 - Language rules: \`.claude/rules/\`
 - Review checklists: \`.claude/reviews/\`
 - Workflow state: \`.workflows/\`
-- Learned patterns: \`.workflows/learned/\`
-
-### Dry Run
-Append \`--dry-run\` to any workflow command to preview without executing.
 $MARKER_END"
 
 if [[ -f "$CLAUDE_MD" ]]; then
   if grep -qF "$MARKER_START" "$CLAUDE_MD"; then
     echo "Updating workflow section in CLAUDE.md..."
-    # Remove old block and replace
     TEMP_FILE="$(mktemp)"
     awk -v start="$MARKER_START" -v end="$MARKER_END" '
       $0 == start { skip=1; next }
@@ -406,21 +328,9 @@ else
 fi
 
 # ============================================================
-# 10. Update .gitignore
+# 11. Update .gitignore
 # ============================================================
 GITIGNORE="$PROJECT_ROOT/.gitignore"
-
-add_to_gitignore() {
-  local entry="$1"
-  if [[ -f "$GITIGNORE" ]]; then
-    if ! grep -qxF "$entry" "$GITIGNORE"; then
-      echo "$entry" >> "$GITIGNORE"
-    fi
-  else
-    echo "$entry" > "$GITIGNORE"
-  fi
-}
-
 echo "Updating .gitignore..."
 add_to_gitignore ".workflows/current-state.md"
 add_to_gitignore ".workflows/history/"
@@ -433,10 +343,7 @@ echo ""
 echo "=== Installation complete! ==="
 echo ""
 echo "Installed:"
-echo "  Core skills:       .claude/skills/_core/"
-if [[ -n "$TEAM_NAME" ]]; then
-echo "  Team skills:       .claude/skills/_team/ ($TEAM_NAME)"
-fi
+echo "  Skills:            .claude/skills/"
 echo "  Templates:         .claude/templates/"
 if [[ -n "$RULE_FILES" ]]; then
 echo "  Language rules:    .claude/rules/ ($RULE_FILES)"
@@ -447,7 +354,7 @@ fi
 echo ""
 echo "Next steps:"
 echo "  1. Edit .claude/workflows.yml to configure for your project"
-echo "  2. Run /workflow:new-feature to start your first workflow"
+echo "  2. Run /new-feature to start your first workflow"
 echo "  3. Commit the .claude/ directory to your repository"
 echo ""
 echo "Installed version: $VERSION"
