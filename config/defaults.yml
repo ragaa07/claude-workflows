@@ -1,0 +1,118 @@
+# claude-workflows configuration
+# Edit this file to configure workflows for your project.
+# Documentation: https://github.com/4SaleTech/claude-workflows
+
+version: "1.0"
+
+# ============================================================
+# Project Identity
+# ============================================================
+project:
+  name: "My Project"                   # Your project name
+  type: "generic"                      # android | react | python | generic
+  language: ""                         # Primary language (kotlin, typescript, python, etc.)
+
+# ============================================================
+# Git Flow Configuration
+# ============================================================
+git:
+  branches:
+    main: "main"                       # Production branch
+    development: "develop"             # Development/integration branch
+    feature: "feature/{name}"          # Feature branch pattern ({name} replaced)
+    bugfix: "bugfix/{name}"            # Bugfix branch pattern
+    hotfix: "hotfix/{name}"            # Hotfix branch pattern
+    release: "release/v{version}"      # Release branch pattern ({version} replaced)
+
+  commits:
+    format: "conventional"             # conventional | angular | simple
+    # conventional: feat: | fix: | refactor: | chore: | docs: | test: | style: | perf:
+    # angular: feat(scope): | fix(scope):
+    # simple: Free-form messages
+    types: [feat, fix, refactor, test, docs, chore, style, perf]
+    scopes: true                       # Allow scopes in commit messages
+    ticket_reference: false            # Require ticket ID in commits
+
+  pr:
+    base_branch: "develop"             # Default PR target branch
+    draft: false                       # Create PRs as drafts
+    reviewers: []                      # Auto-assign reviewers
+    labels: []                         # Auto-apply labels
+    template: |
+      ## Summary
+      {summary}
+
+      ## Changes
+      {changes}
+
+      ## Test Plan
+      {test_plan}
+
+      ## Checklist
+      - [ ] Code compiles
+      - [ ] Tests pass
+      - [ ] No breaking changes
+
+  merge:
+    strategy: "squash"                 # squash | merge | rebase
+    delete_branch: true                # Delete branch after merge
+
+  protected:                           # Branches that require PR (warn on direct commit)
+    - "main"
+    - "master"
+    - "develop"
+
+# ============================================================
+# Workflow Configuration
+# ============================================================
+workflows:
+  new-feature:
+    require_spec: true                 # Must create spec before planning
+    require_tests: true                # Must write tests before PR
+    require_brainstorm: true           # Run brainstorm phase
+
+  extend-feature:
+    require_brainstorm: true
+    require_tests: true
+
+  hotfix:
+    base_branch: ""                    # Override: branch from main/production
+    require_tests: false               # Skip tests for speed (optional)
+
+  refactor:
+    require_brainstorm: true
+    require_tests: true
+
+  release:
+    changelog: true                    # Generate changelog entries
+    tag_format: "v{version}"           # Git tag format
+
+  review:
+    standards: []                      # Custom review checklist items
+
+  brainstorm:
+    default_depth: "standard"          # quick | standard | deep
+    techniques:                        # Available techniques
+      - "trade-off-matrix"
+      - "six-thinking-hats"
+      - "scamper"
+      - "reverse-brainstorm"
+      - "constraint-mapping"
+
+# ============================================================
+# State Management
+# ============================================================
+state:
+  directory: ".workflows"              # Where workflow state is stored
+  history: true                        # Keep completed workflow history
+  max_history: 50                      # Max history entries to keep
+
+# ============================================================
+# Skill Configuration
+# ============================================================
+skills:
+  disabled: []                         # Skills to disable (by name)
+  aliases:                             # Command aliases
+    build: "new-feature"               # /workflow:build → /workflow:new-feature
+    fix: "hotfix"                      # /workflow:fix → /workflow:hotfix
+    ship: "release"                    # /workflow:ship → /workflow:release

@@ -1,0 +1,50 @@
+# Workflow State
+
+| Field | Value |
+|-------|-------|
+| Workflow | {workflow_type} |
+| Task | {task_name} |
+| Started | {start_date} |
+| Current Phase | {current_phase} |
+| Status | IN_PROGRESS / PAUSED / BLOCKED / COMPLETE |
+
+## Phase History
+
+| Phase | Status | Started | Completed | Notes |
+|-------|--------|---------|-----------|-------|
+| {phase_name} | DONE/IN_PROGRESS/PENDING | {date} | {date} | {notes} |
+
+## Completed Items
+
+- [x] {completed_item_1}
+- [x] {completed_item_2}
+
+## Remaining Items
+
+- [ ] {remaining_item_1}
+- [ ] {remaining_item_2}
+
+## Blocked Items
+
+| Item | Blocked By | Since |
+|------|-----------|-------|
+| {item} | {reason} | {date} |
+
+## Context Notes
+
+Key decisions and context for resuming this workflow:
+
+- {context_note_1}
+- {context_note_2}
+
+## Files Modified
+
+| File | Change Type | Phase |
+|------|------------|-------|
+| {file_path} | ADD/MODIFY/DELETE | {phase} |
+
+## Error Log
+
+| Date | Phase | Error | Resolution |
+|------|-------|-------|------------|
+| {date} | {phase} | {error} | {resolution} |
