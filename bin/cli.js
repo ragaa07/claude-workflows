@@ -126,6 +126,45 @@ function getReviewLabel(type) {
   return map[type] || "";
 }
 
+function registerCommands(root) {
+  // Claude Code registers slash commands from .claude/commands/
+  // Subdirectories become namespaces: workflow/new-feature.md → /workflow:new-feature
+  const commandsDir = path.join(root, ".claude/commands/workflow");
+  fs.mkdirSync(commandsDir, { recursive: true });
+
+  // Collect skills in priority order: project > team > core
+  const sources = [
+    path.join(root, ".claude/skills"),       // project skills (top-level, not _core/_team)
+    path.join(root, ".claude/skills/_team"),  // team skills
+    path.join(root, ".claude/skills/_core"),  // core skills
+  ];
+
+  const registered = new Set();
+  let count = 0;
+
+  for (const sourceDir of sources) {
+    if (!fs.existsSync(sourceDir)) continue;
+
+    for (const entry of fs.readdirSync(sourceDir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      if (entry.name.startsWith("_")) continue; // skip _core, _team when scanning project root
+
+      const skillName = entry.name;
+      if (registered.has(skillName)) continue; // higher priority already registered
+
+      const skillMd = path.join(sourceDir, entry.name, "SKILL.md");
+      if (fs.existsSync(skillMd)) {
+        const content = fs.readFileSync(skillMd, "utf8");
+        fs.writeFileSync(path.join(commandsDir, `${skillName}.md`), content);
+        registered.add(skillName);
+        count++;
+      }
+    }
+  }
+
+  return count;
+}
+
 function addToGitignore(gitignorePath, entry) {
   if (fs.existsSync(gitignorePath)) {
     const content = fs.readFileSync(gitignorePath, "utf8");
@@ -165,6 +204,7 @@ function cmdInit(args) {
   console.log("Creating directory structure...");
   for (const dir of [
     ".claude/skills/_core",
+    ".claude/commands",
     ".claude/templates",
     ".claude/rules",
     ".claude/reviews",
@@ -300,14 +340,19 @@ function cmdInit(args) {
     console.log("Skipping .claude/workflows.yml (already exists)");
   }
 
-  // 8. Write version marker
+  // 8. Register slash commands
+  console.log("Registering workflow commands...");
+  const cmdCount = registerCommands(root);
+  console.log(`  Registered ${cmdCount} commands in .claude/commands/`);
+
+  // 9. Write version marker
   fs.writeFileSync(path.join(root, ".claude/.workflows-version"), VERSION + "\n");
   console.log(`Wrote version ${VERSION} to .claude/.workflows-version`);
 
-  // 9. Update CLAUDE.md
+  // 10. Update CLAUDE.md
   updateClaudeMd(root, team);
 
-  // 10. Update .gitignore
+  // 11. Update .gitignore
   console.log("Updating .gitignore...");
   const gitignore = path.join(root, ".gitignore");
   addToGitignore(gitignore, ".workflows/current-state.md");
@@ -584,10 +629,15 @@ function cmdUpgrade(args) {
     console.log("  .claude/guards.yml (use --with-guards to update)");
   }
 
-  // 8. Update version
+  // 8. Re-register slash commands
+  console.log("Registering workflow commands...");
+  const cmdCount = registerCommands(root);
+  console.log(`  Registered ${cmdCount} commands in .claude/commands/`);
+
+  // 9. Update version
   fs.writeFileSync(versionFile, VERSION + "\n");
 
-  // 9. Update .gitignore
+  // 10. Update .gitignore
   const gitignore = path.join(root, ".gitignore");
   addToGitignore(gitignore, ".workflows/learned/");
 

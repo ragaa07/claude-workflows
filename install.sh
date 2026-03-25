@@ -135,6 +135,7 @@ get_review_label() {
 echo "Creating directory structure..."
 
 mkdir -p "$PROJECT_ROOT/.claude/skills/_core"
+mkdir -p "$PROJECT_ROOT/.claude/commands/workflow"
 mkdir -p "$PROJECT_ROOT/.claude/templates"
 mkdir -p "$PROJECT_ROOT/.claude/rules"
 mkdir -p "$PROJECT_ROOT/.claude/reviews"
@@ -280,7 +281,49 @@ else
 fi
 
 # ============================================================
-# 8. Write version marker
+# 8. Register slash commands (.claude/commands/workflow/)
+# ============================================================
+echo "Registering workflow commands..."
+CMD_COUNT=0
+CMD_DIR="$PROJECT_ROOT/.claude/commands/workflow"
+mkdir -p "$CMD_DIR"
+
+# Register from core skills
+if [[ -d "$PROJECT_ROOT/.claude/skills/_core" ]]; then
+  for skill_dir in "$PROJECT_ROOT/.claude/skills/_core"/*/; do
+    skill_name="$(basename "$skill_dir")"
+    if [[ -f "$skill_dir/SKILL.md" ]]; then
+      cp "$skill_dir/SKILL.md" "$CMD_DIR/${skill_name}.md"
+      CMD_COUNT=$((CMD_COUNT + 1))
+    fi
+  done
+fi
+
+# Register from team skills (overrides core)
+if [[ -d "$PROJECT_ROOT/.claude/skills/_team" ]]; then
+  for skill_dir in "$PROJECT_ROOT/.claude/skills/_team"/*/; do
+    skill_name="$(basename "$skill_dir")"
+    if [[ -f "$skill_dir/SKILL.md" ]]; then
+      cp "$skill_dir/SKILL.md" "$CMD_DIR/${skill_name}.md"
+      CMD_COUNT=$((CMD_COUNT + 1))
+    fi
+  done
+fi
+
+# Register from project skills (overrides all)
+for skill_dir in "$PROJECT_ROOT/.claude/skills"/*/; do
+  skill_name="$(basename "$skill_dir")"
+  [[ "$skill_name" == _* ]] && continue
+  if [[ -f "$skill_dir/SKILL.md" ]]; then
+    cp "$skill_dir/SKILL.md" "$CMD_DIR/${skill_name}.md"
+    CMD_COUNT=$((CMD_COUNT + 1))
+  fi
+done
+
+echo "  Registered $CMD_COUNT commands in .claude/commands/workflow/"
+
+# ============================================================
+# 9. Write version marker
 # ============================================================
 echo "$VERSION" > "$PROJECT_ROOT/.claude/.workflows-version"
 echo "Wrote version $VERSION to .claude/.workflows-version"
