@@ -1,6 +1,6 @@
 # claude-workflows
 
-[![Version](https://img.shields.io/badge/version-1.1.1-blue.svg)](VERSION)
+[![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)](VERSION)
 [![npm](https://img.shields.io/npm/v/claude-dev-workflows)](https://www.npmjs.com/package/claude-dev-workflows)
 
 **Portable, spec-driven development workflows for Claude Code AI agents.**
@@ -82,7 +82,7 @@ bash /tmp/claude-workflows/install.sh --type android --team android
 
 ```bash
 cat .claude/.workflows-version
-# Should print: 1.1.1
+# Should print: 1.2.0
 ```
 
 Then start a Claude Code session and run:
@@ -579,10 +579,22 @@ To upgrade to the latest version:
 npx claude-dev-workflows@latest upgrade
 ```
 
-To also upgrade team skills and language rules:
+Upgrade with team and language rules:
 
 ```bash
-npx claude-dev-workflows@latest upgrade --team android
+# Android team
+npx claude-dev-workflows@latest upgrade --type android --team android
+
+# iOS team
+npx claude-dev-workflows@latest upgrade --type swift --team ios
+
+# Frontend team
+npx claude-dev-workflows@latest upgrade --type react --team frontend
+
+# Backend team
+npx claude-dev-workflows@latest upgrade --type python --team backend
+
+# With safety guards
 npx claude-dev-workflows@latest upgrade --type android --team android --with-guards
 ```
 
@@ -596,9 +608,10 @@ The upgrade:
 1. Replaces core skills in `.claude/skills/_core/`
 2. Replaces team skills in `.claude/skills/_team/` (if `--team` specified)
 3. Updates language rules (if `--type` specified)
-4. Preserves your `.claude/workflows.yml` configuration
-5. Preserves any project-specific skills in `.claude/skills/`
-6. Updates the version marker in `.claude/.workflows-version`
+4. Re-registers all slash commands in `.claude/commands/workflow/`
+5. Preserves your `.claude/workflows.yml` configuration
+6. Preserves any project-specific skills in `.claude/skills/`
+7. Updates the version marker in `.claude/.workflows-version`
 
 ---
 
