@@ -5,6 +5,35 @@ description: End-to-end workflow for implementing a new feature from requirement
 
 # New Feature Workflow
 
+## Workflow State Protocol
+
+> **MANDATORY**: Follow these rules throughout this entire workflow.
+
+### On Workflow Start
+1. Create directories: `mkdir -p .workflows/specs .workflows/history`
+2. If `.workflows/current-state.md` already exists, ask the user: pause/abandon the existing workflow, or cancel this one.
+3. Create `.workflows/current-state.md` with: workflow name, feature name, first phase (GATHER) as ACTIVE, started/updated timestamps, empty Phase History table, empty Completed Steps, Artifacts, and Context sections.
+
+### At Every Phase Transition
+Update `.workflows/current-state.md`:
+1. Mark previous phase as `COMPLETED` with a brief note
+2. Add new phase as `ACTIVE`
+3. Update `phase` and `updated` header fields
+4. Add completed steps from previous phase as checkboxes under `## Completed Steps`
+
+### Save Artifacts
+- Specs → `.workflows/specs/<feature>.spec.md`
+- Decisions → `.workflows/specs/<feature>.decisions.md`
+- Add links under `## Artifacts` in state file
+
+### Brainstorm Skip Check
+Before any BRAINSTORM phase: skip if `--skip-brainstorm` was passed OR `.claude/workflows.yml` has `workflows.new-feature.require_brainstorm: false`. Mark as `SKIPPED` in Phase History.
+
+### On Workflow Completion
+Mark final phase `COMPLETED`. Move state file to `.workflows/history/<feature>-<date>.md`.
+
+---
+
 ## Command
 
 ```
@@ -183,7 +212,7 @@ Display the spec summary to the user. Ask: "Review the spec above. Reply with ch
 
 **Goal**: Explore implementation approaches before committing to a plan.
 
-**Skip condition**: If `--skip-brainstorm` flag is set, proceed directly to Phase 4.
+**Skip condition**: Skip if `--skip-brainstorm` passed OR `workflows.new-feature.require_brainstorm` is `false` in `.claude/workflows.yml`. Mark as `SKIPPED` in Phase History.
 
 ### Step 3.1 — Invoke Brainstorm Skill
 

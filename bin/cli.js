@@ -391,6 +391,10 @@ At the start of every session:
 - When resuming: rename back to \`.workflows/current-state.md\`
 - When done: move to \`.workflows/history/\`
 
+### Quick Start
+- \`/start\` — **Entry point**: shows all workflows, lets you pick one
+- \`/resume\` — Resume a paused or interrupted workflow
+
 ### Available Skills
 All workflow skills are auto-discovered from \`.claude/skills/\`. Key workflows:
 - \`/new-feature\` — Full feature workflow: spec, brainstorm, plan, implement, test, PR
@@ -401,6 +405,7 @@ All workflow skills are auto-discovered from \`.claude/skills/\`. Key workflows:
 - \`/review\` — Code review workflow
 - \`/brainstorm\` — Brainstorm solutions
 - \`/test\` — Generate tests
+- \`/resume\` — Resume a paused or interrupted workflow
 
 ### Configuration
 - Workflow config: \`.claude/workflows.yml\`

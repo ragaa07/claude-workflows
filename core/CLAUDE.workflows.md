@@ -61,6 +61,13 @@ After ANY correction from the user or unexpected failure:
 - Main thread writes all implementation code -- sub-agents only read and analyze
 - Use sub-agents to keep the main context window clean for implementation work
 
+## Quick Start
+
+| Skill | Description |
+|-------|-------------|
+| `/start` | **Entry point** — shows all workflows and lets you pick one |
+| `/resume` | Resume a paused or interrupted workflow |
+
 ## Available Skills
 
 All skills are auto-discovered from `.claude/skills/`. Key workflows:
@@ -75,6 +82,7 @@ All skills are auto-discovered from `.claude/skills/`. Key workflows:
 | `/review` | Code review workflow |
 | `/brainstorm` | Standalone brainstorming session |
 | `/test` | Generate tests |
-| `/workflow-engine` | Show active workflow state, resume, pause, abandon |
+| `/workflow-engine` | Show active workflow state, pause, abandon |
+| `/resume` | Resume a paused or interrupted workflow |
 
 Aliases are defined in `.claude/workflows.yml` under `skills.aliases`.

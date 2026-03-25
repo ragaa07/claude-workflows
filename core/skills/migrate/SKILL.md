@@ -3,6 +3,33 @@ name: migrate
 description: Plan and execute incremental migrations for dependencies, APIs, architecture, and databases.
 ---
 
+## Workflow State Protocol
+
+> **MANDATORY**: Follow these rules throughout this entire workflow.
+
+### On Workflow Start
+1. Create directories: `mkdir -p .workflows/specs .workflows/history`
+2. If `.workflows/current-state.md` already exists, ask the user: pause/abandon the existing workflow, or cancel this one.
+3. Create `.workflows/current-state.md` with: workflow name, feature name, first phase (ANALYZE) as ACTIVE, started/updated timestamps, empty Phase History table, empty Completed Steps, Artifacts, and Context sections.
+
+### At Every Phase Transition
+Update `.workflows/current-state.md`:
+1. Mark previous phase as `COMPLETED` with a brief note
+2. Add new phase as `ACTIVE`
+3. Update `phase` and `updated` header fields
+4. Add completed steps from previous phase as checkboxes under `## Completed Steps`
+
+### Save Artifacts
+- Specs → `.workflows/specs/<feature>.spec.md`
+- Decisions → `.workflows/specs/<feature>.decisions.md`
+- Add links under `## Artifacts` in state file
+
+### Brainstorm Skip Check
+Before any BRAINSTORM phase: skip if `--skip-brainstorm` was passed OR `.claude/workflows.yml` has `workflows.migrate.require_brainstorm: false`. Mark as `SKIPPED` in Phase History.
+
+### On Workflow Completion
+Mark final phase `COMPLETED`. Move state file to `.workflows/history/<feature>-<date>.md`.
+
 # Migration Workflow
 
 ## Command
@@ -32,6 +59,8 @@ Document the current state before any changes.
 | `database` | Current schema (tables, columns, indices, constraints), target schema, data volume estimates |
 
 ### Phase 2: BRAINSTORM
+
+**Skip condition**: Skip if `--skip-brainstorm` passed OR `workflows.migrate.require_brainstorm` is `false` in `.claude/workflows.yml`. Mark as `SKIPPED` in Phase History.
 
 Evaluate migration strategies using structured thinking.
 
