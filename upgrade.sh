@@ -202,11 +202,8 @@ fi
 # ============================================================
 if [[ "$WITH_GUARDS" == true ]]; then
   echo "Upgrading safety guards..."
-  if [[ -f "$SCRIPT_DIR/core/skills/guards/guards.yml.tmpl" ]]; then
-    cp "$SCRIPT_DIR/core/skills/guards/guards.yml.tmpl" "$PROJECT_ROOT/.claude/guards.yml"
-    echo "  Updated .claude/guards.yml from template"
-  elif [[ -f "$SCRIPT_DIR/config/guards.yml.tmpl" ]]; then
-    cp "$SCRIPT_DIR/config/guards.yml.tmpl" "$PROJECT_ROOT/.claude/guards.yml"
+  if [[ -f "$SCRIPT_DIR/core/templates/guards.yml.tmpl" ]]; then
+    cp "$SCRIPT_DIR/core/templates/guards.yml.tmpl" "$PROJECT_ROOT/.claude/guards.yml"
     echo "  Updated .claude/guards.yml from template"
   else
     echo "  WARNING: guards.yml.tmpl not found"

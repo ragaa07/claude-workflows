@@ -200,22 +200,15 @@ fi
 # ============================================================
 if [[ "$WITH_GUARDS" == true ]]; then
   echo "Installing safety guards..."
-  if [[ -f "$SCRIPT_DIR/core/skills/guards/guards.yml.tmpl" ]]; then
+  if [[ -f "$SCRIPT_DIR/core/templates/guards.yml.tmpl" ]]; then
     if [[ ! -f "$PROJECT_ROOT/.claude/guards.yml" ]]; then
-      cp "$SCRIPT_DIR/core/skills/guards/guards.yml.tmpl" "$PROJECT_ROOT/.claude/guards.yml"
-      echo "  Created .claude/guards.yml from template"
-    else
-      echo "  Skipping .claude/guards.yml (already exists)"
-    fi
-  elif [[ -f "$SCRIPT_DIR/config/guards.yml.tmpl" ]]; then
-    if [[ ! -f "$PROJECT_ROOT/.claude/guards.yml" ]]; then
-      cp "$SCRIPT_DIR/config/guards.yml.tmpl" "$PROJECT_ROOT/.claude/guards.yml"
+      cp "$SCRIPT_DIR/core/templates/guards.yml.tmpl" "$PROJECT_ROOT/.claude/guards.yml"
       echo "  Created .claude/guards.yml from template"
     else
       echo "  Skipping .claude/guards.yml (already exists)"
     fi
   else
-    echo "  WARNING: guards.yml.tmpl not found — guards skill installed but no template available"
+    echo "  WARNING: guards.yml.tmpl not found"
   fi
 else
   echo "Skipping safety guards (use --with-guards to install)"
