@@ -1,132 +1,144 @@
 ---
 name: resume
-description: Resume a paused or interrupted workflow. Reads state from .workflows/current-state.md, loads the correct skill, and continues from the last active phase. Use this after clearing context or starting a new session.
+description: Resume a paused or interrupted workflow. Reads state and phase outputs, loads the correct skill, and continues from the last active phase with full state management.
 ---
 
 # Resume Workflow
 
-## Command
+> **You are the workflow orchestrator.** You manage state for every workflow. Individual workflow skills contain the phases and steps — you handle everything else: state files, phase transitions, phase output documents, and completion.
 
-```
-/resume [workflow-name]
-```
+## Step 1: Find Workflows to Resume
 
-## Process
+Check for state files:
 
-### Step 1: Detect Active Workflows
+1. **Active** (interrupted): `.workflows/current-state.md`
+2. **Paused**: `.workflows/paused-*.md`
 
-Check for workflow state files:
-
-1. **Active workflow**: Read `.workflows/current-state.md`
-2. **Paused workflows**: List all `.workflows/paused-*.md` files
-
-If no state files exist:
+If nothing found:
 ```
 No active or paused workflows found.
-Start a new workflow with /new-feature, /refactor, /hotfix, etc.
+Use /start to begin a new workflow.
 ```
 
-### Step 2: Select Workflow (if multiple)
+## Step 2: Select Workflow
+
+**If only `current-state.md` exists** — use it directly (interrupted session).
 
 **If argument provided** (e.g., `/resume booking-cancellation`):
-- Look for `.workflows/paused-booking-cancellation.md`
-- Rename it to `.workflows/current-state.md`
-- Add a `RESUMED` row to Phase History with timestamp
+- Find `.workflows/paused-booking-cancellation.md`
+- Rename to `.workflows/current-state.md`
+- Add `RESUMED` row to Phase History
 
-**If no argument and only `current-state.md` exists**:
-- This is an interrupted workflow (session recovery) — use it directly
-
-**If no argument and multiple paused workflows exist**:
+**If multiple paused workflows**:
 ```
 Paused workflows:
-  1. <name-1> — paused at <phase> (<date>)
-  2. <name-2> — paused at <phase> (<date>)
+  1. <name-1> — at <phase> (paused <date>)
+  2. <name-2> — at <phase> (paused <date>)
 
-Which workflow to resume? (1/2/...)
+Which one? (1/2/...)
 ```
 
-### Step 3: Parse State
+## Step 3: Load Context from Phase Outputs
 
-Read the state file and extract:
-- **workflow**: Which skill (e.g., `new-feature`, `refactor`)
-- **feature**: The feature/target name
-- **phase**: Current active phase (the row with `ACTIVE` status)
-- **branch**: Git branch if created
-- **Completed Steps**: What has been done (checkboxes)
-- **Artifacts**: Links to specs, plans, etc.
-- **Context**: Decisions, preferences, and what was happening
+1. Read `.workflows/current-state.md` — extract workflow name, feature, current phase, output_dir
+2. Read ALL phase output documents from `.workflows/<feature>/` in order
+3. This gives you the full context: what was analyzed, what was decided, what was planned
 
-### Step 4: Report Status to User
+## Step 4: Report Status
 
 ```
 Resuming: <workflow> — <feature>
-Current phase: <phase>
+Phase: <current-phase>
 Last updated: <timestamp>
 
-Progress:
-  ✅ <completed-phase-1>: <notes>
-  ✅ <completed-phase-2>: <notes>
-  🔄 <current-phase> (in progress)
-  ⬜ <remaining-phase-1>
-  ⬜ <remaining-phase-2>
+Completed phases:
+  <for each COMPLETED phase, show name + one-line note + output file>
 
-Completed steps:
-  - [x] <step-1>
-  - [x] <step-2>
-  - [ ] <next-step>
+Current: <active-phase> (in progress)
 
-Artifacts:
-  - <path-to-spec>
-  - <path-to-plan>
+Remaining: <list of remaining phases>
 
 Context:
-  <key decisions and what was happening>
+  <key decisions from state file>
 ```
 
-Ask: "Continue from **<phase>**?"
+Ask: "Continue?"
 
-### Step 5: Load and Continue
+## Step 5: Load and Continue
 
-1. If a branch exists, check it out: `git checkout <branch>`
-2. Read the skill file: `.claude/skills/<workflow>/SKILL.md`
-3. Navigate to the section for the **current active phase**
-4. Read any referenced artifacts (spec, plan, decisions) for full context
-5. If Completed Steps show partial progress within the phase, skip those steps
-6. **Continue executing from the current position**
-7. Resume normal state tracking — update `.workflows/current-state.md` at every subsequent phase transition
+1. If branch exists: `git checkout <branch>`
+2. Read `.claude/skills/<workflow>/SKILL.md`
+3. Find the section for the **current active phase**
+4. Continue executing from there
 
-### Step 6: Handle Edge Cases
+---
 
-**Stale state** (last updated > 7 days ago):
+## Orchestration Rules — Follow These AT ALL TIMES
+
+### Rule 1: Every Phase Produces an Output Document
+
+At the end of each phase, write a markdown file:
+
 ```
-⚠️ This workflow was last updated <N> days ago.
-Options:
-  1. Resume anyway
-  2. Restart from current phase
-  3. Abandon workflow
+File: .workflows/<feature>/<phase-number>-<phase-name>.md
 ```
 
-**Missing skill file** (skill not installed):
-```
-❌ Skill '<workflow>' not found in .claude/skills/.
-Options:
-  1. Abandon this workflow
-  2. Install the skill and retry
+**Format:**
+
+```markdown
+# <Phase Name> — <Feature>
+
+**Date**: <timestamp>
+**Status**: Complete
+
+## Summary
+<1-3 sentences>
+
+## Details
+<Phase output — analysis, spec, brainstorm, plan, test results, etc.>
+
+## Decisions Made
+<Key decisions and rationale>
+
+## Next Phase Input
+<What the next phase needs to know>
 ```
 
-**Corrupted state file** (missing required fields):
-```
-⚠️ State file appears corrupted (missing: <fields>).
-Options:
-  1. Attempt recovery from available data
-  2. Abandon this workflow
-```
+### Rule 2: Update State After Every Phase
 
-**Existing active workflow** when resuming a paused one:
-```
-⚠️ There is already an active workflow: <name> at <phase>.
-Options:
-  1. Pause the active workflow first, then resume the selected one
-  2. Abandon the active workflow, then resume
-  3. Cancel (keep current active workflow)
-```
+Update `.workflows/current-state.md`:
+1. Mark completed phase as `COMPLETED` with a note
+2. Add output document path to the `Output` column
+3. Add next phase as `ACTIVE`
+4. Update `phase` and `updated` headers
+5. Add link under `## Phase Outputs`
+6. Update `## Context` with key decisions
+
+### Rule 3: Skipping Phases
+
+Read `.claude/workflows.yml`:
+- `require_brainstorm: false` OR `--skip-brainstorm` → skip BRAINSTORM, mark `SKIPPED`
+- `require_tests: false` → skip TEST, mark `SKIPPED`
+- `require_spec: false` → skip SPEC, mark `SKIPPED`
+
+### Rule 4: When Workflow Completes
+
+1. Write final phase output document
+2. Mark final phase `COMPLETED`
+3. Move state to `.workflows/history/<feature>-<date>.md`
+4. Phase outputs in `.workflows/<feature>/` preserved as archive
+5. Report completion
+
+### Rule 5: Pausing
+
+If user says "pause":
+1. Write in-progress work to current phase output (partial is fine)
+2. Update state
+3. Rename to `.workflows/paused-<feature>.md`
+
+## Edge Cases
+
+**Stale** (>7 days): Warn user, offer resume/restart/abandon.
+**Missing skill**: Report error, offer to abandon.
+**Missing phase outputs**: Continue without them, note the gap.
+**Conflict** (active + resuming paused): Offer to pause active first.

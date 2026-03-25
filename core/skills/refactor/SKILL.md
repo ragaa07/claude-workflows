@@ -3,77 +3,6 @@ name: refactor
 description: Safely refactor code with dependency graph mapping, behavioral contracts, incremental migration, and rollback plans at every step.
 ---
 
-## Phase 0: INIT — Do This First
-
-> **You MUST complete these steps before doing anything else.**
-
-### Step 0.1 — Create State Directories
-
-```bash
-mkdir -p .workflows/specs .workflows/history
-```
-
-### Step 0.2 — Check for Existing Workflow
-
-Read `.workflows/current-state.md`. If it exists, tell the user:
-- "There's an active workflow: `<workflow>` at `<phase>`. Pause it, abandon it, or cancel this new one?"
-- Wait for their choice before continuing.
-
-### Step 0.3 — Create State File
-
-Write `.workflows/current-state.md` with this exact content (replace `<feature>` with the user's input):
-
-```markdown
-# Workflow State
-
-- **workflow**: refactor
-- **feature**: <feature>
-- **phase**: ANALYZE
-- **started**: <current ISO-8601 timestamp>
-- **updated**: <current ISO-8601 timestamp>
-- **branch**:
-
-## Phase History
-
-| Phase | Status | Timestamp | Notes |
-|-------|--------|-----------|-------|
-| ANALYZE | ACTIVE | <timestamp> | Starting dependency graph analysis |
-
-## Completed Steps
-
-
-## Artifacts
-
-
-## Context
-
-```
-
-### Step 0.4 — Read Configuration
-
-Read `.claude/workflows.yml` and note relevant config for this workflow.
-Key config: `workflows.refactor.require_brainstorm`, `workflows.refactor.require_tests`
-
----
-
-## Phase Transition Rules
-
-**At the END of every phase** (before starting the next one), you MUST:
-1. Update `.workflows/current-state.md`:
-   - Change the current phase's row from `ACTIVE` to `COMPLETED` with a note of what was done
-   - Add the next phase as `ACTIVE`
-   - Update the `phase` and `updated` header fields
-   - Add checkboxes for steps completed under `## Completed Steps`
-2. Save any artifacts:
-   - Specs → `.workflows/specs/<feature>.spec.md`
-   - Decisions → `.workflows/specs/<feature>.decisions.md`
-   - Add links under `## Artifacts`
-3. Add key decisions under `## Context` (for resume)
-
-**When the workflow completes**: Move `.workflows/current-state.md` to `.workflows/history/<feature>-<date>.md`
-
-**Brainstorm skip**: Skip BRAINSTORM if `--skip-brainstorm` was passed OR `workflows.refactor.require_brainstorm` is `false`. Mark as `SKIPPED`.
-
 # Refactor Workflow
 
 ## Command
@@ -485,10 +414,6 @@ gh pr create --base <dev_branch> --title "refactor(<scope>): <goal>" --body "$(c
 EOF
 )"
 ```
-
-### Step 7.3 — Update State
-
-Update `tasks/todo.md`, report PR URL.
 
 ---
 

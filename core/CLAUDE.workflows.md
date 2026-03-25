@@ -4,85 +4,64 @@ Structured workflow system for feature development, refactoring, hotfixes, and r
 
 ## Session Start
 
-1. Read `tasks/lessons.md` -- apply relevant lessons to current work
-2. Read `tasks/todo.md` -- check for in-progress items
-3. Check `.workflows/current-state.md` -- report any active workflow to the user
-4. Check `.workflows/paused-*.md` -- mention any paused workflows
+1. Check `.workflows/current-state.md` -- if exists, report the active workflow and offer to resume
+2. Check `.workflows/paused-*.md` -- mention any paused workflows
+3. Read `tasks/todo.md` -- check for in-progress items
+4. Read `tasks/lessons.md` -- apply relevant lessons to current work
 
-## Configuration
+## Quick Start
 
-All workflow config lives in `.claude/workflows.yml`. Key sections:
+| Skill | Description |
+|-------|-------------|
+| `/start` | **Entry point** — shows all workflows, manages state, launches the selected one |
+| `/resume` | Resume a paused or interrupted workflow with full context from phase outputs |
 
-- `git.branches` -- branch naming patterns
-- `git.commits.format` -- commit message style (conventional/angular/simple)
-- `git.pr` -- PR creation settings (base branch, template, reviewers)
-- `git.protected` -- branches that require PRs (warn on direct commit)
-- `workflows.<type>` -- per-workflow settings (require_spec, require_tests, require_brainstorm)
-- `skills.aliases` -- command shortcuts
+## Available Workflows
+
+All skills are auto-discovered from `.claude/skills/`:
+
+| Skill | Description |
+|-------|-------------|
+| `/new-feature` | Full feature workflow: spec, brainstorm, plan, implement, test, PR |
+| `/extend-feature` | Extend existing feature with backward compatibility |
+| `/hotfix` | Emergency production fix |
+| `/refactor` | Safely restructure code |
+| `/release` | Version bump, changelog, tag |
+| `/review` | Systematic PR code review |
+| `/brainstorm` | Standalone brainstorming session |
+| `/test` | Generate tests with coverage analysis |
+| `/ci-fix` | Fix failing CI/CD pipeline |
+| `/migrate` | Migrate dependencies, APIs, patterns |
+| `/new-project` | Bootstrap a new project |
 
 ## File Locations
 
 | Purpose | Path |
 |---------|------|
 | Workflow config | `.claude/workflows.yml` |
-| All skills | `.claude/skills/<name>/SKILL.md` |
+| Skills | `.claude/skills/<name>/SKILL.md` |
 | Language rules | `.claude/rules/` |
 | Review checklists | `.claude/reviews/` |
-| Workflow state | `.workflows/current-state.md` |
+| Active workflow state | `.workflows/current-state.md` |
 | Paused workflows | `.workflows/paused-<name>.md` |
-| History | `.workflows/history/` |
-| Specs & decisions | `.workflows/specs/` |
+| Phase output documents | `.workflows/<feature>/01-phase.md, 02-phase.md, ...` |
+| Workflow history | `.workflows/history/` |
 | Task tracking | `tasks/todo.md` |
 | Lessons learned | `tasks/lessons.md` |
 
-## State Machine
+## Configuration
 
-Workflows follow: `IDLE -> SPEC -> BRAINSTORM -> PLAN -> BRANCH -> IMPLEMENT -> TEST -> PR -> DONE`
+All workflow config lives in `.claude/workflows.yml`:
 
-Phases may be skipped based on workflow config (e.g., `require_brainstorm: false`).
-
-### Phase Transition Rules
-
-- Update `.workflows/current-state.md` at EVERY phase transition
-- Record phase status (ACTIVE, COMPLETED, SKIPPED) with timestamp
-- Never skip phases unless config explicitly allows it
-- If something goes wrong, STOP and update state before re-planning
+- `git.branches` -- branch naming patterns
+- `git.commits.format` -- commit message style
+- `git.pr` -- PR creation settings
+- `workflows.<type>.require_brainstorm` -- skip brainstorm if false
+- `workflows.<type>.require_tests` -- skip tests if false
+- `workflows.<type>.require_spec` -- skip spec if false
 
 ## Lessons & Corrections
 
-After ANY correction from the user or unexpected failure:
-1. Append to `tasks/lessons.md` with what went wrong, the correct pattern, and a prevention rule
-2. Review lessons at session start to avoid repeating mistakes
-
-## Sub-Agent Guidelines
-
-- Maximum 3 concurrent sub-agents
-- One focused task per sub-agent (research, analysis, exploration)
-- Main thread writes all implementation code -- sub-agents only read and analyze
-- Use sub-agents to keep the main context window clean for implementation work
-
-## Quick Start
-
-| Skill | Description |
-|-------|-------------|
-| `/start` | **Entry point** — shows all workflows and lets you pick one |
-| `/resume` | Resume a paused or interrupted workflow |
-
-## Available Skills
-
-All skills are auto-discovered from `.claude/skills/`. Key workflows:
-
-| Skill | Description |
-|-------|-------------|
-| `/new-feature` | Full feature workflow (spec -> brainstorm -> plan -> implement -> test -> PR) |
-| `/extend-feature` | Extend existing feature |
-| `/hotfix` | Quick fix branched from production |
-| `/refactor` | Refactoring workflow |
-| `/release` | Release preparation |
-| `/review` | Code review workflow |
-| `/brainstorm` | Standalone brainstorming session |
-| `/test` | Generate tests |
-| `/workflow-engine` | Show active workflow state, pause, abandon |
-| `/resume` | Resume a paused or interrupted workflow |
-
-Aliases are defined in `.claude/workflows.yml` under `skills.aliases`.
+After ANY correction from the user:
+1. Append to `tasks/lessons.md` with what went wrong and the correct pattern
+2. Review lessons at session start

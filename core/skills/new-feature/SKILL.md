@@ -5,82 +5,6 @@ description: End-to-end workflow for implementing a new feature from requirement
 
 # New Feature Workflow
 
-## Phase 0: INIT — Do This First
-
-> **You MUST complete these steps before doing anything else.**
-
-### Step 0.1 — Create State Directories
-
-```bash
-mkdir -p .workflows/specs .workflows/history
-```
-
-### Step 0.2 — Check for Existing Workflow
-
-Read `.workflows/current-state.md`. If it exists, tell the user:
-- "There's an active workflow: `<workflow>` at `<phase>`. Pause it, abandon it, or cancel this new one?"
-- Wait for their choice before continuing.
-
-### Step 0.3 — Create State File
-
-Write `.workflows/current-state.md` with this exact content (replace `<feature>` with the user's feature name):
-
-```markdown
-# Workflow State
-
-- **workflow**: new-feature
-- **feature**: <feature>
-- **phase**: GATHER
-- **started**: <current ISO-8601 timestamp>
-- **updated**: <current ISO-8601 timestamp>
-- **branch**:
-
-## Phase History
-
-| Phase | Status | Timestamp | Notes |
-|-------|--------|-----------|-------|
-| GATHER | ACTIVE | <timestamp> | Starting requirements gathering |
-
-## Completed Steps
-
-
-## Artifacts
-
-
-## Context
-
-```
-
-### Step 0.4 — Read Configuration
-
-Read `.claude/workflows.yml` and note:
-- `workflows.new-feature.require_brainstorm` — if `false`, skip BRAINSTORM phase later
-- `workflows.new-feature.require_tests` — if `false`, skip TEST phase later
-- `workflows.new-feature.require_spec` — if `false`, skip SPEC phase later
-- `git.branches` — for branch naming in BRANCH phase
-
----
-
-## Phase Transition Rules
-
-**At the END of every phase** (before starting the next one), you MUST:
-1. Update `.workflows/current-state.md`:
-   - Change the current phase's row from `ACTIVE` to `COMPLETED` with a note of what was done
-   - Add the next phase as `ACTIVE`
-   - Update the `phase` and `updated` header fields
-   - Add checkboxes for steps completed under `## Completed Steps`
-2. Save any artifacts:
-   - Specs → `.workflows/specs/<feature>.spec.md`
-   - Decisions → `.workflows/specs/<feature>.decisions.md`
-   - Add links under `## Artifacts`
-3. Add key decisions under `## Context` (for resume)
-
-**When the workflow completes**: Move `.workflows/current-state.md` to `.workflows/history/<feature>-<date>.md`
-
-**Brainstorm skip**: Skip BRAINSTORM if `--skip-brainstorm` was passed OR `workflows.new-feature.require_brainstorm` is `false`. Mark as `SKIPPED`.
-
----
-
 ## Command
 
 ```
@@ -486,17 +410,7 @@ git add <specific-files>
 git commit -m "<commit-message-from-plan>"
 ```
 
-#### Step 6.X.5 — Update State
-
-Mark the phase complete in `tasks/todo.md`:
-
-```markdown
-  - [x] Phase A: Data Layer
-```
-
-Update `.claude/plan-<name>.md` to mark phase complete.
-
-#### Step 6.X.6 — Proceed or Pause
+#### Step 6.X.5 — Proceed or Pause
 
 Ask: "Phase <X> complete. Continue to Phase <X+1>?" (Only ask if implementation is complex; for straightforward phases, continue automatically.)
 
@@ -629,23 +543,7 @@ EOF
 )"
 ```
 
-### Step 8.3 — Update State
-
-Mark PR created in `tasks/todo.md`:
-
-```markdown
-  - [x] PR Created — <PR-URL>
-```
-
-Update spec status:
-
-```markdown
-## Metadata
-- **Status**: In Review
-- **PR**: <PR-URL>
-```
-
-### Step 8.4 — Final Summary
+### Step 8.3 — Final Summary
 
 Print:
 
@@ -683,11 +581,3 @@ Next steps:
 | TEST | Tests fail | Fix if feature-related, report if pre-existing |
 | PR | gh CLI not authenticated | Guide user through `gh auth login` |
 
-## State File Locations
-
-| File | Purpose |
-|---|---|
-| `.workflows/specs/<name>.spec.md` | Feature specification |
-| `.claude/plan-<name>.md` | Implementation plan |
-| `tasks/todo.md` | Progress tracking |
-| `tasks/lessons.md` | Corrections and patterns |
