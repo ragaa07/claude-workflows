@@ -1,0 +1,13 @@
+team: android
+description: "Android team conventions and domain skills"
+requires_type: android
+
+# Add your skill directory names here as you create them
+skills:
+  - example-skill
+
+rules:
+  - team-conventions.md
+
+reviews:
+  - team-review-checklist.md

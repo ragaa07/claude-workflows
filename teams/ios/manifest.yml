@@ -1,0 +1,13 @@
+team: ios
+description: "iOS team conventions and domain skills"
+requires_type: swift
+
+# Add your skill directory names here as you create them
+skills:
+  - example-skill
+
+rules:
+  - team-conventions.md
+
+reviews:
+  - team-review-checklist.md
