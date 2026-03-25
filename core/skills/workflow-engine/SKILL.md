@@ -188,10 +188,22 @@ At the START of every session (before any work), check for active workflows:
 When routing to a workflow skill:
 
 1. **Project skills**: `.claude/skills/<skill-name>/SKILL.md` (project-specific overrides)
-2. **Core skills**: `core/skills/<skill-name>/SKILL.md` (shipped with claude-workflows)
-3. **Fallback**: Report that the skill is not found
+2. **Team skills**: `.claude/skills/_team/<skill-name>/SKILL.md` (team-specific domain skills)
+3. **Core skills**: `.claude/skills/_core/<skill-name>/SKILL.md` (shipped with claude-workflows)
+4. **Fallback**: Report that the skill is not found
 
 If a skill is listed in `skills.disabled` in the config, refuse to invoke it and inform the user.
+
+## Listing Available Skills
+
+When the user asks what skills or workflows are available:
+
+1. Scan `.claude/skills/` for all directories containing a SKILL.md
+2. Group by source:
+   - **Core** (`_core/`): Shared workflow skills
+   - **Team** (`_team/`): Team-specific domain skills
+   - **Project** (top-level, not `_core/` or `_team/`): Project-specific overrides
+3. Display each skill's name and description (from SKILL.md frontmatter)
 
 ## Directory Structure
 

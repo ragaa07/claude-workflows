@@ -133,26 +133,21 @@ project:
   stack: "<detected-stack>"
   language: "<primary-language>"
 
-build:
-  command: "<build-command>"
-  test: "<test-command>"
-  lint: "<lint-command>"
-  variants: [<list-if-applicable>]
-
 git:
-  main_branch: "<main>"
-  dev_branch: "<dev>"
-  commit_format: "<conventional|freeform|jira>"
-  branch_prefix: "<prefix>"
+  branches:
+    main: "<main>"
+    development: "<dev>"
+    feature: "feature/{name}"
+    bugfix: "bugfix/{name}"
+    hotfix: "hotfix/{name}"
+    release: "release/v{version}"
 
-architecture:
-  pattern: "<mvvm|mvi|clean|etc>"
-  di_framework: "<hilt|dagger|koin|etc>"
-  module_structure: "<mono|multi>"
+  commits:
+    format: "<conventional|angular|simple>"
+    types: [feat, fix, refactor, test, docs, chore, style, perf]
 
-ci:
-  system: "<github-actions|gitlab|etc>"
-  config_path: "<path-to-ci-config>"
+  pr:
+    base_branch: "<dev>"
 ```
 
 ---

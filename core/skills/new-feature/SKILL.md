@@ -348,18 +348,18 @@ Add feature to `tasks/todo.md`:
 ### Step 5.1 — Read Git Config
 
 From `.claude/workflows.yml`, get:
-- `git.dev_branch`: Branch to branch from
-- `git.branch_prefix`: Naming convention
+- `git.branches.development`: Branch to branch from
+- `git.branches.feature`: Branch naming pattern
 
 ### Step 5.2 — Create Branch
 
 ```bash
-git checkout <dev_branch>
-git pull origin <dev_branch>
-git checkout -b <branch_prefix><feature_name>
+git checkout <development_branch>
+git pull origin <development_branch>
+git checkout -b <feature_pattern_with_name>
 ```
 
-Example: `git checkout -b alpha-feature/Payment_Flow`
+Example: `git checkout -b feature/Payment_Flow`
 
 ### Error Handling
 

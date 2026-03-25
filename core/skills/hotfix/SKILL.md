@@ -113,8 +113,9 @@ grep -r "<crash-pattern>" --include="*.kt" -l
 ### Step 2.1 — Branch from Production
 
 ```bash
-# Identify production branch
-PROD_BRANCH=$(grep -A1 "main_branch" .claude/workflows.yml | tail -1 | tr -d ' ' || echo "Production")
+# Identify production branch from git.branches.main in workflows.yml
+PROD_BRANCH=$(awk '/^git:/,/^[^ ]/' .claude/workflows.yml | awk '/branches:/,/^  [^ ]/' | grep 'main:' | awk -F'"' '{print $2}')
+PROD_BRANCH="${PROD_BRANCH:-main}"
 
 git checkout $PROD_BRANCH
 git pull origin $PROD_BRANCH

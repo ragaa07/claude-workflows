@@ -11,6 +11,7 @@ project:
   name: "My Project"                   # Your project name
   type: "generic"                      # android | react | python | generic
   language: ""                         # Primary language (kotlin, typescript, python, etc.)
+  team: ""                             # Team name (e.g., "android", "ios", "backend")
 
 # ============================================================
 # Git Flow Configuration

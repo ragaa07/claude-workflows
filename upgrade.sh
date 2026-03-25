@@ -9,6 +9,8 @@ set -euo pipefail
 #   bash upgrade.sh --type android     # Upgrade core + android rules/reviews
 #   bash upgrade.sh --type react       # Upgrade core + react rules/reviews
 #   bash upgrade.sh --with-guards      # Also upgrade guards template
+#   bash upgrade.sh --team android     # Also upgrade team-specific skills/rules/reviews
+#   bash upgrade.sh --type android --team android  # Full android team upgrade
 # ============================================================
 
 # ============================================================
@@ -16,6 +18,7 @@ set -euo pipefail
 # ============================================================
 INSTALL_TYPE=""
 WITH_GUARDS=false
+TEAM_NAME=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -27,9 +30,13 @@ while [[ $# -gt 0 ]]; do
       WITH_GUARDS=true
       shift
       ;;
+    --team)
+      TEAM_NAME="${2:-}"
+      shift 2
+      ;;
     *)
       echo "Unknown option: $1"
-      echo "Usage: bash upgrade.sh [--type android|react|python|swift|go|generic] [--with-guards]"
+      echo "Usage: bash upgrade.sh [--type android|react|python|swift|go|generic] [--team <name>] [--with-guards]"
       exit 1
       ;;
   esac
@@ -75,11 +82,28 @@ fi
 
 CURRENT_VERSION="$(cat "$VERSION_FILE" | tr -d '[:space:]')"
 
+# Validate team (if specified)
+if [[ -n "$TEAM_NAME" ]]; then
+  TEAM_DIR="$SCRIPT_DIR/teams/$TEAM_NAME"
+  if [[ ! -d "$TEAM_DIR" ]]; then
+    echo "ERROR: Team '$TEAM_NAME' not found at $TEAM_DIR"
+    echo "Available teams:"
+    for d in "$SCRIPT_DIR/teams/"*/; do
+      [[ "$(basename "$d")" == "_template" ]] && continue
+      [[ -d "$d" ]] && echo "  - $(basename "$d")"
+    done
+    exit 1
+  fi
+fi
+
 echo "=== claude-workflows upgrade ==="
 echo "Current version: ${CURRENT_VERSION}"
 echo "New version:     ${NEW_VERSION}"
 if [[ -n "$INSTALL_TYPE" ]]; then
   echo "Install type:    ${INSTALL_TYPE}"
+fi
+if [[ -n "$TEAM_NAME" ]]; then
+  echo "Team:            ${TEAM_NAME}"
 fi
 echo ""
 
@@ -94,13 +118,13 @@ fi
 get_rule_files() {
   local type="$1"
   case "$type" in
-    android)  echo "kotlin.md" ;;
-    react)    echo "typescript.md" ;;
+    android)  echo "kotlin.md compose.md" ;;
+    react)    echo "typescript.md react.md" ;;
     python)   echo "python.md" ;;
     swift)    echo "swift.md" ;;
     go)       echo "go.md" ;;
     generic)  echo "" ;;
-    all)      echo "kotlin.md typescript.md python.md swift.md go.md" ;;
+    all)      echo "kotlin.md compose.md typescript.md react.md python.md swift.md go.md" ;;
     *)        echo "" ;;
   esac
 }
@@ -108,12 +132,12 @@ get_rule_files() {
 get_review_label() {
   local type="$1"
   case "$type" in
-    android)  echo "android" ;;
-    react)    echo "typescript" ;;
-    python)   echo "python" ;;
-    swift)    echo "swift" ;;
-    go)       echo "go" ;;
-    generic)  echo "" ;;
+    android)  echo "kotlin-checklist" ;;
+    react)    echo "typescript-checklist" ;;
+    python)   echo "python-checklist" ;;
+    swift)    echo "swift-checklist" ;;
+    go)       echo "go-checklist" ;;
+    generic)  echo "general-checklist" ;;
     all)      echo "all" ;;
     *)        echo "" ;;
   esac
@@ -132,6 +156,33 @@ if [[ -d "$SCRIPT_DIR/core/skills" ]]; then
   echo "  Replaced .claude/skills/_core/"
 else
   echo "  WARNING: No core skills found at $SCRIPT_DIR/core/skills/"
+fi
+
+# ============================================================
+# 1b. Replace team skills (if --team specified)
+# ============================================================
+if [[ -n "$TEAM_NAME" ]]; then
+  echo "Upgrading team skills for: $TEAM_NAME..."
+  TEAM_DIR="$SCRIPT_DIR/teams/$TEAM_NAME"
+
+  if [[ -d "$TEAM_DIR/skills" ]]; then
+    rm -rf "$PROJECT_ROOT/.claude/skills/_team"
+    mkdir -p "$PROJECT_ROOT/.claude/skills/_team"
+    cp -R "$TEAM_DIR/skills/"* "$PROJECT_ROOT/.claude/skills/_team/"
+    echo "  Replaced .claude/skills/_team/"
+  fi
+
+  if [[ -d "$TEAM_DIR/rules" ]]; then
+    mkdir -p "$PROJECT_ROOT/.claude/rules"
+    cp "$TEAM_DIR/rules/"* "$PROJECT_ROOT/.claude/rules/" 2>/dev/null || true
+    echo "  Updated team rules in .claude/rules/"
+  fi
+
+  if [[ -d "$TEAM_DIR/reviews" ]]; then
+    mkdir -p "$PROJECT_ROOT/.claude/reviews"
+    cp "$TEAM_DIR/reviews/"* "$PROJECT_ROOT/.claude/reviews/" 2>/dev/null || true
+    echo "  Updated team review checklists in .claude/reviews/"
+  fi
 fi
 
 # ============================================================
@@ -223,10 +274,13 @@ mkdir -p "$PROJECT_ROOT/.workflows/learned"
 echo ""
 echo "Preserved (not modified):"
 echo "  .claude/workflows.yml"
-echo "  .claude/skills/ (project skills outside _core/)"
+echo "  .claude/skills/ (project skills outside _core/ and _team/)"
 if [[ -z "$INSTALL_TYPE" ]]; then
   echo "  .claude/rules/ (use --type to update)"
   echo "  .claude/reviews/ (use --type to update)"
+fi
+if [[ -z "$TEAM_NAME" ]]; then
+  echo "  .claude/skills/_team/ (use --team to update)"
 fi
 if [[ "$WITH_GUARDS" != true ]]; then
   echo "  .claude/guards.yml (use --with-guards to update)"

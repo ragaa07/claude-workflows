@@ -13,6 +13,8 @@ set -euo pipefail
 #   bash install.sh --type go          # Install core + go rules + Go review checklist
 #   bash install.sh --type generic     # Install core only, no language rules
 #   bash install.sh --with-guards      # Also install safety guards
+#   bash install.sh --team android     # Also install team-specific skills/rules/reviews
+#   bash install.sh --type android --team android  # Full android team setup
 # ============================================================
 
 # ============================================================
@@ -20,6 +22,7 @@ set -euo pipefail
 # ============================================================
 INSTALL_TYPE="all"
 WITH_GUARDS=false
+TEAM_NAME=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -31,9 +34,13 @@ while [[ $# -gt 0 ]]; do
       WITH_GUARDS=true
       shift
       ;;
+    --team)
+      TEAM_NAME="${2:-}"
+      shift 2
+      ;;
     *)
       echo "Unknown option: $1"
-      echo "Usage: bash install.sh [--type android|react|python|swift|go|generic] [--with-guards]"
+      echo "Usage: bash install.sh [--type android|react|python|swift|go|generic] [--team <name>] [--with-guards]"
       exit 1
       ;;
   esac
@@ -58,6 +65,20 @@ else
   exit 1
 fi
 
+# Validate team (if specified)
+if [[ -n "$TEAM_NAME" ]]; then
+  TEAM_DIR="$SCRIPT_DIR/teams/$TEAM_NAME"
+  if [[ ! -d "$TEAM_DIR" ]]; then
+    echo "ERROR: Team '$TEAM_NAME' not found at $TEAM_DIR"
+    echo "Available teams:"
+    for d in "$SCRIPT_DIR/teams/"*/; do
+      [[ "$(basename "$d")" == "_template" ]] && continue
+      [[ -d "$d" ]] && echo "  - $(basename "$d")"
+    done
+    exit 1
+  fi
+fi
+
 # Detect project root (git root or cwd)
 if git rev-parse --show-toplevel &>/dev/null; then
   PROJECT_ROOT="$(git rev-parse --show-toplevel)"
@@ -68,6 +89,9 @@ fi
 echo "=== claude-workflows installer v${VERSION} ==="
 echo "Project root: ${PROJECT_ROOT}"
 echo "Install type: ${INSTALL_TYPE}"
+if [[ -n "$TEAM_NAME" ]]; then
+echo "Team:         ${TEAM_NAME}"
+fi
 echo "With guards:  ${WITH_GUARDS}"
 echo ""
 
@@ -77,13 +101,13 @@ echo ""
 get_rule_files() {
   local type="$1"
   case "$type" in
-    android)  echo "kotlin.md" ;;
-    react)    echo "typescript.md" ;;
+    android)  echo "kotlin.md compose.md" ;;
+    react)    echo "typescript.md react.md" ;;
     python)   echo "python.md" ;;
     swift)    echo "swift.md" ;;
     go)       echo "go.md" ;;
     generic)  echo "" ;;
-    all)      echo "kotlin.md typescript.md python.md swift.md go.md" ;;
+    all)      echo "kotlin.md compose.md typescript.md react.md python.md swift.md go.md" ;;
     *)
       echo "ERROR: Unknown type '$type'. Valid types: android, react, python, swift, go, generic, all" >&2
       exit 1
@@ -94,12 +118,12 @@ get_rule_files() {
 get_review_label() {
   local type="$1"
   case "$type" in
-    android)  echo "android" ;;
-    react)    echo "typescript" ;;
-    python)   echo "python" ;;
-    swift)    echo "swift" ;;
-    go)       echo "go" ;;
-    generic)  echo "" ;;
+    android)  echo "kotlin-checklist" ;;
+    react)    echo "typescript-checklist" ;;
+    python)   echo "python-checklist" ;;
+    swift)    echo "swift-checklist" ;;
+    go)       echo "go-checklist" ;;
+    generic)  echo "general-checklist" ;;
     all)      echo "all" ;;
     *)        echo "" ;;
   esac
@@ -128,6 +152,30 @@ if [[ -d "$SCRIPT_DIR/core/skills" ]]; then
   echo "  Copied core skills to .claude/skills/_core/"
 else
   echo "  WARNING: No core skills found at $SCRIPT_DIR/core/skills/"
+fi
+
+# ============================================================
+# 2b. Copy team skills (if --team specified)
+# ============================================================
+if [[ -n "$TEAM_NAME" ]]; then
+  echo "Installing team skills for: $TEAM_NAME..."
+  TEAM_DIR="$SCRIPT_DIR/teams/$TEAM_NAME"
+
+  if [[ -d "$TEAM_DIR/skills" ]]; then
+    mkdir -p "$PROJECT_ROOT/.claude/skills/_team"
+    cp -R "$TEAM_DIR/skills/"* "$PROJECT_ROOT/.claude/skills/_team/"
+    echo "  Copied team skills to .claude/skills/_team/"
+  fi
+
+  if [[ -d "$TEAM_DIR/rules" ]]; then
+    cp "$TEAM_DIR/rules/"* "$PROJECT_ROOT/.claude/rules/" 2>/dev/null || true
+    echo "  Copied team rules to .claude/rules/"
+  fi
+
+  if [[ -d "$TEAM_DIR/reviews" ]]; then
+    cp "$TEAM_DIR/reviews/"* "$PROJECT_ROOT/.claude/reviews/" 2>/dev/null || true
+    echo "  Copied team review checklists to .claude/reviews/"
+  fi
 fi
 
 # ============================================================
@@ -220,6 +268,9 @@ fi
 if [[ ! -f "$PROJECT_ROOT/.claude/workflows.yml" ]]; then
   if [[ -f "$SCRIPT_DIR/config/defaults.yml" ]]; then
     cp "$SCRIPT_DIR/config/defaults.yml" "$PROJECT_ROOT/.claude/workflows.yml"
+    if [[ -n "$TEAM_NAME" ]]; then
+      sed -i '' "s/^  team: \"\"/  team: \"$TEAM_NAME\"/" "$PROJECT_ROOT/.claude/workflows.yml"
+    fi
     echo "Created .claude/workflows.yml from defaults"
   else
     echo "  WARNING: defaults.yml not found at $SCRIPT_DIR/config/defaults.yml"
@@ -241,6 +292,22 @@ CLAUDE_MD="$PROJECT_ROOT/CLAUDE.md"
 MARKER_START="<!-- claude-workflows:start -->"
 MARKER_END="<!-- claude-workflows:end -->"
 
+# Build team skills line for CLAUDE.md
+TEAM_SKILLS_LINE=""
+if [[ -n "$TEAM_NAME" ]]; then
+  TEAM_SKILLS_LINE="
+- Team skills ($TEAM_NAME): \`.claude/skills/_team/\`"
+fi
+
+# Build team commands section
+TEAM_COMMANDS=""
+if [[ -n "$TEAM_NAME" && -d "$SCRIPT_DIR/teams/$TEAM_NAME/skills" ]]; then
+  TEAM_COMMANDS="
+
+### Team Skills ($TEAM_NAME)
+Team-specific workflows available via \`/workflow:<skill-name>\`. Check \`.claude/skills/_team/\` for all available team skills."
+fi
+
 WORKFLOW_BLOCK="$MARKER_START
 ## Workflows
 
@@ -257,10 +324,11 @@ This project uses [claude-workflows](https://github.com/4SaleTech/claude-workflo
 - \`/workflow:learn\` — Capture patterns from completed workflows
 - \`/workflow:status\` — Check current workflow state
 - \`/workflow:resume\` — Resume an in-progress workflow
+$TEAM_COMMANDS
 
 ### Configuration
 - Workflow config: \`.claude/workflows.yml\`
-- Core skills: \`.claude/skills/_core/\`
+- Core skills: \`.claude/skills/_core/\`$TEAM_SKILLS_LINE
 - Language rules: \`.claude/rules/\`
 - Review checklists: \`.claude/reviews/\`
 - Workflow state: \`.workflows/\`
@@ -323,6 +391,9 @@ echo "=== Installation complete! ==="
 echo ""
 echo "Installed:"
 echo "  Core skills:       .claude/skills/_core/"
+if [[ -n "$TEAM_NAME" ]]; then
+echo "  Team skills:       .claude/skills/_team/ ($TEAM_NAME)"
+fi
 echo "  Templates:         .claude/templates/"
 if [[ -n "$RULE_FILES" ]]; then
 echo "  Language rules:    .claude/rules/ ($RULE_FILES)"

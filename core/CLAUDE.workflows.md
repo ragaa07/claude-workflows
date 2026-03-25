@@ -24,6 +24,12 @@ All workflow config lives in `.claude/workflows.yml`. Key sections:
 
 | Purpose | Path |
 |---------|------|
+| Workflow config | `.claude/workflows.yml` |
+| Core skills | `.claude/skills/_core/` |
+| Team skills | `.claude/skills/_team/` |
+| Project skills | `.claude/skills/<name>/` (overrides) |
+| Language rules | `.claude/rules/` |
+| Review checklists | `.claude/reviews/` |
 | Workflow state | `.workflows/current-state.md` |
 | Paused workflows | `.workflows/paused-<name>.md` |
 | History | `.workflows/history/` |
@@ -75,3 +81,6 @@ After ANY correction from the user or unexpected failure:
 | `/workflow:history` | List completed workflows |
 
 Aliases are defined in `.claude/workflows.yml` under `skills.aliases`.
+
+Team-specific skills (in `.claude/skills/_team/`) are also available via `/workflow:<skill-name>`.
+Skill resolution order: project overrides > team skills > core skills.

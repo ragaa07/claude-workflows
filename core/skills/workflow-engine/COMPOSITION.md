@@ -13,7 +13,7 @@ When a workflow reaches a chainable phase, it may invoke another workflow as a s
 | new-feature | TEST | /workflow:test | When require_tests is true |
 | new-feature | PRE_PR | /workflow:review --self | When review.auto_self_review is true |
 | extend-feature | TEST | /workflow:test | When require_tests is true |
-| extend-feature | VERIFY_COMPAT | /workflow:test --existing-only | Always |
+| extend-feature | VERIFY-COMPAT | /workflow:test --existing-only | Always |
 | refactor | VERIFY | /workflow:test --full-suite | Always |
 | release | PRE_RELEASE | /workflow:review --release | When review.on_release is true |
 
@@ -22,15 +22,13 @@ When a workflow reaches a chainable phase, it may invoke another workflow as a s
 Users can define custom chains:
 
 ```yaml
-workflows:
+chains:
   new-feature:
-    chains:
-      POST_IMPLEMENT: "/workflow:review --self"
-      TEST: "/workflow:test --coverage 95"
+    POST_IMPLEMENT: "/workflow:review --self"
+    TEST: "/workflow:test --coverage 95"
 
   release:
-    chains:
-      PRE_RELEASE: "/workflow:review --release"
+    PRE_RELEASE: "/workflow:review --release"
 ```
 
 ### Chain Execution Rules

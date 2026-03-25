@@ -1,17 +1,16 @@
 # claude-workflows
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](VERSION)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](VERSION)
 
 **Portable, spec-driven development workflows for Claude Code AI agents.**
 
-claude-workflows provides 10 structured workflows and 3 utility skills that guide AI agents through software development tasks with consistent quality, configurable git flow, and multi-session context persistence.
+claude-workflows provides 17 structured workflow skills that guide AI agents through software development tasks with consistent quality, configurable git flow, and multi-session context persistence. Teams can inject their own domain-specific skills, rules, and review checklists.
 
 ---
 
 ## Quick Start
 
-### Installation
+### Basic Installation
 
 Clone the repository and run the installer from your project root:
 
@@ -21,18 +20,59 @@ cd /path/to/your/project
 bash /tmp/claude-workflows/install.sh
 ```
 
-This will:
-1. Copy core skills to `.claude/skills/_core/`
-2. Create `.claude/workflows.yml` from defaults
-3. Append workflow commands to your `CLAUDE.md`
-4. Set up `.workflows/` state directory
-5. Create `tasks/todo.md` and `tasks/lessons.md` scaffolding
+### Install with Language Type
+
+```bash
+# Android/Kotlin project
+bash /tmp/claude-workflows/install.sh --type android
+
+# React/TypeScript project
+bash /tmp/claude-workflows/install.sh --type react
+
+# Python project
+bash /tmp/claude-workflows/install.sh --type python
+
+# Swift/iOS project
+bash /tmp/claude-workflows/install.sh --type swift
+
+# Go project
+bash /tmp/claude-workflows/install.sh --type go
+
+# Core only, no language rules
+bash /tmp/claude-workflows/install.sh --type generic
+```
+
+### Install with Team Skills
+
+```bash
+# Android project with Android team skills
+bash /tmp/claude-workflows/install.sh --type android --team android
+
+# React project with frontend team skills
+bash /tmp/claude-workflows/install.sh --type react --team frontend
+
+# Include safety guards
+bash /tmp/claude-workflows/install.sh --type android --team android --with-guards
+```
+
+### What Gets Installed
+
+| Component | Path | Source |
+|-----------|------|--------|
+| Core skills (17) | `.claude/skills/_core/` | Always installed |
+| Team skills | `.claude/skills/_team/` | Only with `--team` |
+| Language rules | `.claude/rules/` | Based on `--type` |
+| Review checklists | `.claude/reviews/` | Based on `--type` + `--team` |
+| Templates | `.claude/templates/` | Always installed |
+| Config | `.claude/workflows.yml` | Created from defaults |
+| State directory | `.workflows/` | Always created |
+| Safety guards | `.claude/guards.yml` | Only with `--with-guards` |
 
 ### Verify Installation
 
 ```bash
 cat .claude/.workflows-version
-# Should print: 1.0.0
+# Should print: 1.1.0
 ```
 
 Then start a Claude Code session and run:
@@ -315,37 +355,201 @@ Workflows use Claude Code sub-agents to keep the main context window clean and f
 
 ---
 
-## Project Skills
+## Skills & Customization
 
-Projects can define custom skills that coexist with or override core skills.
+Skills are organized in three tiers. Higher tiers override lower ones.
 
 ### Directory Structure
 
 ```
 .claude/
   skills/
-    _core/                    # Core skills (installed by claude-workflows)
+    _core/                    # Tier 3: Core skills (installed by claude-workflows)
       new-feature/SKILL.md
       hotfix/SKILL.md
       ...
-    my-custom-skill/          # Project-specific skill
+    _team/                    # Tier 2: Team skills (installed with --team)
+      add-analytics-event/SKILL.md
+      create-screen/SKILL.md
+      ...
+    my-custom-skill/          # Tier 1: Project-specific skills (manual)
       SKILL.md
-```
-
-### Override Pattern
-
-To override a core skill, create a skill with the same name in `.claude/skills/`:
-
-```
-.claude/skills/review/SKILL.md      # Your custom review workflow
-.claude/skills/_core/review/SKILL.md # Core review (ignored when override exists)
 ```
 
 ### Resolution Priority
 
-1. **Project skills**: `.claude/skills/<name>/SKILL.md`
-2. **Core skills**: `.claude/skills/_core/<name>/SKILL.md`
-3. **Fallback**: Skill not found error
+1. **Project skills**: `.claude/skills/<name>/SKILL.md` (highest priority)
+2. **Team skills**: `.claude/skills/_team/<name>/SKILL.md`
+3. **Core skills**: `.claude/skills/_core/<name>/SKILL.md`
+4. **Fallback**: Skill not found error
+
+### Override Pattern
+
+To override any skill, create a skill with the same name at a higher tier:
+
+```
+.claude/skills/review/SKILL.md       # Project override (used)
+.claude/skills/_team/review/SKILL.md  # Team version (skipped)
+.claude/skills/_core/review/SKILL.md  # Core version (skipped)
+```
+
+---
+
+## Team Setup
+
+Teams can define their own domain-specific skills, architecture rules, and review checklists. The framework provides templates — teams write the content.
+
+### Creating a New Team
+
+```bash
+# 1. Copy the template
+cp -r teams/_template teams/<your-team-name>
+# Example: cp -r teams/_template teams/android
+```
+
+### Team Directory Structure
+
+```
+teams/<your-team-name>/
+  manifest.yml                  # Team metadata and skill declarations
+  skills/
+    example-skill/
+      SKILL.md                  # Rename and customize this
+    your-skill-name/
+      SKILL.md                  # Add as many skills as needed
+  rules/
+    team-conventions.md         # DO/DON'T rules for your team
+  reviews/
+    team-review-checklist.md    # Review quality gates
+```
+
+### Step-by-Step
+
+**1. Edit `manifest.yml`**
+
+```yaml
+team: "android"
+description: "Android team conventions and domain skills"
+requires_type: android
+
+skills:
+  - integrate-analytics
+  - scaffold-screen
+
+rules:
+  - team-conventions.md
+
+reviews:
+  - team-review-checklist.md
+```
+
+**2. Create your skills** — copy the example skeleton and customize:
+
+```bash
+cp -r teams/android/skills/example-skill teams/android/skills/integrate-analytics
+# Edit teams/android/skills/integrate-analytics/SKILL.md
+```
+
+Each skill is a `SKILL.md` file with this structure:
+
+```markdown
+---
+name: integrate-analytics
+description: Add analytics event tracking following team conventions.
+---
+
+# Skill Name
+
+## Command
+/workflow:integrate-analytics <event-name>
+
+## Overview
+What this skill does and when to use it.
+
+## Phase 1: ANALYZE
+Steps to understand the current state...
+
+## Phase 2: IMPLEMENT
+Steps to make the changes...
+
+## Phase 3: VERIFY
+Checklist to confirm correctness...
+
+## Error Handling
+What to do when things go wrong...
+```
+
+**3. Edit team rules** (`rules/team-conventions.md`):
+
+```markdown
+## Architecture
+- DO use MVVM + Clean Architecture
+- DON'T put business logic in ViewModel — use UseCases
+
+## Naming
+- DO use PascalCase for classes, camelCase for functions
+- DON'T use abbreviations in public API names
+```
+
+**4. Edit team review checklist** (`reviews/team-review-checklist.md`):
+
+```markdown
+| Check | Severity | What to Look For |
+|-------|----------|------------------|
+| Architecture compliance | High | No layer violations |
+| Error handling | High | All IO operations handle failures |
+| Naming conventions | Medium | Follows team standards |
+```
+
+**5. Commit to the shared repo** — now every developer on the team gets these skills:
+
+```bash
+cd claude-workflows
+git add teams/android/
+git commit -m "feat: add android team skills and conventions"
+```
+
+**6. Developers install with the team flag:**
+
+```bash
+bash install.sh --type android --team android
+```
+
+### What Each Developer Gets
+
+| Source | `--type` only | `--type` + `--team` |
+|--------|---------------|---------------------|
+| Core skills (17) | Yes | Yes |
+| Language rules | Yes | Yes |
+| Language review checklist | Yes | Yes |
+| Team skills | No | Yes |
+| Team rules | No | Yes |
+| Team review checklist | No | Yes |
+
+### Multiple Teams Example
+
+A company with Android, iOS, and Backend teams:
+
+```
+teams/
+  _template/          # Skeleton for new teams
+  android/            # Android team skills and conventions
+  ios/                # iOS team skills and conventions
+  backend/            # Backend team skills and conventions
+```
+
+Each project installs with its team:
+
+```bash
+# Android project
+bash install.sh --type android --team android
+
+# iOS project
+bash install.sh --type swift --team ios
+
+# Backend project
+bash install.sh --type python --team backend
+```
 
 ---
 
@@ -358,25 +562,20 @@ cd /path/to/your/project
 bash /path/to/claude-workflows/upgrade.sh
 ```
 
+To also upgrade team skills:
+
+```bash
+bash /path/to/claude-workflows/upgrade.sh --team android
+bash /path/to/claude-workflows/upgrade.sh --type android --team android --with-guards
+```
+
 The upgrade script:
-1. Updates core skills in `.claude/skills/_core/`
-2. Preserves your `.claude/workflows.yml` configuration
-3. Preserves any project-specific skills in `.claude/skills/`
-4. Updates the version marker in `.claude/.workflows-version`
-
----
-
-## Examples
-
-Pre-configured `workflows.yml` files for common project types:
-
-| Project Type | File | Highlights |
-|-------------|------|-----------|
-| **Android/Kotlin** | [`examples/android/workflows.yml`](examples/android/workflows.yml) | Git-flow branching, Gradle build, design system review standards |
-| **React/TypeScript** | [`examples/react/workflows.yml`](examples/react/workflows.yml) | GitHub Flow, Jest testing, ESLint/Prettier, accessibility checks |
-| **Python** | [`examples/python/workflows.yml`](examples/python/workflows.yml) | Trunk-based dev, pytest, ruff/black, mypy type checking |
-
-Copy the relevant example to `.claude/workflows.yml` and customize for your project.
+1. Replaces core skills in `.claude/skills/_core/`
+2. Replaces team skills in `.claude/skills/_team/` (if `--team` specified)
+3. Updates language rules (if `--type` specified)
+4. Preserves your `.claude/workflows.yml` configuration
+5. Preserves any project-specific skills in `.claude/skills/`
+6. Updates the version marker in `.claude/.workflows-version`
 
 ---
 
@@ -390,7 +589,7 @@ claude-workflows/
     defaults.yml              # Default configuration template
   core/
     CLAUDE.workflows.md       # Main workflow instructions (appended to CLAUDE.md)
-    skills/
+    skills/                   # 17 core workflow skills
       workflow-engine/        # Meta-orchestrator: routing, state, session recovery
       git-flow/               # Branch, commit, PR, and merge operations
       new-project/            # Project bootstrapping and detection
@@ -402,12 +601,23 @@ claude-workflows/
       review/                 # PR code review (4 phases)
       test/                   # Test generation with coverage
       brainstorm/             # 5 brainstorming techniques
-  examples/
-    android/workflows.yml     # Android/Kotlin example config
-    react/workflows.yml       # React/TypeScript example config
-    python/workflows.yml      # Python example config
-  install.sh                  # Installer script
-  upgrade.sh                  # Upgrade script
+      ci-fix/                 # CI pipeline fixes
+      migrate/                # Project migrations
+      learn/                  # Capture patterns from workflows
+      dry-run/                # Preview workflows
+      metrics/                # Workflow metrics
+      guards/                 # Safety guard enforcement
+    rules/                    # Language-specific rules (7 files)
+    reviews/                  # Language-specific review checklists (6 files)
+    templates/                # Spec, plan, state, changelog templates
+  teams/                      # Team-specific content
+    _template/                # Skeleton for creating new teams
+      manifest.yml
+      skills/example-skill/SKILL.md
+      rules/team-conventions.md
+      reviews/team-review-checklist.md
+  install.sh                  # Installer: --type, --team, --with-guards
+  upgrade.sh                  # Upgrader: --type, --team, --with-guards
   VERSION                     # Current version
 ```
 
@@ -432,14 +642,22 @@ When a `/workflow:<command>` is invoked:
 1. Check if it is a **utility command** (status, resume, pause, abandon, history)
 2. Check if it is an **alias** defined in `skills.aliases`
 3. Resolve to a **project skill** (`.claude/skills/<name>/SKILL.md`)
-4. Fall back to a **core skill** (`.claude/skills/_core/<name>/SKILL.md`)
-5. Report **skill not found**
+4. Resolve to a **team skill** (`.claude/skills/_team/<name>/SKILL.md`)
+5. Fall back to a **core skill** (`.claude/skills/_core/<name>/SKILL.md`)
+6. Report **skill not found**
 
 ---
 
 ## Contributing
 
-### Adding a New Workflow
+### Adding a Team Skill
+
+1. Create a directory under `teams/<your-team>/skills/<skill-name>/`
+2. Write `SKILL.md` using the template at `teams/_template/skills/example-skill/SKILL.md`
+3. Update your team's `manifest.yml` to list the new skill
+4. Test by installing with `bash install.sh --type <type> --team <your-team>`
+
+### Adding a New Core Workflow
 
 1. Create a directory under `core/skills/<workflow-name>/`
 2. Write `SKILL.md` with YAML frontmatter (`name`, `description`) and full phase instructions
@@ -466,4 +684,4 @@ When a `/workflow:<command>` is invoked:
 - One workflow or skill change per PR
 - Include a test plan describing how you verified the workflow
 - Follow conventional commit format: `feat:`, `fix:`, `docs:`
-- Target the `Development` branch
+- Target the `main` branch
