@@ -41,13 +41,19 @@ npx claude-dev-workflows init --type go
 ### Install with Team Skills
 
 ```bash
-# Android project with Android team skills
+# Android team
 npx claude-dev-workflows init --type android --team android
 
-# React project with frontend team skills
+# iOS team
+npx claude-dev-workflows init --type swift --team ios
+
+# Frontend team
 npx claude-dev-workflows init --type react --team frontend
 
-# Full setup with safety guards
+# Backend team
+npx claude-dev-workflows init --type python --team backend
+
+# With safety guards
 npx claude-dev-workflows init --type android --team android --with-guards
 ```
 
