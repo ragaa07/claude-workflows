@@ -5,32 +5,79 @@ description: End-to-end workflow for implementing a new feature from requirement
 
 # New Feature Workflow
 
-## Workflow State Protocol
+## Phase 0: INIT — Do This First
 
-> **MANDATORY**: Follow these rules throughout this entire workflow.
+> **You MUST complete these steps before doing anything else.**
 
-### On Workflow Start
-1. Create directories: `mkdir -p .workflows/specs .workflows/history`
-2. If `.workflows/current-state.md` already exists, ask the user: pause/abandon the existing workflow, or cancel this one.
-3. Create `.workflows/current-state.md` with: workflow name, feature name, first phase (GATHER) as ACTIVE, started/updated timestamps, empty Phase History table, empty Completed Steps, Artifacts, and Context sections.
+### Step 0.1 — Create State Directories
 
-### At Every Phase Transition
-Update `.workflows/current-state.md`:
-1. Mark previous phase as `COMPLETED` with a brief note
-2. Add new phase as `ACTIVE`
-3. Update `phase` and `updated` header fields
-4. Add completed steps from previous phase as checkboxes under `## Completed Steps`
+```bash
+mkdir -p .workflows/specs .workflows/history
+```
 
-### Save Artifacts
-- Specs → `.workflows/specs/<feature>.spec.md`
-- Decisions → `.workflows/specs/<feature>.decisions.md`
-- Add links under `## Artifacts` in state file
+### Step 0.2 — Check for Existing Workflow
 
-### Brainstorm Skip Check
-Before any BRAINSTORM phase: skip if `--skip-brainstorm` was passed OR `.claude/workflows.yml` has `workflows.new-feature.require_brainstorm: false`. Mark as `SKIPPED` in Phase History.
+Read `.workflows/current-state.md`. If it exists, tell the user:
+- "There's an active workflow: `<workflow>` at `<phase>`. Pause it, abandon it, or cancel this new one?"
+- Wait for their choice before continuing.
 
-### On Workflow Completion
-Mark final phase `COMPLETED`. Move state file to `.workflows/history/<feature>-<date>.md`.
+### Step 0.3 — Create State File
+
+Write `.workflows/current-state.md` with this exact content (replace `<feature>` with the user's feature name):
+
+```markdown
+# Workflow State
+
+- **workflow**: new-feature
+- **feature**: <feature>
+- **phase**: GATHER
+- **started**: <current ISO-8601 timestamp>
+- **updated**: <current ISO-8601 timestamp>
+- **branch**:
+
+## Phase History
+
+| Phase | Status | Timestamp | Notes |
+|-------|--------|-----------|-------|
+| GATHER | ACTIVE | <timestamp> | Starting requirements gathering |
+
+## Completed Steps
+
+
+## Artifacts
+
+
+## Context
+
+```
+
+### Step 0.4 — Read Configuration
+
+Read `.claude/workflows.yml` and note:
+- `workflows.new-feature.require_brainstorm` — if `false`, skip BRAINSTORM phase later
+- `workflows.new-feature.require_tests` — if `false`, skip TEST phase later
+- `workflows.new-feature.require_spec` — if `false`, skip SPEC phase later
+- `git.branches` — for branch naming in BRANCH phase
+
+---
+
+## Phase Transition Rules
+
+**At the END of every phase** (before starting the next one), you MUST:
+1. Update `.workflows/current-state.md`:
+   - Change the current phase's row from `ACTIVE` to `COMPLETED` with a note of what was done
+   - Add the next phase as `ACTIVE`
+   - Update the `phase` and `updated` header fields
+   - Add checkboxes for steps completed under `## Completed Steps`
+2. Save any artifacts:
+   - Specs → `.workflows/specs/<feature>.spec.md`
+   - Decisions → `.workflows/specs/<feature>.decisions.md`
+   - Add links under `## Artifacts`
+3. Add key decisions under `## Context` (for resume)
+
+**When the workflow completes**: Move `.workflows/current-state.md` to `.workflows/history/<feature>-<date>.md`
+
+**Brainstorm skip**: Skip BRAINSTORM if `--skip-brainstorm` was passed OR `workflows.new-feature.require_brainstorm` is `false`. Mark as `SKIPPED`.
 
 ---
 
