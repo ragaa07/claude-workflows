@@ -15,39 +15,39 @@ claude-workflows provides 17 structured workflow skills that guide AI agents thr
 From your project root, run:
 
 ```bash
-npx claude-workflows init
+npx claude-dev-workflows init
 ```
 
 ### Install with Language Type
 
 ```bash
 # Android/Kotlin project
-npx claude-workflows init --type android
+npx claude-dev-workflows init --type android
 
 # React/TypeScript project
-npx claude-workflows init --type react
+npx claude-dev-workflows init --type react
 
 # Python project
-npx claude-workflows init --type python
+npx claude-dev-workflows init --type python
 
 # Swift/iOS project
-npx claude-workflows init --type swift
+npx claude-dev-workflows init --type swift
 
 # Go project
-npx claude-workflows init --type go
+npx claude-dev-workflows init --type go
 ```
 
 ### Install with Team Skills
 
 ```bash
 # Android project with Android team skills
-npx claude-workflows init --type android --team android
+npx claude-dev-workflows init --type android --team android
 
 # React project with frontend team skills
-npx claude-workflows init --type react --team frontend
+npx claude-dev-workflows init --type react --team frontend
 
 # Full setup with safety guards
-npx claude-workflows init --type android --team android --with-guards
+npx claude-dev-workflows init --type android --team android --with-guards
 ```
 
 ### Alternative: Install via Git Clone
@@ -515,7 +515,7 @@ git commit -m "feat: add android team skills and conventions"
 **6. Developers install with the team flag:**
 
 ```bash
-npx claude-workflows init --type android --team android
+npx claude-dev-workflows init --type android --team android
 ```
 
 ### What Each Developer Gets
@@ -545,13 +545,13 @@ Each project installs with its team:
 
 ```bash
 # Android project
-npx claude-workflows init --type android --team android
+npx claude-dev-workflows init --type android --team android
 
 # iOS project
-npx claude-workflows init --type swift --team ios
+npx claude-dev-workflows init --type swift --team ios
 
 # Backend project
-npx claude-workflows init --type python --team backend
+npx claude-dev-workflows init --type python --team backend
 ```
 
 ---
@@ -561,20 +561,20 @@ npx claude-workflows init --type python --team backend
 To upgrade to the latest version:
 
 ```bash
-npx claude-workflows@latest upgrade
+npx claude-dev-workflows@latest upgrade
 ```
 
 To also upgrade team skills and language rules:
 
 ```bash
-npx claude-workflows@latest upgrade --team android
-npx claude-workflows@latest upgrade --type android --team android --with-guards
+npx claude-dev-workflows@latest upgrade --team android
+npx claude-dev-workflows@latest upgrade --type android --team android --with-guards
 ```
 
 Pin to a specific version:
 
 ```bash
-npx claude-workflows@1.2.0 upgrade
+npx claude-dev-workflows@1.2.0 upgrade
 ```
 
 The upgrade:
