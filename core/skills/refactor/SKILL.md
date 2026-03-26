@@ -97,6 +97,8 @@ Record metrics:
 
 **Output**: Dependency graph document with blast radius assessment.
 
+**Phase Output**: Write dependency graph and blast radius analysis to `.workflows/<target>/01-analyze.md`
+
 ---
 
 ## Phase 2: BRAINSTORM
@@ -139,6 +141,8 @@ Present recommendation with justification. The approach with the lowest blast ra
 
 Ask: "Which approach? Or suggest an alternative."
 
+**Phase Output**: Write brainstorm results (approaches, trade-off matrix, recommendation) to `.workflows/<target>/02-brainstorm.md`
+
 ---
 
 ## Phase 3: CONTRACT
@@ -147,7 +151,7 @@ Ask: "Which approach? Or suggest an alternative."
 
 ### Step 3.1 — Write Behavioral Contract
 
-Create `.workflows/contracts/<target>.contract.md`:
+Create `.workflows/<target>/03-contract.md`:
 
 ```markdown
 # Behavioral Contract: <Target>
@@ -218,7 +222,7 @@ Each step MUST satisfy:
 # Refactor Plan: <Target>
 
 ## Contract Reference
-- Contract: `.workflows/contracts/<target>.contract.md`
+- Contract: `.workflows/<target>/03-contract.md`
 
 ## Current State
 <brief description>
@@ -263,6 +267,8 @@ For each step, list:
 
 Present plan. Ask: "Approve migration plan or request changes?"
 
+**Phase Output**: Write design summary to `.workflows/<target>/04-design.md` (detailed plan remains in `.claude/plan-refactor-<target>.md`)
+
 ---
 
 ## Phase 5: MIGRATE
@@ -303,6 +309,8 @@ When replacing a class/function:
 3. Migrate consumers one by one (each is a separate step)
 4. Delete the old implementation only after all consumers are migrated
 5. Verify no references remain: `grep -r "OldClass" --include="*.kt"`
+
+**Phase Output**: Write migration progress (steps completed, rollback points) to `.workflows/<target>/05-migrate.md`
 
 ### REPLAN Protocol
 
@@ -360,6 +368,8 @@ If any contract invariant is FAILED:
 - If critical: revert the entire refactor
 - If minor: fix and re-verify
 
+**Phase Output**: Write verification results (test results, contract check, metrics comparison) to `.workflows/<target>/06-verify.md`
+
 ---
 
 ## Phase 7: PR
@@ -379,7 +389,7 @@ Refactors <target> to <goal>.
 <chosen approach and why>
 
 ## Behavioral Contract
-All invariants from `.workflows/contracts/<target>.contract.md` verified:
+All invariants from `.workflows/<target>/03-contract.md` verified:
 - [x] <invariant 1>
 - [x] <invariant 2>
 
@@ -414,6 +424,8 @@ gh pr create --base <dev_branch> --title "refactor(<scope>): <goal>" --body "$(c
 EOF
 )"
 ```
+
+**Phase Output**: Write PR details (URL, summary, reviewers) to `.workflows/<target>/07-pr.md`
 
 ---
 

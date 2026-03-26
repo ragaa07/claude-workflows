@@ -28,7 +28,7 @@ Phases: **ANALYZE -> IMPLEMENT -> VERIFY**
 
 ```bash
 # Find relevant files in the codebase
-grep -rl "pattern-to-find" --include="*.kt" src/
+grep -rl "pattern-to-find" --include="*.ts" --include="*.tsx" src/
 ```
 
 Identify:
@@ -52,11 +52,17 @@ From `.claude/workflows.yml`, get:
 
 Describe exactly what files to create or modify, with code templates:
 
-```kotlin
-// Example template — replace with your language
-class ExampleClass {
-    // Follow existing patterns found in Phase 1
+```tsx
+// Example template — replace with your implementation
+import React from 'react';
+
+interface ExampleProps {
+  // Follow existing patterns found in Phase 1
 }
+
+export const ExampleComponent: React.FC<ExampleProps> = () => {
+  return <div>Hello</div>;
+};
 ```
 
 ### Step 2.2 — Build Check

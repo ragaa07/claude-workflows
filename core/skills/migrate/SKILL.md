@@ -31,6 +31,8 @@ Document the current state before any changes.
 | `architecture` | Current pattern (files, classes, data flow), target pattern, boundary identification |
 | `database` | Current schema (tables, columns, indices, constraints), target schema, data volume estimates |
 
+**Phase Output**: Write current state analysis to `.workflows/<type>/01-analyze.md`
+
 ### Phase 2: BRAINSTORM
 
 **Skip condition**: Skip if `--skip-brainstorm` passed OR `workflows.migrate.require_brainstorm` is `false` in `.claude/workflows.yml`. Mark as `SKIPPED` in Phase History.
@@ -53,6 +55,8 @@ Evaluate migration strategies using structured thinking.
 - Partial migration states that break the system
 
 Present the recommended strategy with rationale to the user.
+
+**Phase Output**: Write migration strategy evaluation to `.workflows/<type>/02-brainstorm.md`
 
 ### Phase 3: PLAN
 
@@ -79,6 +83,8 @@ Step 2: [Description] — Risk: Low/Med/High
 
 Write the plan to `.claude/plan-migrate-<type>.md`.
 
+**Phase Output**: Write plan summary to `.workflows/<type>/03-plan.md`
+
 ### Phase 4: EXECUTE
 
 Apply the plan step by step.
@@ -87,7 +93,7 @@ For each step:
 1. Apply the changes
 2. Run compile check (e.g., `./gradlew compileDebug`, `npm run build`, `cargo check`)
 3. Run relevant tests
-4. If compile or tests fail, fix before proceeding
+4. If compile or tests fail, fix before proceeding (max 3 fix attempts per step — if a step fails 3 times, STOP execution and re-evaluate the plan)
 5. Commit with descriptive message: `refactor(migrate): step N — <description>`
 6. Report progress to the user
 
@@ -95,6 +101,8 @@ If any step fails unexpectedly:
 - STOP execution
 - Report what failed and why
 - Re-evaluate the plan before continuing
+
+**Phase Output**: Write execution progress (steps completed, commits) to `.workflows/<type>/04-execute.md`
 
 ### Phase 5: VERIFY
 
@@ -108,6 +116,8 @@ Full verification after all steps are complete.
    - List all API endpoints affected
 4. Check for leftover TODOs, deprecated references, or dead code from the migration
 5. Run linters and static analysis
+
+**Phase Output**: Write verification results to `.workflows/<type>/05-verify.md`
 
 ### Phase 6: PR
 
@@ -140,6 +150,8 @@ Create a detailed pull request.
 ## Breaking Changes
 {list any breaking changes, or "None"}
 ```
+
+**Phase Output**: Write PR details to `.workflows/<type>/06-pr.md`
 
 ## Type-Specific Guidance
 

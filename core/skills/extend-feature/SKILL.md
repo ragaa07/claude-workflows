@@ -63,7 +63,7 @@ Use a sub-agent to build a feature map. Identify:
 
 Record: What does the user see/do today? What data flows exist? What events/analytics are tracked? What edge cases are handled?
 
-**Output**: Feature analysis document saved to `.workflows/specs/`.
+**Output**: Feature analysis document saved to `.workflows/<feature>/01-analyze.md`.
 
 ---
 
@@ -97,6 +97,8 @@ For each approach, score:
 ### Step 2.3 — Present Recommendation
 
 Present top 2 approaches with justification. Ask: "Which approach? (A/B or suggest alternative)"
+
+**Phase Output**: Write brainstorm results to `.workflows/<feature>/02-brainstorm.md`
 
 ---
 
@@ -157,6 +159,8 @@ Write `.claude/plan-<feature-name>-extension.md`:
 
 Present plan. Ask: "Approve plan or request changes?"
 
+**Phase Output**: Write plan summary to `.workflows/<feature>/03-plan.md`
+
 ---
 
 ## Phase 4: IMPLEMENT
@@ -183,6 +187,8 @@ For each phase in the plan:
 
 If you discover an existing file needs more changes than planned, a function signature must change, or a sealed interface needs restructuring: STOP, document the discovery, re-evaluate, update plan with user approval.
 
+**Phase Output**: Write implementation summary to `.workflows/<feature>/04-implement.md`
+
 ---
 
 ## Phase 5: VERIFY-COMPAT
@@ -206,6 +212,8 @@ If the feature exposes a public API:
 
 If any test fails: fix the code (not the test) to restore compatibility.
 
+**Phase Output**: Write compatibility verification results to `.workflows/<feature>/05-verify-compat.md`
+
 ---
 
 ## Phase 6: TEST
@@ -226,6 +234,8 @@ Create NEW test files (do not modify existing):
 
 Target: 80%+ coverage for new code.
 
+**Phase Output**: Write test results to `.workflows/<feature>/06-test.md`
+
 ---
 
 ## Phase 7: PR
@@ -240,6 +250,8 @@ gh pr create --base <dev_branch> --title "feat(<scope>): extend <feature> with <
 ```
 
 Report PR URL to user.
+
+**Phase Output**: Write PR details to `.workflows/<feature>/07-pr.md`
 
 ---
 

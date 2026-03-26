@@ -256,7 +256,21 @@ if [[ ! -f "$PROJECT_ROOT/.claude/workflows.yml" ]]; then
   if [[ -f "$SCRIPT_DIR/config/defaults.yml" ]]; then
     cp "$SCRIPT_DIR/config/defaults.yml" "$PROJECT_ROOT/.claude/workflows.yml"
     if [[ -n "$TEAM_NAME" ]]; then
-      sed -i '' "s/^  team: \"\"/  team: \"$TEAM_NAME\"/" "$PROJECT_ROOT/.claude/workflows.yml"
+      sed "s/^  team: \"\"/  team: \"$TEAM_NAME\"/" "$PROJECT_ROOT/.claude/workflows.yml" > "$PROJECT_ROOT/.claude/workflows.yml.tmp" && mv "$PROJECT_ROOT/.claude/workflows.yml.tmp" "$PROJECT_ROOT/.claude/workflows.yml"
+    fi
+    if [[ "$INSTALL_TYPE" != "all" ]]; then
+      sed "s/^  type: \"generic\"/  type: \"$INSTALL_TYPE\"/" "$PROJECT_ROOT/.claude/workflows.yml" > "$PROJECT_ROOT/.claude/workflows.yml.tmp" && mv "$PROJECT_ROOT/.claude/workflows.yml.tmp" "$PROJECT_ROOT/.claude/workflows.yml"
+      case "$INSTALL_TYPE" in
+        android) LANG_VALUE="kotlin" ;;
+        react)   LANG_VALUE="typescript" ;;
+        python)  LANG_VALUE="python" ;;
+        swift)   LANG_VALUE="swift" ;;
+        go)      LANG_VALUE="go" ;;
+        *)       LANG_VALUE="" ;;
+      esac
+      if [[ -n "$LANG_VALUE" ]]; then
+        sed "s/^  language: \"\"/  language: \"$LANG_VALUE\"/" "$PROJECT_ROOT/.claude/workflows.yml" > "$PROJECT_ROOT/.claude/workflows.yml.tmp" && mv "$PROJECT_ROOT/.claude/workflows.yml.tmp" "$PROJECT_ROOT/.claude/workflows.yml"
+      fi
     fi
     echo "Created .claude/workflows.yml from defaults"
   fi
@@ -327,13 +341,11 @@ if [[ -f "$CLAUDE_MD" ]]; then
   if grep -qF "$MARKER_START" "$CLAUDE_MD"; then
     echo "Updating workflow section in CLAUDE.md..."
     TEMP_FILE="$(mktemp)"
-    awk -v start="$MARKER_START" -v end="$MARKER_END" '
-      $0 == start { skip=1; next }
+    awk -v start="$MARKER_START" -v end="$MARKER_END" -v block="$WORKFLOW_BLOCK" '
+      $0 == start { print block; skip=1; next }
       $0 == end { skip=0; next }
       !skip { print }
     ' "$CLAUDE_MD" > "$TEMP_FILE"
-    echo "" >> "$TEMP_FILE"
-    echo "$WORKFLOW_BLOCK" >> "$TEMP_FILE"
     mv "$TEMP_FILE" "$CLAUDE_MD"
     echo "  Updated workflow instructions in CLAUDE.md"
   else
@@ -373,7 +385,7 @@ fi
 echo ""
 echo "Next steps:"
 echo "  1. Edit .claude/workflows.yml to configure for your project"
-echo "  2. Run /new-feature to start your first workflow"
+echo "  2. Run /start to begin your first workflow"
 echo "  3. Commit the .claude/ directory to your repository"
 echo ""
 echo "Installed version: $VERSION"

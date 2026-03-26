@@ -30,6 +30,8 @@ Generate a changelog entry from git history since the last tag.
 5. Prepend the entry to CHANGELOG.md (create the file if it does not exist)
 6. Present the changelog to the user for review before proceeding
 
+**Phase Output**: Write changelog entries to `.workflows/<version>/01-changelog.md`
+
 ### Phase 2: VERSION-BUMP
 
 Bump the version in the project's version file.
@@ -45,26 +47,32 @@ Bump the version in the project's version file.
 4. Show the diff to the user and ask for confirmation before committing
 5. Commit with message: `chore(version): bump to {version}`
 
+**Phase Output**: Write version bump details (old version, new version, files changed) to `.workflows/<version>/02-version-bump.md`
+
 ### Phase 3: RELEASE-BRANCH
 
 Create a release branch from the development branch.
 
 1. Ensure working tree is clean
-2. Checkout the development branch (default: `Development`, configurable via project config)
+2. Checkout the development branch (from `git.branches.development` in `.claude/workflows.yml`)
 3. Pull latest changes
 4. Create branch: `release/{version}`
 5. Cherry-pick or merge the version bump and changelog commits onto this branch if not already present
 6. Push the release branch to remote
 
+**Phase Output**: Write branch details to `.workflows/<version>/03-release-branch.md`
+
 ### Phase 4: PR
 
 Create a pull request from the release branch to production.
 
-1. Target branch: production branch (default: `Production`, configurable via project config)
+1. Target branch: main branch (from `git.branches.main` in `.claude/workflows.yml`)
 2. PR title: `Release v{version}`
 3. PR body: Include the changelog entry generated in Phase 1
 4. Use `gh pr create` to create the PR
 5. Output the PR URL for the user
+
+**Phase Output**: Write PR details (URL, summary) to `.workflows/<version>/04-pr.md`
 
 ### Phase 5: TAG
 
@@ -76,7 +84,9 @@ After the PR is merged, provide the tagging command.
    git tag -a v{version} -m "Release v{version}"
    git push origin v{version}
    ```
-3. Optionally create a GitHub release: `gh release create v{version} --title "v{version}" --notes-file CHANGELOG_ENTRY.md`
+3. Optionally create a GitHub release: `gh release create v{version} --title "v{version}" --notes "Release v{version} — see CHANGELOG.md for details"`
+
+**Phase Output**: Write tag details and release notes to `.workflows/<version>/05-tag.md`
 
 ## Configuration
 
@@ -84,9 +94,9 @@ The workflow respects project-level configuration for branch names:
 
 | Config Key | Default | Description |
 |------------|---------|-------------|
-| `git.branches.development` | `Development` | Branch to create release from |
-| `git.branches.production` | `Production` | Branch to merge release into |
-| `git.branches.release_prefix` | `release/` | Prefix for release branches |
+| `git.branches.development` | `develop` | Branch to create release from |
+| `git.branches.main` | `main` | Branch to merge release into (production) |
+| `git.branches.release` | `release/v{version}` | Release branch pattern ({version} replaced) |
 
 ## Notes
 

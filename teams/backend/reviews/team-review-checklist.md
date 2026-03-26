@@ -8,7 +8,8 @@
 
 | Check | Severity | What to Look For |
 |-------|----------|------------------|
-| Example: Architecture compliance | High | No layer violations (e.g., UI importing data layer directly) |
-| Example: Error handling | High | All network/IO operations handle failures with user feedback |
-| Example: Naming conventions | Medium | Files, classes, functions follow team naming standards |
-| Example: Test coverage | Medium | New logic has corresponding unit tests |
+| Layered architecture | High | No business logic in route handlers, proper separation of concerns |
+| Input validation | High | All endpoints validate and sanitize input before processing |
+| Error handling | High | All database/IO operations handle failures, return proper HTTP status codes |
+| SQL safety | Medium | No raw SQL with string interpolation, use parameterized queries or ORM |
+| Test coverage | Medium | New endpoints have integration tests, services have unit tests |

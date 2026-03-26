@@ -8,7 +8,8 @@
 
 | Check | Severity | What to Look For |
 |-------|----------|------------------|
-| Example: Architecture compliance | High | No layer violations (e.g., UI importing data layer directly) |
-| Example: Error handling | High | All network/IO operations handle failures with user feedback |
-| Example: Naming conventions | Medium | Files, classes, functions follow team naming standards |
-| Example: Test coverage | Medium | New logic has corresponding unit tests |
+| Component architecture | High | No direct DOM manipulation, components are composable and reusable |
+| Type safety | High | No `any` types, proper TypeScript interfaces for props and state |
+| Error handling | High | API calls handle loading/error states with user feedback |
+| Hook usage | Medium | Custom hooks extract shared logic, no hooks inside conditionals or loops |
+| Test coverage | Medium | New components have unit tests, user interactions are tested |

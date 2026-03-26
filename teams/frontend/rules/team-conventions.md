@@ -9,15 +9,15 @@
 
 ## Architecture
 
-- DO follow <your architecture pattern>
-- DON'T <anti-pattern to avoid>
+- DO follow component-based architecture with hooks
+- DON'T use class components or direct DOM manipulation
 
 ## Naming
 
-- DO use <naming convention> for <thing>
-- DON'T use <bad naming pattern>
+- DO use camelCase for variables, PascalCase for components
+- DON'T use abbreviations or inconsistent casing
 
 ## Dependencies
 
-- DO use <preferred library> for <purpose>
+- DO use React Query or SWR for data fetching
 - DON'T introduce new dependencies without team discussion

@@ -97,7 +97,7 @@ Evaluate gathered requirements. If missing critical information:
 - Ask user to provide it or confirm proceeding without it
 - Do NOT proceed if acceptance criteria are undefined
 
-**Output**: Internal requirements document (used in next phase).
+**Output**: Write gathered requirements to the phase output document (`.workflows/<name>/01-gather.md`).
 
 ---
 
@@ -105,15 +105,9 @@ Evaluate gathered requirements. If missing critical information:
 
 **Goal**: Generate a formal specification document from gathered requirements.
 
-### Step 2.1 — Create Spec Directory
+### Step 2.1 — Generate Spec Document
 
-```bash
-mkdir -p .workflows/specs
-```
-
-### Step 2.2 — Generate Spec Document
-
-Write `.workflows/specs/<name>.spec.md`:
+Write `.workflows/<name>/02-spec.md`:
 
 ```markdown
 # Feature Spec: <Feature Name>
@@ -237,11 +231,15 @@ Ask user: "Which approach do you prefer? (A/B/C or suggest alternative)"
 
 **Output**: Selected approach documented in spec file under a new "## Chosen Approach" section.
 
+**Phase Output**: Write brainstorm results (options explored, scoring, chosen approach) to `.workflows/<name>/03-brainstorm.md`
+
 ---
 
 ## Phase 4: PLAN
 
 **Goal**: Create a detailed, phase-by-phase implementation plan.
+
+**Note**: Detect the project build system from the codebase (e.g., `./gradlew` for Android/KMP, `npm` for Node.js, `cargo` for Rust) and use appropriate build/test commands throughout the plan.
 
 ### Step 4.1 — Read Project Configuration
 
@@ -258,7 +256,7 @@ Write `.claude/plan-<name>.md`:
 # Implementation Plan: <Feature Name>
 
 ## Spec Reference
-- Spec: `.workflows/specs/<name>.spec.md`
+- Spec: `.workflows/<name>/02-spec.md`
 - Approach: <chosen approach from brainstorm>
 - Estimated phases: 6
 
@@ -339,6 +337,8 @@ Add feature to `tasks/todo.md`:
   - [ ] PR Created
 ```
 
+**Phase Output**: Write the plan summary to `.workflows/<name>/04-plan.md` (the detailed plan remains in `.claude/plan-<name>.md`)
+
 ---
 
 ## Phase 5: BRANCH
@@ -353,19 +353,23 @@ From `.claude/workflows.yml`, get:
 
 ### Step 5.2 — Create Branch
 
+Replace `{name}` in the branch pattern with a kebab-case version of the feature name (e.g., `add-favorites` -> `feature/add-favorites`).
+
 ```bash
 git checkout <development_branch>
 git pull origin <development_branch>
 git checkout -b <feature_pattern_with_name>
 ```
 
-Example: `git checkout -b feature/Payment_Flow`
+Example: `git checkout -b feature/add-favorites`
 
 ### Error Handling
 
 - If working tree is dirty: "You have uncommitted changes. Stash or commit them first."
 - If branch already exists: "Branch `<name>` already exists. Switch to it or choose a different name?"
 - If dev branch is behind remote: Pull first, then branch
+
+**Output**: Write branch details to the phase output document (`.workflows/<name>/05-branch.md`).
 
 ---
 
@@ -443,6 +447,8 @@ Before each phase, check `tasks/lessons.md` for relevant lessons:
 - If a lesson mentions the current file/pattern, apply it
 - After any compilation error, check if a lesson covers it
 
+**Phase Output**: Write implementation summary (files changed, commits made, issues encountered) to `.workflows/<name>/06-implement.md`
+
 ---
 
 ## Phase 7: TEST
@@ -490,6 +496,8 @@ Verification Checklist:
 - [ ] Feature works as specified (manual check)
 - [ ] No regressions in related features
 ```
+
+**Phase Output**: Write test results (coverage, pass/fail, gaps) to `.workflows/<name>/07-test.md`
 
 ---
 
@@ -555,7 +563,7 @@ Feature implementation complete.
   Commits: <count>
   Files:   <count> created, <count> modified
 
-  Spec:    .workflows/specs/<name>.spec.md
+  Spec:    .workflows/<name>/02-spec.md
   Plan:    .claude/plan-<name>.md
 
 Next steps:
@@ -563,6 +571,8 @@ Next steps:
   2. Request review
   3. Address review feedback
 ```
+
+**Phase Output**: Write PR details (URL, summary, reviewers) to `.workflows/<name>/08-pr.md`
 
 ---
 

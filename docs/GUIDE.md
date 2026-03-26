@@ -44,8 +44,7 @@ Claude Workflows is a **portable, spec-driven development workflow system** for 
 
 ### What You Get
 
-- **10 workflow skills** covering the full development lifecycle
-- **3 utility skills** (orchestrator, git operations, brainstorming)
+- **18 workflow skills** covering the full development lifecycle
 - **5 brainstorming techniques** (Six Thinking Hats, SCAMPER, Trade-off Matrix, Reverse Brainstorm, Constraint Mapping)
 - **Multi-session persistence** via state files, specs, plans, and git history
 - **Todo + Lessons** tracking integrated into every workflow
@@ -78,7 +77,7 @@ bash /tmp/claude-workflows/install.sh
 
 | Action | Path | Notes |
 |--------|------|-------|
-| Copies core skills | `.claude/skills/_core/` | 13 skill directories |
+| Copies core skills | `.claude/skills/` | 18 skill directories |
 | Copies templates | `.claude/templates/` | spec, plan, state, changelog |
 | Creates config | `.claude/workflows.yml` | Only if not exists |
 | Creates state dirs | `.workflows/specs/`, `.workflows/history/` | For runtime state |
@@ -91,12 +90,13 @@ bash /tmp/claude-workflows/install.sh
 ```bash
 # Check version
 cat .claude/.workflows-version
-# → 1.0.0
+# → 1.6.0
 
 # Check skills installed
-ls .claude/skills/_core/
-# → brainstorm  ci-fix  extend-feature  git-flow  hotfix  migrate
-#   new-feature  new-project  refactor  release  review  test  workflow-engine
+ls .claude/skills/
+# → brainstorm  ci-fix  dry-run  extend-feature  git-flow  guards  hotfix
+#   learn  metrics  migrate  new-feature  new-project  refactor  release
+#   resume  review  start  test
 ```
 
 Then open Claude Code and run:
@@ -109,24 +109,13 @@ Then open Claude Code and run:
 
 Edit `.claude/workflows.yml` — see [Section 3: Configuration](#3-configuration).
 
-You can start from an example:
-
-```bash
-# Android/Kotlin project
-cp /tmp/claude-workflows/examples/android/workflows.yml .claude/workflows.yml
-
-# React/TypeScript project
-cp /tmp/claude-workflows/examples/react/workflows.yml .claude/workflows.yml
-
-# Python project
-cp /tmp/claude-workflows/examples/python/workflows.yml .claude/workflows.yml
-```
+See `config/defaults.yml` in the claude-workflows repo for a full configuration reference with all available options and sensible defaults for each project type.
 
 ### Commit the Setup
 
 ```bash
 git add .claude/ CLAUDE.md .workflows/specs/ .gitignore
-git commit -m "chore: install claude-workflows v1.0.0"
+git commit -m "chore: install claude-workflows v1.6.0"
 ```
 
 ---
@@ -330,15 +319,14 @@ The workflow enters **REPLAN**: stops implementation, documents what went wrong,
 | `/workflow:new-project` | Bootstrap project setup | Detect → Configure → Generate → Setup |
 | `/workflow:brainstorm <topic>` | Standalone brainstorming | Context → Generate → Analyze → Decide |
 
-### Utility Commands
+### Session Management
 
 | Command | Description |
 |---------|-------------|
-| `/workflow:status` | Show current workflow state, phase, progress |
-| `/workflow:resume` | Resume a paused workflow |
-| `/workflow:pause` | Pause the active workflow (state preserved) |
-| `/workflow:abandon` | Archive and discard the active workflow |
-| `/workflow:history` | List completed workflows |
+| `/workflow:start` | Start a new workflow or show active workflow status |
+| `/workflow:resume` | Resume a paused or interrupted workflow |
+
+The `/start` and `/resume` skills handle all session management internally, including pausing, abandoning, and viewing history of workflows.
 
 ### Aliases (Configurable)
 
@@ -1197,9 +1185,9 @@ Workflows automatically discover and use your project-specific skills.
 When a workflow needs a capability (e.g., "analyze code"), it checks:
 
 ```
-1. .claude/skills/code-analyzer/SKILL.md       ← Project skill (wins)
-2. .claude/skills/_core/code-analyzer/SKILL.md  ← Core skill (fallback)
-3. Built-in behavior                             ← Default
+1. .claude/skills/code-analyzer/SKILL.md  ← Project or team override (wins)
+2. Core skill (installed by default)      ← Fallback
+3. Built-in behavior                      ← Default
 ```
 
 ### Integration Map
@@ -1214,17 +1202,15 @@ When a workflow needs a capability (e.g., "analyze code"), it checks:
 | TEST | `test-ninja` | Uses project's test conventions |
 | REVIEW | `review-pr` | Uses project's review patterns |
 
-### Example: 4Sale Project
+### Example: Project with Custom Skills
 
-The 4Sale project has 9 project skills. During `/workflow:new-feature`:
+A project with custom skills for API integration and testing. During `/workflow:new-feature`:
 
 ```
-Phase A (Data)      → api-integration (project) → ForSaleDataResult, Service+Repository pattern
+Phase A (Data)      → api-integration (project) → Project-specific API patterns
 Phase B (Domain)    → generic (no project skill)
-Phase C (UI)        → figma-to-compose (project) → CondorTheme, DS components
-                    → compose-screen (project) → Screen+ScreenContent split, stateIn()
-Phase E (Analytics) → analytics-integration (project) → TrackableEvent, EventsKey
-Phase F (Testing)   → test-ninja (project) → MockK, Turbine, Given/When/Then
+Phase C (UI)        → compose-screen (project)  → Project-specific UI patterns
+Phase F (Testing)   → test-ninja (project)      → Project-specific test conventions
 ```
 
 ### How to Override a Core Workflow
@@ -1236,16 +1222,16 @@ mkdir .claude/skills/test
 # Write your custom test/SKILL.md
 ```
 
-Your version will be used instead of `_core/test/SKILL.md`.
+Your version at `.claude/skills/test/SKILL.md` takes priority over the core skill.
 
-### Your Orchestrator + Workflows
+### Custom Orchestrator Integration
 
-Your `fawzy` orchestrator can route to workflow commands:
+You can create a project-level orchestrator skill that routes to workflow commands:
 
 ```
-/create-feature → /workflow:new-feature
-/build-ui       → figma-to-compose (direct, no workflow)
-/write-tests    → /workflow:test
+/my-feature  → /workflow:new-feature
+/my-tests    → /workflow:test
+/my-release  → /workflow:release
 ```
 
 ---
@@ -1256,7 +1242,7 @@ Your `fawzy` orchestrator can route to workflow commands:
 
 | Path | Tracked in Git | Purpose |
 |------|:-:|-------|
-| `.claude/skills/_core/*/SKILL.md` | Yes | Core workflow skills (13 files) |
+| `.claude/skills/*/SKILL.md` | Yes | Core workflow skills (18 files) |
 | `.claude/templates/*.tmpl` | Yes | Document templates (4 files) |
 | `.claude/workflows.yml` | Yes | Configuration |
 | `.claude/.workflows-version` | Yes | Installed version |
@@ -1305,7 +1291,7 @@ bash /tmp/claude-workflows/upgrade.sh
 
 | Component | Updated | Preserved |
 |-----------|:-------:|:---------:|
-| `.claude/skills/_core/` | Yes | - |
+| `.claude/skills/` | Yes | - |
 | `.claude/templates/` | Yes | - |
 | `.claude/.workflows-version` | Yes | - |
 | `.claude/workflows.yml` | - | Yes |
@@ -1331,7 +1317,7 @@ cat /tmp/claude-workflows/VERSION
 
 | Problem | Solution |
 |---------|----------|
-| Skills don't appear in Claude Code | Check `.claude/skills/_core/` exists and has SKILL.md files |
+| Skills don't appear in Claude Code | Check `.claude/skills/` exists and has SKILL.md files |
 | `/workflow:status` not recognized | Verify CLAUDE.md has the workflow instructions block |
 | Git operations fail | Check `workflows.yml` branch names match your actual branches |
 | PR creation fails | Run `gh auth status` — may need `gh auth login` |
@@ -1363,6 +1349,7 @@ bash /tmp/claude-workflows/install.sh
 Check the skill files directly for detailed instructions:
 
 ```bash
-cat .claude/skills/_core/new-feature/SKILL.md
-cat .claude/skills/_core/workflow-engine/SKILL.md
+cat .claude/skills/new-feature/SKILL.md
+cat .claude/skills/start/SKILL.md
+cat .claude/skills/resume/SKILL.md
 ```

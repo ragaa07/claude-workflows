@@ -134,7 +134,7 @@ If tests exist:
 - Document what is already covered
 - Identify gaps (uncovered branches from Step 1.4)
 
-**Output**: Complete analysis with branch map, dependency classification, and existing coverage gaps.
+**Phase Output**: Write target analysis (public API, dependencies, test boundaries) to `.workflows/<target>/01-analyze.md`
 
 ---
 
@@ -208,6 +208,8 @@ Test Files:
 ```
 
 For `module:` or `feature:` targets, plan multiple test files.
+
+**Phase Output**: Write test plan (cases, coverage targets, strategy) to `.workflows/<target>/02-plan.md`
 
 ---
 
@@ -333,11 +335,15 @@ Always include:
 
 ### Step 3.5 — Compile Tests
 
+Detect build system commands from the project (Gradle, Maven, npm, Cargo, etc.). For Android/KMP: `./gradlew test`, for coverage: `./gradlew koverReport` or `./gradlew jacocoTestReport`.
+
 ```bash
 <build-command>
 ```
 
 Fix any compilation errors in the test code.
+
+**Phase Output**: Write summary of tests written (count, coverage, framework) to `.workflows/<target>/03-write.md`
 
 ---
 
@@ -385,6 +391,8 @@ If coverage tooling is available:
 ```
 
 Compare against target (default 90%).
+
+**Phase Output**: Write verification results (pass/fail, coverage achieved) to `.workflows/<target>/04-verify.md`
 
 ---
 
@@ -447,7 +455,13 @@ git add <test-files>
 git commit -m "test(<scope>): add tests for <target> (<coverage>% coverage)"
 ```
 
+**Phase Output**: Write final test report (metrics, gaps, recommendations) to `.workflows/<target>/05-report.md`
+
 ---
+
+## State Management
+
+When invoked via `/start`, the orchestrator handles state updates automatically — it writes phase output documents to `.workflows/<feature>/` and updates `.workflows/current-state.md` after each phase. This skill does not need to manage state directly.
 
 ## Error Handling
 

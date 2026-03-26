@@ -13,7 +13,7 @@ Append `--dry-run` to any workflow command:
 
 ```
 /workflow:new-feature booking-cancellation --dry-run
-/workflow:hotfix --crash ISSUE-123 --dry-run
+/workflow:hotfix --crashlytics ISSUE-123 --dry-run
 /workflow:refactor BookingRepository --dry-run
 ```
 
@@ -36,7 +36,7 @@ Feature:     booking-cancellation
 
 PHASES:
   1. GATHER        — Interactive (no --from-jira or --from-figma)
-  2. SPEC          — Will create .workflows/specs/booking-cancellation.spec.md
+  2. SPEC          — Will create .workflows/booking-cancellation/02-spec.md
   3. BRAINSTORM    — Depth: standard, Technique: auto-select
   4. PLAN          — Will create .claude/plan-booking-cancellation.md
   5. BRANCH        — alpha-feature/Booking_cancellation (from Development)
@@ -51,8 +51,8 @@ GIT:
   PR target:       Development
 
 FILES (estimated):
-  Spec:            .workflows/specs/booking-cancellation.spec.md
-  Decisions:       .workflows/specs/booking-cancellation.decisions.md
+  Spec:            .workflows/booking-cancellation/02-spec.md
+  Decisions:       .workflows/booking-cancellation/02-spec.md
   Plan:            .claude/plan-booking-cancellation.md
   State:           .workflows/current-state.md
   Todo:            tasks/todo.md (updated)
@@ -69,8 +69,8 @@ CONFLICTS:
   None (no active workflow)
 
 LEARNED PATTERNS:
-  3 relevant patterns found in .workflows/learned/patterns.json
-  "Delegator pattern for features with >3 state sources" (confidence: 0.8)
+  If learned patterns exist in .workflows/learned/, relevant ones are shown here
+  e.g., "Delegator pattern for features with >3 state sources" (confidence: 0.8)
 
 ═══ End dry run. No changes made. ═══
 ```

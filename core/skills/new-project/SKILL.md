@@ -130,7 +130,7 @@ Create `.claude/workflows.yml`:
 
 project:
   name: "<project-name>"
-  stack: "<detected-stack>"
+  type: "<detected-stack>"
   language: "<primary-language>"
 
 git:

@@ -27,6 +27,8 @@ Reviews a pull request systematically. Four phases: **FETCH -> CATEGORIZE -> CHE
 
 ### Step 1.1 — Fetch PR Metadata
 
+Detect repository owner and name: `gh repo view --json owner,name -q '.owner.login + "/" + .name'`
+
 ```bash
 gh pr view <pr-number> --json title,body,author,baseRefName,headRefName,additions,deletions,changedFiles,labels,state,reviewDecision
 ```
@@ -91,6 +93,8 @@ Use the Read tool to read each changed file in full. This is critical for unders
 - **Medium** (10-30 files, 200-500 lines): Review by category
 - **Large** (> 30 files, > 500 lines): Use sub-agents per category, warn that PR should be split
 
+**Phase Output**: Write PR metadata and diff summary to `.workflows/<pr-name>/01-fetch.md`
+
 ---
 
 ## Phase 2: CATEGORIZE
@@ -141,6 +145,8 @@ PR Scope Summary:
   Total:      10 files (+350, -20)
 ```
 
+**Phase Output**: Write file categorization and review order to `.workflows/<pr-name>/02-categorize.md`
+
 ---
 
 ## Phase 3: CHECK
@@ -148,6 +154,8 @@ PR Scope Summary:
 **Goal**: Review each file against quality standards.
 
 ### Check Categories
+
+If `--focus <area>` was provided, prioritize checks in that area (e.g., `--focus security` emphasizes section 3.3, `--focus performance` emphasizes section 3.4).
 
 For each changed file, run through these check categories:
 
@@ -230,6 +238,8 @@ For each file, for each check category:
    - Note the exact file and line number
    - Write a clear, actionable comment
    - Include a code suggestion if applicable
+
+**Phase Output**: Write review findings (issues, severity, recommendations) to `.workflows/<pr-name>/03-check.md`
 
 ---
 
@@ -361,6 +371,8 @@ Review submitted for PR #<number>.
 
   PR URL: <url>
 ```
+
+**Phase Output**: Write final review summary and verdict to `.workflows/<pr-name>/04-comment.md`
 
 ---
 

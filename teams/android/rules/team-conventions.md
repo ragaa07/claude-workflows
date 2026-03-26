@@ -9,15 +9,15 @@
 
 ## Architecture
 
-- DO follow <your architecture pattern>
-- DON'T <anti-pattern to avoid>
+- DO follow MVVM with Clean Architecture
+- DON'T put business logic in Activities/Fragments
 
 ## Naming
 
-- DO use <naming convention> for <thing>
-- DON'T use <bad naming pattern>
+- DO use camelCase for functions, PascalCase for classes
+- DON'T use abbreviations or Hungarian notation
 
 ## Dependencies
 
-- DO use <preferred library> for <purpose>
+- DO use Hilt for dependency injection
 - DON'T introduce new dependencies without team discussion

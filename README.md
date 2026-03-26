@@ -1,11 +1,11 @@
 # claude-workflows
 
-[![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)](VERSION)
+[![Version](https://img.shields.io/badge/version-1.6.0-blue.svg)](VERSION)
 [![npm](https://img.shields.io/npm/v/claude-dev-workflows)](https://www.npmjs.com/package/claude-dev-workflows)
 
 **Portable, spec-driven development workflows for Claude Code AI agents.**
 
-claude-workflows provides 17 structured workflow skills that guide AI agents through software development tasks with consistent quality, configurable git flow, and multi-session context persistence. Teams can inject their own domain-specific skills, rules, and review checklists.
+claude-workflows provides 18 structured workflow skills that guide AI agents through software development tasks with consistent quality, configurable git flow, and multi-session context persistence. Teams can inject their own domain-specific skills, rules, and review checklists.
 
 ---
 
@@ -69,7 +69,7 @@ bash /tmp/claude-workflows/install.sh --type android --team android
 
 | Component | Path | Source |
 |-----------|------|--------|
-| Core skills (17) | `.claude/skills/` | Always installed |
+| Core skills (18) | `.claude/skills/` | Always installed |
 | Team skills | `.claude/skills/` | Merged with `--team` |
 | Language rules | `.claude/rules/` | Based on `--type` |
 | Review checklists | `.claude/reviews/` | Based on `--type` + `--team` |
@@ -82,7 +82,7 @@ bash /tmp/claude-workflows/install.sh --type android --team android
 
 ```bash
 cat .claude/.workflows-version
-# Should print: 1.3.0
+# Should print: 1.6.0
 ```
 
 Then start a Claude Code session and run:
@@ -108,14 +108,14 @@ Then start a Claude Code session and run:
 | `/workflow:new-project` | Bootstrap a project: detect stack, generate config, scaffold files |
 | `/workflow:status` | Show active workflow state |
 
-### Utility Commands
+### Session Management
 
 | Command | Description |
 |---------|-------------|
-| `/workflow:resume` | Resume a paused workflow |
-| `/workflow:pause` | Pause the current workflow for later |
-| `/workflow:abandon` | Discard the current workflow |
-| `/workflow:history` | List completed workflows |
+| `/workflow:start` | Start a new workflow or show active workflow status |
+| `/workflow:resume` | Resume a paused or interrupted workflow |
+
+The `/start` and `/resume` skills handle all session management internally, including pausing, abandoning, and viewing history of workflows.
 
 ---
 
@@ -522,7 +522,7 @@ npx claude-dev-workflows init --type android --team android
 
 | Source | `--type` only | `--type` + `--team` |
 |--------|---------------|---------------------|
-| Core skills (17) | Yes | Yes |
+| Core skills (18) | Yes | Yes |
 | Language rules | Yes | Yes |
 | Language review checklist | Yes | Yes |
 | Team skills | No | Yes |
@@ -620,8 +620,9 @@ claude-workflows/
     defaults.yml              # Default configuration template
   core/
     CLAUDE.workflows.md       # Main workflow instructions (appended to CLAUDE.md)
-    skills/                   # 17 core workflow skills
-      workflow-engine/        # Meta-orchestrator: routing, state, session recovery
+    skills/                   # 18 core workflow skills
+      start/                  # Start new workflows, show status
+      resume/                 # Resume paused or interrupted workflows
       git-flow/               # Branch, commit, PR, and merge operations
       new-project/            # Project bootstrapping and detection
       new-feature/            # Full feature workflow (8 phases)
@@ -670,10 +671,9 @@ Phases can be skipped based on workflow config:
 
 When a `/workflow:<command>` is invoked:
 
-1. Check if it is a **utility command** (status, resume, pause, abandon, history)
-2. Check if it is an **alias** defined in `skills.aliases`
-3. Resolve to a **skill** (`.claude/skills/<name>/SKILL.md`)
-4. Report **skill not found**
+1. Check if it is an **alias** defined in `skills.aliases`
+2. Resolve to a **skill** (`.claude/skills/<name>/SKILL.md`)
+3. Report **skill not found**
 
 ---
 

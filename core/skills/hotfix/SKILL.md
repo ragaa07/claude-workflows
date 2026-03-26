@@ -104,6 +104,8 @@ grep -r "<crash-pattern>" --include="*.kt" -l
 
 **Output**: Root cause statement and crash site location.
 
+**Phase Output**: Write diagnosis (root cause, crash site, blast radius) to `.workflows/<description>/01-diagnose.md`
+
 ---
 
 ## Phase 2: FIX
@@ -113,9 +115,8 @@ grep -r "<crash-pattern>" --include="*.kt" -l
 ### Step 2.1 — Branch from Production
 
 ```bash
-# Identify production branch from git.branches.main in workflows.yml
-PROD_BRANCH=$(awk '/^git:/,/^[^ ]/' .claude/workflows.yml | awk '/branches:/,/^  [^ ]/' | grep 'main:' | awk -F'"' '{print $2}')
-PROD_BRANCH="${PROD_BRANCH:-main}"
+# Read git.branches.main from .claude/workflows.yml
+# Default: "main"
 
 git checkout $PROD_BRANCH
 git pull origin $PROD_BRANCH
@@ -166,6 +167,8 @@ Verify:
 - The fix is defensive, not offensive (handles the bad state rather than preventing it upstream, unless the upstream fix is equally minimal)
 - Lines changed: ideally 1-5, maximum 15
 
+**Phase Output**: Write fix details (changes made, diff summary) to `.workflows/<description>/02-fix.md`
+
 ### Step 2.5 — Commit
 
 ```bash
@@ -182,6 +185,8 @@ EOF
 ---
 
 ## Phase 3: REGRESSION-TEST
+
+**Note**: Regression testing is mandatory for hotfixes regardless of `require_tests` configuration. This phase cannot be skipped.
 
 **Goal**: Prove the fix works and does not break anything else.
 
@@ -227,6 +232,8 @@ All tests must pass. If any fail:
 git add <test-file>
 git commit -m "test: add regression test for <crash description>"
 ```
+
+**Phase Output**: Write test results to `.workflows/<description>/03-regression-test.md`
 
 ---
 
@@ -286,6 +293,8 @@ EOF
 
 Print the PR URL and summary.
 
+**Phase Output**: Write PR details (URL, summary) to `.workflows/<description>/04-pr.md`
+
 ---
 
 ## Phase 5: CHERRY-PICK
@@ -334,6 +343,8 @@ Ask: "Should I cherry-pick to <dev-branch> now, or will you handle it after the 
 
 - If yes: execute the cherry-pick, create PR to dev branch
 - If no: save the plan for later
+
+**Phase Output**: Write cherry-pick plan to `.workflows/<description>/05-cherry-pick.md`
 
 ---
 

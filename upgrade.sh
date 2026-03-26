@@ -257,6 +257,24 @@ echo "$NEW_VERSION" > "$VERSION_FILE"
 # ============================================================
 # Done
 # ============================================================
+# ============================================================
+# 8. Update .gitignore
+# ============================================================
+GITIGNORE="$PROJECT_ROOT/.gitignore"
+add_to_gitignore() {
+  local entry="$1"
+  if [[ -f "$GITIGNORE" ]]; then
+    if ! grep -qxF "$entry" "$GITIGNORE"; then
+      echo "$entry" >> "$GITIGNORE"
+    fi
+  else
+    echo "$entry" > "$GITIGNORE"
+  fi
+}
+add_to_gitignore ".workflows/current-state.md"
+add_to_gitignore ".workflows/history/"
+add_to_gitignore ".workflows/learned/"
+
 echo ""
 echo "Preserved (not modified):"
 echo "  .claude/workflows.yml"

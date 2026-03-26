@@ -9,15 +9,15 @@
 
 ## Architecture
 
-- DO follow <your architecture pattern>
-- DON'T <anti-pattern to avoid>
+- DO follow layered architecture (routes, services, repositories)
+- DON'T put business logic in route handlers
 
 ## Naming
 
-- DO use <naming convention> for <thing>
-- DON'T use <bad naming pattern>
+- DO use snake_case for functions and variables, PascalCase for classes
+- DON'T use abbreviations or inconsistent casing
 
 ## Dependencies
 
-- DO use <preferred library> for <purpose>
+- DO use SQLAlchemy or similar ORM for database access
 - DON'T introduce new dependencies without team discussion

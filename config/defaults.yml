@@ -1,8 +1,8 @@
 # claude-workflows configuration
 # Edit this file to configure workflows for your project.
-# Documentation: https://github.com/4SaleTech/claude-workflows
+# Documentation: https://github.com/ragaa07/claude-workflows
 
-version: "1.0"
+version: "1.0"  # Config schema version (not package version)
 
 # ============================================================
 # Project Identity
@@ -77,8 +77,8 @@ workflows:
     require_tests: true
 
   hotfix:
-    base_branch: ""                    # Override: branch from main/production
-    require_tests: false               # Skip tests for speed (optional)
+    base_branch: ""                    # Empty = use git.branches.main
+    require_tests: true                # Always true for hotfixes — regression test is mandatory
 
   refactor:
     require_brainstorm: true
@@ -92,6 +92,15 @@ workflows:
     standards: []                      # Custom review checklist items
     checklist: "auto"                  # auto (detect from project.language) | none | path
     auto_self_review: false            # Chain self-review before PR
+
+  migrate:
+    require_brainstorm: true
+
+  ci-fix: {}
+
+  test:
+    default_coverage: 90
+    default_type: "unit"
 
   brainstorm:
     default_depth: "standard"          # quick | standard | deep

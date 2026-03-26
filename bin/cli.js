@@ -322,6 +322,21 @@ function cmdInit(args) {
       if (team) {
         content = content.replace('  team: ""', `  team: "${team}"`);
       }
+      if (type && type !== "all") {
+        content = content.replace('  type: "generic"', `  type: "${type}"`);
+        const langMap = {
+          android: "kotlin",
+          react: "typescript",
+          python: "python",
+          swift: "swift",
+          go: "go",
+          generic: "",
+        };
+        const lang = langMap[type] || "";
+        if (lang) {
+          content = content.replace('  language: ""', `  language: "${lang}"`);
+        }
+      }
       fs.writeFileSync(workflowsYml, content);
       console.log("Created .claude/workflows.yml from defaults");
     }
@@ -356,7 +371,7 @@ function cmdInit(args) {
   console.log();
   console.log("Next steps:");
   console.log("  1. Edit .claude/workflows.yml to configure for your project");
-  console.log("  2. Run /workflow-engine to start your first workflow");
+  console.log("  2. Run /start to begin your first workflow");
   console.log("  3. Commit the .claude/ directory to your repository");
   console.log();
   console.log(`Installed version: ${VERSION}`);
@@ -645,6 +660,8 @@ function cmdUpgrade(args) {
 
   // 10. Update .gitignore
   const gitignore = path.join(root, ".gitignore");
+  addToGitignore(gitignore, ".workflows/current-state.md");
+  addToGitignore(gitignore, ".workflows/history/");
   addToGitignore(gitignore, ".workflows/learned/");
 
   console.log();

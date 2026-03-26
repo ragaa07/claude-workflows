@@ -8,7 +8,8 @@
 
 | Check | Severity | What to Look For |
 |-------|----------|------------------|
-| Example: Architecture compliance | High | No layer violations (e.g., UI importing data layer directly) |
-| Example: Error handling | High | All network/IO operations handle failures with user feedback |
-| Example: Naming conventions | Medium | Files, classes, functions follow team naming standards |
-| Example: Test coverage | Medium | New logic has corresponding unit tests |
+| MVVM compliance | High | No business logic in Views, ViewModels do not import SwiftUI |
+| Memory management | High | No retain cycles, proper use of [weak self] in closures |
+| Error handling | High | All async operations handle errors with user-facing feedback |
+| SwiftUI patterns | Medium | Proper use of @State, @Binding, @ObservedObject; no unnecessary re-renders |
+| Test coverage | Medium | New logic has corresponding unit tests, ViewModels are tested |

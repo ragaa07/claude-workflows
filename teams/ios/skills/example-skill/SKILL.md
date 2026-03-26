@@ -28,7 +28,7 @@ Phases: **ANALYZE -> IMPLEMENT -> VERIFY**
 
 ```bash
 # Find relevant files in the codebase
-grep -rl "pattern-to-find" --include="*.kt" src/
+grep -rl "pattern-to-find" --include="*.swift" Sources/
 ```
 
 Identify:
@@ -52,10 +52,13 @@ From `.claude/workflows.yml`, get:
 
 Describe exactly what files to create or modify, with code templates:
 
-```kotlin
-// Example template — replace with your language
-class ExampleClass {
+```swift
+// Example template — replace with your implementation
+struct ExampleView: View {
     // Follow existing patterns found in Phase 1
+    var body: some View {
+        Text("Hello")
+    }
 }
 ```
 

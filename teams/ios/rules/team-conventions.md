@@ -9,15 +9,15 @@
 
 ## Architecture
 
-- DO follow <your architecture pattern>
-- DON'T <anti-pattern to avoid>
+- DO follow MVVM with SwiftUI
+- DON'T use massive view controllers or direct UIKit usage in new code
 
 ## Naming
 
-- DO use <naming convention> for <thing>
-- DON'T use <bad naming pattern>
+- DO use camelCase for variables and functions, PascalCase for types
+- DON'T use abbreviations or Hungarian notation
 
 ## Dependencies
 
-- DO use <preferred library> for <purpose>
+- DO use Combine or async/await for asynchronous operations
 - DON'T introduce new dependencies without team discussion

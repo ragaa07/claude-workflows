@@ -28,7 +28,7 @@ Phases: **ANALYZE -> IMPLEMENT -> VERIFY**
 
 ```bash
 # Find relevant files in the codebase
-grep -rl "pattern-to-find" --include="*.kt" src/
+grep -rl "pattern-to-find" --include="*.py" src/
 ```
 
 Identify:
@@ -52,11 +52,16 @@ From `.claude/workflows.yml`, get:
 
 Describe exactly what files to create or modify, with code templates:
 
-```kotlin
-// Example template — replace with your language
-class ExampleClass {
-    // Follow existing patterns found in Phase 1
-}
+```python
+# Example template — replace with your implementation
+class ExampleService:
+    """Follow existing patterns found in Phase 1."""
+
+    def __init__(self, repository):
+        self.repository = repository
+
+    def execute(self):
+        pass
 ```
 
 ### Step 2.2 — Build Check

@@ -25,6 +25,8 @@ Retrieve CI failure details.
    - Ask the user which run to investigate
 4. Capture the full failure output for diagnosis
 
+**Phase Output**: Write CI failure details to `.workflows/<description>/01-fetch.md`
+
 ### Phase 2: DIAGNOSE
 
 Classify the failure type by parsing the log output.
@@ -44,6 +46,8 @@ Classify the failure type by parsing the log output.
    - Failure category
    - Root cause summary
    - Affected file(s) and line(s)
+
+**Phase Output**: Write diagnosis (category, root cause, affected files) to `.workflows/<description>/02-diagnose.md`
 
 ### Phase 3: FIX
 
@@ -77,6 +81,8 @@ Apply a targeted fix based on the diagnosis.
 - Suggest optimizations (caching, parallelism, test splitting)
 - Cannot auto-fix most timeouts — provide recommendations
 
+**Phase Output**: Write fix details (changes made, approach) to `.workflows/<description>/03-fix.md`
+
 ### Phase 4: PUSH
 
 Commit and push the fix.
@@ -85,6 +91,8 @@ Commit and push the fix.
 2. Commit with message: `fix(ci): <description of what was fixed>`
 3. Push to the current branch
 4. If the branch has an open PR, note the PR number
+
+**Phase Output**: Write push details (commit hash, branch, PR reference) to `.workflows/<description>/04-push.md`
 
 ### Phase 5: MONITOR
 
@@ -98,7 +106,14 @@ Verify the fix resolved the CI failure.
    ```
    gh run list --branch <current-branch> --limit 3
    ```
-3. If the run fails again, loop back to Phase 1: FETCH with the new run ID
+**Phase Output**: Write monitoring results (CI run status, pass/fail) to `.workflows/<description>/05-monitor.md`
+
+3. If the run fails again, loop back to Phase 1: FETCH with the new run ID. Maximum 3 retry cycles — if still failing after 3 attempts, STOP and report the issue to the user
+4. When looping back, increment `retry_count` in the state file and append retry-suffixed output docs (e.g., `06-fetch-retry-1.md`). Mark the failed MONITOR phase as `RETRY` in the Phase History table.
+
+## State Management
+
+When invoked via `/start`, the orchestrator handles state updates automatically — it writes phase output documents to `.workflows/<feature>/` and updates `.workflows/current-state.md` after each phase. This skill does not need to manage state directly.
 
 ## Notes
 

@@ -99,6 +99,7 @@ Write `.workflows/current-state.md`:
 - **updated**: <current ISO-8601 timestamp>
 - **branch**:
 - **output_dir**: .workflows/<feature>/
+- **retry_count**: 0
 
 ## Phase History
 
@@ -120,6 +121,14 @@ _Key decisions and resume context:_
 ## Step 6: Load and Execute Workflow
 
 Read `.claude/skills/<selected-workflow>/SKILL.md` and begin executing from Phase 1.
+
+> **Build/Test Command Detection**: Before executing Phase 1, detect the project's build system and store the commands:
+> - Gradle: `./gradlew build`, `./gradlew test`
+> - npm/yarn: `npm run build`, `npm test`
+> - Cargo: `cargo build`, `cargo test`
+> - Poetry/pip: `python -m pytest`
+>
+> These are used wherever `<build-command>` or `<test-command>` appear in workflow phases.
 
 ---
 
@@ -159,12 +168,32 @@ The content of `## Details` depends on the phase:
 - **ANALYZE/GATHER/FETCH/DETECT/DIAGNOSE**: Architecture map, file list, current behavior
 - **SPEC**: The full feature specification
 - **BRAINSTORM**: Options explored, scoring, chosen approach
+- **EXPLORE**: Discovery findings, landscape analysis (brainstorm)
+- **EVALUATE**: Criteria scoring, comparison matrices (brainstorm)
+- **RECOMMEND**: Final recommendation with rationale (brainstorm)
 - **PLAN**: The implementation plan with phases and files
 - **BRANCH**: Branch name, base branch
 - **IMPLEMENT**: Files changed, commits made, issues encountered
+- **EXECUTE**: Step-by-step migration execution log, per-step results (migrate)
+- **CONTRACT**: Behavioral invariants, public API surface, threading/performance contracts (refactor)
+- **DESIGN**: Target state architecture, migration step plan (refactor)
+- **MIGRATE**: Per-step execution with compile/test results, rollback points (refactor)
 - **TEST/VERIFY-COMPAT/REGRESSION-TEST**: Test results, coverage, pass/fail
+- **WRITE**: Test code written, test file paths, framework setup (test)
+- **REPORT**: Coverage summary, gap analysis, quality notes (test)
 - **PR**: PR URL, summary, reviewers
+- **CATEGORIZE**: File classification, review order, scope summary
+- **CHECK**: Review findings by category, severity ratings
 - **REVIEW**: Findings, severity, recommendations
+- **VERIFY** (standalone): Verification results, contract checks, metrics comparison
+- **CHERRY-PICK**: Cherry-pick plan, conflict preview, target branch
+- **FIX**: Applied fix details, files changed, diff summary
+- **PUSH**: Committed files, commit hash, branch pushed (ci-fix)
+- **MONITOR**: CI run status, pass/fail result, retry count (ci-fix)
+- **CHANGELOG**: Categorized commit history, generated changelog entry (release)
+- **VERSION-BUMP**: Version file changes, old/new version values (release)
+- **RELEASE-BRANCH**: Release branch name, cherry-picked commits (release)
+- **TAG**: Tag name, GitHub release URL (release)
 
 ### Rule 2: Update State After Every Phase
 
@@ -176,6 +205,7 @@ Update `.workflows/current-state.md`:
 4. Update `phase` and `updated` headers
 5. Add a link under `## Phase Outputs`
 6. Update `## Context` with key decisions
+7. If the phase created a git branch, update the `branch` field in the state header
 
 **Example state after 3 phases:**
 
@@ -197,6 +227,10 @@ Update `.workflows/current-state.md`:
 | ANALYZE | COMPLETED | 2026-03-25T10:00:00Z | 01-analyze.md | Mapped feature architecture |
 | BRAINSTORM | COMPLETED | 2026-03-25T11:00:00Z | 02-brainstorm.md | Chose event-driven approach |
 | PLAN | ACTIVE | 2026-03-25T11:45:00Z | | Creating implementation plan |
+
+**Phase statuses**: `ACTIVE`, `COMPLETED`, `SKIPPED`, `FAILED`, `RETRY`
+- Use `FAILED` when a phase fails and cannot continue
+- Use `RETRY` when a phase is being re-attempted (e.g., CI-fix MONITOR loop)
 
 ## Phase Outputs
 
@@ -223,7 +257,7 @@ When skipping: mark as `SKIPPED` in state, no output document needed, proceed to
 
 1. Write the final phase output document
 2. Mark final phase as `COMPLETED` in state
-3. Move `.workflows/current-state.md` to `.workflows/history/<feature>-<date>.md`
+3. Move `.workflows/current-state.md` to `.workflows/history/<feature>-<YYYY-MM-DD>.md` (ISO-8601 date)
 4. The `.workflows/<feature>/` directory with all phase outputs is preserved as the workflow archive
 5. Report completion to the user
 
