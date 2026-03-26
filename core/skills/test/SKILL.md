@@ -5,480 +5,163 @@ description: Generate comprehensive tests for a target class, file, module, or f
 
 # Test Workflow
 
-## Command
-
 ```
 /workflow:test <target> [--coverage <pct>] [--type <unit|integration>]
 ```
 
-**Target formats**:
-- `class:ClassName` — Test a specific class
-- `file:path/to/File.kt` — Test a specific file
-- `module:moduleName` — Test all public API in a module
-- `feature:featureName` — Test a feature end-to-end
+**Targets**: `class:Name`, `file:path/to/file`, `module:name`, `feature:name` | **Defaults**: coverage=90%, type=unit
 
-**Defaults**:
-- Coverage target: 90%
-- Type: unit
-
-## Overview
-
-Generates well-structured tests with high coverage. Five phases: **ANALYZE -> PLAN -> WRITE -> VERIFY -> REPORT**.
-
----
+**Before starting**: Read `.claude/rules/` for language-specific testing conventions. Scan build files to detect test framework, runner, mocking library, and coverage tooling.
 
 ## Phase 1: ANALYZE
 
-**Goal**: Understand what needs testing and identify all test boundaries.
+### 1.1 Locate Target
+- `class:Name` — search source tree for class/interface definition
+- `file:path` — read directly
+- `module:name` — find module source root, list public types
+- `feature:name` — find feature directory, map all classes
 
-### Step 1.1 — Locate the Target
+### 1.2 Extract Public API
+For each target: public functions (name, params, return type, nullability), public properties/fields, constructors and injected dependencies, observable state (streams, emitters, callbacks), type hierarchies (sealed/enum subtypes), static/companion members.
 
-Based on target format:
+### 1.3 Categorize Dependencies
 
-**class:ClassName**:
-```bash
-grep -r "class <ClassName>" --include="*.kt" -l
-grep -r "interface <ClassName>" --include="*.kt" -l
+| Category | Mock Strategy |
+|---|---|
+| Interface/protocol | Mock or fake implementation |
+| Framework class | Test double or test runtime |
+| External service (network, DB) | Mock or in-memory substitute |
+| Side-effect only (logger, analytics) | Mock, verify calls |
+| Pure data (models, DTOs) | Real instances — NEVER mock |
+
+### 1.4 Map Code Branches
+Per public function, identify: **happy path** (success), **error paths** (exceptions, error states, null returns), **edge cases** (empty collections, boundary values, null inputs), **concurrency** (races, cancellation, timeouts), **state-dependent** (behavior varies with current state).
+
+Document as branch map:
+```
+functionName(params)
+  1. valid input -> success
+  2. empty input -> validation error
+  3. dependency throws -> error propagation
+  4. concurrent calls -> serialization/dedup
 ```
 
-**file:path/File.kt**:
-Read the file directly.
+### 1.5 Check Existing Tests
+Search for existing test files. If found, document covered branches and identify gaps against 1.4.
 
-**module:moduleName**:
-```bash
-find . -path "*/<moduleName>/src/main" -type d
-```
-List all public classes in the module.
-
-**feature:featureName**:
-```bash
-find . -type d -name "*<featureName>*"
-```
-Map all classes in the feature package.
-
-### Step 1.2 — Analyze Public API
-
-For each target class, extract:
-
-- **Public functions**: Name, parameters, return type, nullability
-- **Public properties**: Name, type, mutability
-- **Constructors**: Parameters, defaults, injected dependencies
-- **State flows**: Exposed StateFlow/SharedFlow types
-- **Sealed classes/interfaces**: All subtypes
-- **Companion object members**: Factory methods, constants
-
-Document as a structured list:
-
-```
-Target: <ClassName>
-  Constructor:
-    - dep1: Dependency1 (injectable)
-    - dep2: Dependency2 (injectable)
-  Functions:
-    - fun doAction(input: String): Result<Output>
-    - suspend fun fetchData(id: Int): Data?
-  Properties:
-    - val state: StateFlow<UiState>
-    - val events: SharedFlow<Event>
-  Inner Types:
-    - sealed class UiState { Loading, Success(data), Error(msg) }
-```
-
-### Step 1.3 — Identify Dependencies
-
-Categorize each dependency:
-
-| Dependency | Type | Mock Strategy |
-|---|---|---|
-| Repository | Interface | Mock (fake implementation) |
-| UseCase | Class with interface | Mock |
-| Context | Android framework | Robolectric or mock |
-| Dispatcher | CoroutineDispatcher | TestDispatcher |
-| SharedPreferences | Android framework | Fake or mock |
-| Database | Room DAO | In-memory test DB |
-| API Service | Retrofit interface | Mock |
-| Logger/Analytics | Side-effect only | Mock (verify calls) |
-
-### Step 1.4 — Map Code Branches
-
-For each public function, identify:
-
-- **Happy path**: Normal successful execution
-- **Error paths**: Exceptions, error states, null returns
-- **Edge cases**: Empty collections, boundary values, null inputs
-- **Concurrency paths**: Race conditions, cancellation
-- **State-dependent paths**: Behavior that changes based on current state
-
-Document as a branch map:
-
-```
-fun doAction(input: String): Result<Output>
-  Branches:
-    1. input is valid → returns Success(output)
-    2. input is empty → returns Failure(ValidationError)
-    3. input is blank → returns Failure(ValidationError)
-    4. repository throws IOException → returns Failure(NetworkError)
-    5. repository returns null → returns Failure(NotFoundError)
-    6. concurrent calls → second call waits for first
-```
-
-### Step 1.5 — Check Existing Tests
-
-```bash
-# Find existing test files
-find . -path "*/test*" -name "*<ClassName>*Test*.kt" -o -name "*<ClassName>*Spec*.kt"
-```
-
-If tests exist:
-- Read them
-- Document what is already covered
-- Identify gaps (uncovered branches from Step 1.4)
-
-**Phase Output**: Write target analysis (public API, dependencies, test boundaries) to `.workflows/<target>/01-analyze.md`
+**Output**: `.workflows/<target>/01-analyze.md`
 
 ---
 
 ## Phase 2: PLAN
 
-**Goal**: Design the test structure and prioritize test cases.
+### 2.1 Test Boundaries
+**Inside (test directly)**: target class logic. **Outside (mock)**: injected deps, framework classes, system resources (filesystem, network, clock, randomness). **Never mock**: data classes, pure functions, type hierarchies, value objects.
 
-### Step 2.1 — Define Test Boundaries
-
-Classify what to test vs what to mock:
-
-**Test boundary (inside)**: The target class itself and its direct logic.
-
-**Mock boundary (outside)**:
-- All injected dependencies (repositories, use cases, services)
-- Android framework classes
-- System resources (file system, network)
-- Time/clock
-- Random number generation
-
-**Do NOT mock**:
-- Data classes (models, DTOs)
-- Pure functions (mappers, validators)
-- Sealed class hierarchies (state, events)
-- Extension functions used by the target
-
-### Step 2.2 — Generate Test Case List
-
-For each branch identified in Phase 1:
-
+### 2.2 Test Case List
+Tag each case from the branch map:
 ```
-Test Cases for <ClassName>:
-
 1. [HAPPY] should return success when input is valid
 2. [ERROR] should return validation error when input is empty
-3. [ERROR] should return validation error when input is blank
-4. [ERROR] should return network error when repository throws IOException
-5. [ERROR] should return not found when repository returns null
-6. [EDGE]  should handle concurrent calls gracefully
-7. [STATE] should emit Loading state before fetching
-8. [STATE] should emit Success state after fetch completes
-9. [STATE] should emit Error state when fetch fails
+3. [EDGE]  should handle concurrent calls gracefully
+4. [STATE] should transition to loading before fetching
 ```
+Tags: `[HAPPY]`, `[ERROR]`, `[EDGE]`, `[STATE]`, `[INTEGRATION]`
 
-Tag each: `[HAPPY]`, `[ERROR]`, `[EDGE]`, `[STATE]`, `[INTEGRATION]`
+### 2.3 Coverage Estimate
+Count total branches vs planned tests. If expected coverage < target, add cases.
 
-### Step 2.3 — Estimate Coverage
+### 2.4 File Structure
+Group tests by function/behavior. For `module:` or `feature:` targets, plan multiple files.
 
-Count total branches from analysis. Count planned test cases. Calculate expected coverage:
-
-```
-Total branches: 15
-Planned tests:  14
-Expected coverage: 93% (target: 90%) ✓
-```
-
-If below target: add more test cases for uncovered branches.
-
-### Step 2.4 — Plan Test File Structure
-
-```
-Test Files:
-  <ClassName>Test.kt
-    - Setup: mock dependencies, create SUT
-    - Group: "doAction"
-      - test cases 1-6
-    - Group: "state management"
-      - test cases 7-9
-    - Group: "edge cases"
-      - test cases 10+
-```
-
-For `module:` or `feature:` targets, plan multiple test files.
-
-**Phase Output**: Write test plan (cases, coverage targets, strategy) to `.workflows/<target>/02-plan.md`
+**Output**: `.workflows/<target>/02-plan.md`
 
 ---
 
 ## Phase 3: WRITE
 
-**Goal**: Write the actual test code.
+### 3.1 Test Infrastructure
+From build file scan: identify test framework (JUnit, pytest, Jest, Go testing, RSpec, etc.), mocking library, assertion library, async/reactive test utilities, coverage tool.
 
-### Step 3.1 — Setup Test Infrastructure
+### 3.2 Write Tests
+Structure: (1) declare mocks/fakes, (2) setup SUT with mocked deps, (3) test groups by behavior, (4) Given/When/Then in every test.
 
-Determine the test framework from the project:
+**Naming convention** — all tests follow: `given <precondition> when <action> then <expected outcome>`. Use the language's idiomatic format (backtick strings, snake_case, descriptive methods).
 
-```bash
-grep -r "testImplementation" --include="*.gradle.kts" | head -10
-```
+### 3.3 Edge Cases
+Always include where applicable: null/nil/undefined inputs, empty collections, boundary values (max int, zero, empty vs blank), cancellation/timeout for async, rapid sequential calls.
 
-Common setups:
-- **JUnit 5 + MockK**: Kotlin projects
-- **JUnit 4 + Mockito**: Java/mixed projects
-- **Kotest**: Kotlin-first projects
-- **Turbine**: Flow testing
-- **Robolectric**: Android classes without device
+### 3.4 Compile/Lint
+Run build or lint. Fix any compilation errors in test code.
 
-### Step 3.2 — Write Test File
-
-Follow this structure:
-
-```kotlin
-class <ClassName>Test {
-
-    // === Dependencies (mocked) ===
-    private val mockDep1 = mockk<Dependency1>()
-    private val mockDep2 = mockk<Dependency2>()
-    private val testDispatcher = StandardTestDispatcher()
-
-    // === System Under Test ===
-    private lateinit var sut: ClassName
-
-    @BeforeEach
-    fun setup() {
-        sut = ClassName(
-            dep1 = mockDep1,
-            dep2 = mockDep2,
-            dispatcher = testDispatcher,
-        )
-    }
-
-    // === doAction ===
-
-    @Test
-    fun `given valid input when doAction called then returns success`() {
-        // Given
-        val input = "valid"
-        coEvery { mockDep1.fetch(input) } returns Result.success(output)
-
-        // When
-        val result = sut.doAction(input)
-
-        // Then
-        assertThat(result.isSuccess).isTrue()
-        assertThat(result.getOrNull()).isEqualTo(expectedOutput)
-    }
-
-    @Test
-    fun `given empty input when doAction called then returns validation error`() {
-        // Given
-        val input = ""
-
-        // When
-        val result = sut.doAction(input)
-
-        // Then
-        assertThat(result.isFailure).isTrue()
-        assertThat(result.exceptionOrNull()).isInstanceOf(ValidationError::class.java)
-    }
-
-    // ... more tests following Given/When/Then pattern
-}
-```
-
-### Naming Convention
-
-All test methods MUST use this format:
-
-```
-`given <precondition> when <action> then <expected outcome>`
-```
-
-Examples:
-- `` `given empty list when getFirst called then returns null` ``
-- `` `given network error when fetchData called then emits Error state` ``
-- `` `given user is logged in when navigate called then opens dashboard` ``
-
-### Step 3.3 — Write Flow/State Tests
-
-For ViewModels or classes with Flow:
-
-```kotlin
-@Test
-fun `given fetch succeeds when init then state transitions from Loading to Success`() = runTest {
-    // Given
-    coEvery { repository.getData() } returns testData
-
-    // When
-    val sut = createViewModel()
-
-    // Then
-    sut.state.test {
-        assertThat(awaitItem()).isEqualTo(UiState.Loading)
-        assertThat(awaitItem()).isEqualTo(UiState.Success(testData))
-        cancelAndIgnoreRemainingEvents()
-    }
-}
-```
-
-### Step 3.4 — Write Edge Case Tests
-
-Always include:
-- Null inputs (if parameters are nullable)
-- Empty collections
-- Boundary values (Int.MAX_VALUE, empty string vs blank string)
-- Cancellation (for suspend functions)
-- Rapid sequential calls
-
-### Step 3.5 — Compile Tests
-
-Detect build system commands from the project (Gradle, Maven, npm, Cargo, etc.). For Android/KMP: `./gradlew test`, for coverage: `./gradlew koverReport` or `./gradlew jacocoTestReport`.
-
-```bash
-<build-command>
-```
-
-Fix any compilation errors in the test code.
-
-**Phase Output**: Write summary of tests written (count, coverage, framework) to `.workflows/<target>/03-write.md`
+**Output**: `.workflows/<target>/03-write.md`
 
 ---
 
 ## Phase 4: VERIFY
 
-**Goal**: Run tests and verify they all pass.
+### 4.1 Run New Tests
+All must pass. On failure: if test is wrong, fix it; if code has a bug, report to user (do NOT fix production code unless asked).
 
-### Step 4.1 — Run New Tests
+### 4.2 Run Full Suite
+Verify new tests don't break existing tests.
 
-```bash
-<test-command> --tests "*<ClassName>Test*"
-```
+### 4.3 Quality Check
+Each test: tests ONE behavior, uses Given/When/Then naming, mocks only outside boundary, is deterministic, tests behavior not implementation details.
 
-All tests MUST pass. If any fail:
+### 4.4 Coverage
+Run coverage tool if available. Compare against target.
 
-1. Read the failure output
-2. Determine if the test is wrong or the code has a bug
-3. If test is wrong: fix the test
-4. If code has a bug: report it to the user (do NOT fix production code in the test workflow unless asked)
-
-### Step 4.2 — Run Full Test Suite
-
-```bash
-<full-test-command>
-```
-
-Verify new tests do not interfere with existing tests.
-
-### Step 4.3 — Verify Test Quality
-
-Self-review each test:
-
-- Does it test ONE thing? (Single assertion focus)
-- Does it use the Given/When/Then naming convention?
-- Does it mock only what is outside the test boundary?
-- Is the test deterministic? (No random, no real time, no real network)
-- Would the test fail if the behavior changed? (Not testing implementation details)
-
-### Step 4.4 — Coverage Measurement
-
-If coverage tooling is available:
-
-```bash
-<coverage-command>
-```
-
-Compare against target (default 90%).
-
-**Phase Output**: Write verification results (pass/fail, coverage achieved) to `.workflows/<target>/04-verify.md`
+**Output**: `.workflows/<target>/04-verify.md`
 
 ---
 
 ## Phase 5: REPORT
 
-**Goal**: Generate a coverage and quality report.
-
-### Step 5.1 — Generate Report
-
-Print:
-
+### 5.1 Summary
 ```
 Test Report: <target>
-
-Summary:
-  Target:          <ClassName / module / feature>
-  Test file(s):    <path(s)>
-  Tests written:   <count>
-  Tests passing:   <count>
-  Coverage:        <pct>% (target: <target-pct>%)
-
-Coverage Breakdown:
-  Happy paths:     <count> tests
-  Error paths:     <count> tests
-  Edge cases:      <count> tests
-  State tests:     <count> tests
-
-Branch Coverage:
-  Total branches:  <N>
-  Covered:         <N>
-  Uncovered:       <list uncovered branches>
-
-Gaps (if any):
-  - <uncovered scenario 1>: <reason not covered>
-  - <uncovered scenario 2>: <reason not covered>
-
-Quality Notes:
-  - <any observations about test quality or code quality>
+  Test file(s):   <path(s)>
+  Written/Passing: <N>/<N>
+  Coverage:        <pct>% (target: <pct>%)
+  Breakdown:       <happy> happy, <error> error, <edge> edge, <state> state
+  Uncovered:       <list of uncovered branches>
+  Gaps:            <scenario: reason>
+  Quality Notes:   <observations>
 ```
 
-### Step 5.2 — Gap Analysis
+### 5.2 Gap Analysis
+If below target: list each gap with reason and recommendation (needs integration test, dead code, requires refactor to test).
 
-If coverage is below target, list specific gaps:
-
-```
-Coverage Gaps:
-  1. <ClassName>.methodX — branch when <condition>
-     Reason: Requires integration test (not unit testable)
-     Recommendation: Add integration test separately
-
-  2. <ClassName>.methodY — error handling for <exception>
-     Reason: Exception is unreachable in current code
-     Recommendation: Remove dead code or add test if reachable
-```
-
-### Step 5.3 — Commit Tests
-
+### 5.3 Commit
 ```bash
 git add <test-files>
 git commit -m "test(<scope>): add tests for <target> (<coverage>% coverage)"
 ```
 
-**Phase Output**: Write final test report (metrics, gaps, recommendations) to `.workflows/<target>/05-report.md`
+**Output**: `.workflows/<target>/05-report.md`
 
 ---
 
 ## State Management
 
-When invoked via `/start`, the orchestrator handles state updates automatically — it writes phase output documents to `.workflows/<feature>/` and updates `.workflows/current-state.md` after each phase. This skill does not need to manage state directly.
+When invoked via `/start`, the orchestrator handles state updates automatically. This skill does not manage state directly.
 
 ## Error Handling
 
 | Error | Resolution |
 |---|---|
-| Target class not found | Ask user for correct name or path |
-| No test framework configured | Suggest adding testImplementation dependencies |
-| Test fails due to missing dependency | Add required test dependency to build.gradle.kts |
-| Cannot achieve coverage target | Report gaps with justification; ask user to accept or adjust target |
-| Android class without Robolectric | Suggest adding Robolectric or restructuring to extract testable logic |
-| Flaky test (passes sometimes) | Identify non-determinism (time, threading, order) and fix it |
+| Target not found | Ask user for correct name or path |
+| No test framework detected | Suggest adding test deps for the language |
+| Cannot achieve coverage target | Report gaps; ask user to accept or adjust |
+| Flaky test | Identify non-determinism and fix |
 
-## Anti-Patterns (DO NOT)
+## Anti-Patterns
 
-- Do NOT test private methods directly (test through public API)
+- Do NOT test private methods (test through public API)
 - Do NOT mock data classes or value objects
-- Do NOT write tests that depend on execution order
-- Do NOT use `Thread.sleep()` in tests (use test dispatchers)
-- Do NOT assert on implementation details (mock call counts, internal state)
-- Do NOT write a test that always passes regardless of behavior
+- Do NOT depend on test execution order
+- Do NOT use real delays/sleeps (use test timing controls)
+- Do NOT assert on implementation details (internal state, exact call counts)
+- Do NOT write tests that always pass regardless of behavior
+- Do NOT hardcode environment-specific paths or config

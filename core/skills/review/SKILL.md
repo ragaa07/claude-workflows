@@ -1,23 +1,18 @@
 ---
 name: review
-description: Review a GitHub pull request by fetching changes, categorizing by layer, checking against quality standards, and generating inline comments with severity levels.
+description: Review a GitHub pull request by fetching changes, categorizing by architecture, checking against dynamically loaded checklists, and generating inline comments with severity levels.
 ---
 
 # Code Review Workflow
-
-## Command
 
 ```
 /workflow:review <pr-number> [--strict] [--focus <area>]
 ```
 
-**Options**:
 - `--strict`: Treat warnings as errors
-- `--focus <area>`: Focus review on specific area (security, performance, architecture, tests)
+- `--focus <area>`: Prioritize checks matching area (security, performance, architecture, tests)
 
-## Overview
-
-Reviews a pull request systematically. Four phases: **FETCH -> CATEGORIZE -> CHECK -> COMMENT**.
+Four phases: **FETCH -> CATEGORIZE -> CHECK -> COMMENT**
 
 ---
 
@@ -25,221 +20,96 @@ Reviews a pull request systematically. Four phases: **FETCH -> CATEGORIZE -> CHE
 
 **Goal**: Gather all PR data needed for review.
 
-### Step 1.1 — Fetch PR Metadata
+Detect repository: `gh repo view --json owner,name -q '.owner.login + "/" + .name'`
 
-Detect repository owner and name: `gh repo view --json owner,name -q '.owner.login + "/" + .name'`
-
+**1.1** Fetch PR metadata:
 ```bash
 gh pr view <pr-number> --json title,body,author,baseRefName,headRefName,additions,deletions,changedFiles,labels,state,reviewDecision
 ```
 
-Extract:
-- **Title**: PR title
-- **Description**: PR body
-- **Author**: Who wrote it
-- **Base branch**: Target branch
-- **Head branch**: Source branch
-- **Size**: Additions, deletions, changed files count
-- **Labels**: Any labels applied
-- **Status**: Open, draft, etc.
-- **Existing reviews**: Any prior review decisions
+**1.2** Fetch diff: `gh pr diff <pr-number>`
 
-### Step 1.2 — Fetch PR Diff
+**1.3** Fetch changed files: `gh pr view <pr-number> --json files --jq '.files[].path'`
 
-```bash
-gh pr diff <pr-number>
-```
+**1.4** Fetch CI checks: `gh pr checks <pr-number>` — flag failures.
 
-Store the full diff for analysis.
-
-### Step 1.3 — Fetch Changed Files List
-
-```bash
-gh pr view <pr-number> --json files --jq '.files[].path'
-```
-
-### Step 1.4 — Fetch PR Checks
-
-```bash
-gh pr checks <pr-number>
-```
-
-Note any failing checks — these should be flagged in the review.
-
-### Step 1.5 — Fetch PR Comments
-
+**1.5** Fetch existing comments (avoid duplicating feedback):
 ```bash
 gh api repos/{owner}/{repo}/pulls/<pr-number>/comments
 gh api repos/{owner}/{repo}/issues/<pr-number>/comments
 ```
 
-Check for existing review comments to avoid duplicating feedback.
+**1.6** Read each changed file in FULL using the Read tool (not just the diff) to understand context.
 
-### Step 1.6 — Read Full Changed Files
-
-For each changed file in the PR, read the FULL file (not just the diff) to understand context:
-
-```bash
-gh pr view <pr-number> --json files --jq '.files[].path' | while read f; do
-  echo "=== $f ==="
-done
-```
-
-Use the Read tool to read each changed file in full. This is critical for understanding whether the changes fit the surrounding code.
-
-### Decision Point: PR Size
-
+**Size Decision**:
 - **Small** (< 10 files, < 200 lines): Review inline
 - **Medium** (10-30 files, 200-500 lines): Review by category
-- **Large** (> 30 files, > 500 lines): Use sub-agents per category, warn that PR should be split
+- **Large** (> 30 files, > 500 lines): Sub-agents per category, warn PR should be split
 
-**Phase Output**: Write PR metadata and diff summary to `.workflows/<pr-name>/01-fetch.md`
+**Phase Output**: `.workflows/<pr-name>/01-fetch.md`
 
 ---
 
 ## Phase 2: CATEGORIZE
 
-**Goal**: Organize changes by architectural layer for structured review.
+**Goal**: Organize changes by architectural layer.
 
-### Step 2.1 — Classify Each File
+**2.1 — Classify files** by reading `project.type` from `.claude/workflows.yml`. Common categories:
 
-Assign each changed file to a category:
+| Category | Description |
+|---|---|
+| **UI** | Views, screens, components, templates, styles |
+| **Logic/Controllers** | ViewModels, controllers, presenters, state management |
+| **Domain/Business** | Use cases, services, business rules, interfaces |
+| **Data/API** | Repositories, data sources, API clients, DTOs, mappers |
+| **Models** | Domain entities, data classes, types, schemas |
+| **Config** | Build files, CI/CD, environment config |
+| **Tests** | Unit, integration, e2e tests, test utilities |
+| **Other** | Documentation, scripts, assets |
 
-| Category | File Patterns | Examples |
-|---|---|---|
-| **UI** | `*Screen.kt`, `*Composable.kt`, `*Component.kt`, `*View.kt`, `*.xml` (layout) | Composables, XML layouts, themes |
-| **ViewModel** | `*ViewModel.kt`, `*State.kt`, `*Event.kt` | State management, UI logic |
-| **Domain** | `*UseCase.kt`, `*Interactor.kt`, `*Repository.kt` (interface) | Business logic |
-| **Data** | `*RepositoryImpl.kt`, `*DataSource.kt`, `*ApiService.kt`, `*DTO.kt`, `*Mapper.kt` | Data access, API, mapping |
-| **DI** | `*Module.kt`, `*Component.kt` (Hilt/Dagger) | Dependency injection setup |
-| **Navigation** | `*NavGraph.kt`, `*Route.kt`, `*Navigation.kt` | Screen navigation |
-| **Model** | `*Model.kt`, `*Entity.kt`, data classes | Domain/data models |
-| **Test** | `*Test.kt`, `*Spec.kt` (in test directories) | Unit/integration tests |
-| **Config** | `*.gradle.kts`, `*.yml`, `*.xml` (non-layout), `*.properties` | Build config, resources |
-| **Analytics** | `*Analytics*.kt`, `*Tracker*.kt`, `*Event*.kt` (in analytics packages) | Event tracking |
-| **Other** | Anything not matching above | Documentation, scripts, etc. |
+Adapt to the project's actual architecture (e.g., Rails: Models/Views/Controllers; React: Components/Hooks/Store/Utils).
 
-### Step 2.2 — Build Review Order
+**2.2 — Review order** (foundations first): Models/Data -> Domain -> Logic/Controllers -> UI -> Config -> Tests
 
-Review in this order (dependencies flow top-down):
-1. **Model/Data** — Data structures and API changes
-2. **Domain** — Business logic
-3. **ViewModel** — State management
-4. **UI** — Presentation
-5. **Navigation** — Integration
-6. **DI** — Wiring
-7. **Analytics** — Tracking
-8. **Config** — Build changes
-9. **Test** — Test quality
+**2.3 — Summarize** file counts per category with additions/deletions.
 
-### Step 2.3 — Summarize PR Scope
-
-```
-PR Scope Summary:
-  UI:         3 files (2 new, 1 modified)
-  ViewModel:  1 file (modified)
-  Domain:     2 files (new)
-  Data:       1 file (modified)
-  Tests:      2 files (new)
-  Config:     1 file (modified)
-  Total:      10 files (+350, -20)
-```
-
-**Phase Output**: Write file categorization and review order to `.workflows/<pr-name>/02-categorize.md`
+**Phase Output**: `.workflows/<pr-name>/02-categorize.md`
 
 ---
 
 ## Phase 3: CHECK
 
-**Goal**: Review each file against quality standards.
+**Goal**: Review each file against dynamically loaded quality checklists.
 
-### Check Categories
+### Step 3.1 — Load Checklists
 
-If `--focus <area>` was provided, prioritize checks in that area (e.g., `--focus security` emphasizes section 3.3, `--focus performance` emphasizes section 3.4).
+1. **Always load**: `.claude/reviews/general-checklist.md`
+2. **Detect language**: Read `project.language` from `.claude/workflows.yml`
+3. **Load language-specific**: `.claude/reviews/<language>-checklist.md` if it exists (e.g., `kotlin-checklist.md`, `typescript-checklist.md`, `python-checklist.md`)
+4. **If no checklists found**: Warn user, use fallback checks below
 
-For each changed file, run through these check categories:
+### Step 3.2 — Apply Focus
 
-#### 3.1 — Architecture Compliance
+If `--focus <area>` provided, prioritize matching checklist items. Still run all checks but weight focused violations higher.
 
-- Does the change follow the project's architecture pattern (MVVM, Clean, etc.)?
-- Are layer boundaries respected? (UI does not call repository directly)
-- Are dependencies flowing in the correct direction?
-- Is the DI setup correct? (Scope, bindings, qualifiers)
-- Are new classes placed in the correct package/module?
+### Step 3.3 — Fallback Checks (no checklist files)
 
-**Severity for violations**: error
+- **Architecture**: Layer boundaries respected? Dependencies correct? Code in right location?
+- **Code Quality**: Clear naming? Functions < 50 lines? No duplication/dead code/magic values? Errors handled?
+- **Security**: No hardcoded secrets? Input validated? Sensitive data safe? HTTPS enforced?
+- **Performance**: No blocking on critical paths? No N+1 queries? Caching/pagination where needed?
+- **Test Coverage**: New public APIs tested? Happy/error/edge cases? Tests deterministic?
+- **Consistency**: Matches codebase patterns? Similar problems solved same way?
 
-#### 3.2 — Code Quality
+### Step 3.4 — Execute
 
-- **Naming**: Are class/function/variable names clear and consistent with codebase?
-- **Complexity**: Are functions too long (>50 lines)? Too many parameters (>5)?
-- **Duplication**: Is there duplicated logic that should be extracted?
-- **Dead code**: Are there unused imports, variables, or functions?
-- **Hardcoded values**: Are there magic numbers, hardcoded strings, or URLs?
-- **Nullability**: Are nullable types handled safely? Any `!!` usage?
-- **Error handling**: Are exceptions caught appropriately? Any swallowed exceptions?
-- **Logging**: Is there appropriate logging for debugging?
+For each changed file, run through ALL loaded checklist items. For each violation record:
+- **Severity**: error / warning / suggestion / nitpick
+- **File + Line**: exact path and line number
+- **Issue**: clear description
+- **Suggestion**: actionable fix or code example
 
-**Severity for violations**: warning (minor) or error (major)
-
-#### 3.3 — Security
-
-- Are API keys, tokens, or secrets hardcoded?
-- Is user input validated/sanitized?
-- Are sensitive data fields (passwords, tokens) properly handled?
-- Is data stored securely (encrypted preferences, not plain text)?
-- Are network calls using HTTPS?
-- SQL injection risks in raw queries?
-- Are permissions requested minimally?
-
-**Severity for violations**: error
-
-#### 3.4 — Performance
-
-- Are there operations on the main thread that should be on background?
-- N+1 query patterns?
-- Unnecessary object allocations in hot paths (loops, draw calls)?
-- Missing `remember` in Compose? Unnecessary recompositions?
-- Large data loaded without pagination?
-- Missing caching where beneficial?
-- Flow collection without lifecycle awareness?
-
-**Severity for violations**: warning
-
-#### 3.5 — Test Coverage
-
-- Do new public functions have corresponding tests?
-- Do tests cover happy path, error paths, and edge cases?
-- Are tests using Given/When/Then pattern?
-- Are mocks appropriate (not mocking everything)?
-- Are tests deterministic (no flakiness risk)?
-- Is test code quality equal to production code quality?
-
-**Severity for violations**: warning
-
-#### 3.6 — Consistency
-
-- Does the code match existing patterns in the codebase?
-- Are similar problems solved the same way?
-- Is the formatting consistent with surrounding code?
-- Are imports organized consistently?
-
-**Severity for violations**: nitpick
-
-### Check Process
-
-For each file, for each check category:
-
-1. Read the full diff for the file
-2. Read surrounding code for context
-3. Evaluate against each check point
-4. If a violation is found:
-   - Determine severity (error, warning, suggestion, nitpick)
-   - Note the exact file and line number
-   - Write a clear, actionable comment
-   - Include a code suggestion if applicable
-
-**Phase Output**: Write review findings (issues, severity, recommendations) to `.workflows/<pr-name>/03-check.md`
+**Phase Output**: `.workflows/<pr-name>/03-check.md`
 
 ---
 
@@ -247,132 +117,53 @@ For each file, for each check category:
 
 **Goal**: Generate and submit review comments.
 
-### Step 4.1 — Compile Comments
-
-Organize all findings into a structured list:
-
-```
-Review Comments:
-
-1. [ERROR] file.kt:42 — Architecture violation
-   UI layer directly accesses repository. Should go through ViewModel.
-   Suggestion: Move `repository.fetch()` call to ViewModel, expose via StateFlow.
-
-2. [WARNING] ViewModel.kt:88 — Potential memory leak
-   Flow collection without lifecycle scope. Use `viewModelScope.launch` or `repeatOnLifecycle`.
-
-3. [SUGGESTION] Model.kt:15 — Consider sealed interface
-   This enum could be a sealed interface for better extensibility.
-
-4. [NITPICK] Screen.kt:33 — Naming
-   `doStuff()` is not descriptive. Consider `submitRegistrationForm()`.
-```
-
 ### Severity Definitions
 
 | Severity | Meaning | Blocks Merge? |
 |---|---|---|
-| **error** | Bug, security issue, architecture violation, or crash risk | Yes |
-| **warning** | Code smell, performance issue, or missing best practice | No (but should fix) |
+| **error** | Bug, security issue, architecture violation, crash risk | Yes |
+| **warning** | Code smell, performance issue, missing best practice | No (but should fix) |
 | **suggestion** | Improvement idea, alternative approach | No |
 | **nitpick** | Style, naming, minor formatting | No |
 
+### Step 4.1 — Compile Comments
+
+Format each finding as: `[SEVERITY] file:line — Title` followed by description and suggestion.
+
 ### Step 4.2 — Generate Summary
 
-Write a review summary:
-
-```markdown
-## Review Summary
-
-**PR**: #<number> — <title>
-**Verdict**: <APPROVE | REQUEST_CHANGES | COMMENT>
-
-### Stats
-- Files reviewed: <N>
-- Errors: <N>
-- Warnings: <N>
-- Suggestions: <N>
-- Nitpicks: <N>
-
-### Key Findings
-1. <most important finding>
-2. <second most important finding>
-
-### What's Good
-- <positive observation 1>
-- <positive observation 2>
-
-### Action Required
-- [ ] <fix required 1>
-- [ ] <fix required 2>
-```
+Include: verdict, stats (files/errors/warnings/suggestions/nitpicks), key findings, positive observations, action items checklist.
 
 **Verdict logic**:
-- Any **error** findings → REQUEST_CHANGES
-- Only warnings/suggestions/nitpicks → COMMENT (or APPROVE if minor)
-- No findings → APPROVE
-- `--strict` flag: warnings also trigger REQUEST_CHANGES
+- Any **error** -> REQUEST_CHANGES
+- Only warnings/suggestions/nitpicks -> COMMENT (or APPROVE if minor)
+- No findings -> APPROVE
+- `--strict`: warnings also trigger REQUEST_CHANGES
 
-### Step 4.3 — Present to User for Approval
+### Step 4.3 — User Approval
 
-Display the full review (summary + all comments) to the user.
+Present full review and ask: "(1) submit as-is, (2) remove comments, (3) adjust severities, (4) cancel."
 
-Ask: "Submit this review? You can: (1) submit as-is, (2) remove specific comments, (3) adjust severities, (4) cancel."
-
-### Decision Point: User Approval
-
-- **Submit as-is**: Proceed to Step 4.4
-- **Remove comments**: Remove specified comments, re-present
-- **Adjust severities**: Update severities, recalculate verdict
-- **Cancel**: Do not submit
-
-### Step 4.4 — Submit Review
-
-Submit the review summary as a PR review:
+### Step 4.4 — Submit
 
 ```bash
-gh pr review <pr-number> \
-  --<approve|request-changes|comment> \
-  --body "$(cat <<'EOF'
-<review-summary>
-EOF
-)"
+gh pr review <pr-number> --<approve|request-changes|comment> --body "<summary>"
 ```
 
-Submit inline comments via GitHub API:
-
+Inline comments via API:
 ```bash
 gh api repos/{owner}/{repo}/pulls/<pr-number>/reviews \
   --method POST \
   --field event="<APPROVE|REQUEST_CHANGES|COMMENT>" \
   --field body="<summary>" \
-  --field comments='[
-    {
-      "path": "<file-path>",
-      "line": <line-number>,
-      "body": "[<SEVERITY>] <comment>"
-    }
-  ]'
+  --field comments='[{"path": "<file>", "line": <N>, "body": "[<SEVERITY>] <comment>"}]'
 ```
 
 ### Step 4.5 — Report
 
-Print:
+Print verdict, comment counts by severity, and PR URL.
 
-```
-Review submitted for PR #<number>.
-
-  Verdict:     <verdict>
-  Comments:    <count> submitted
-  Errors:      <count>
-  Warnings:    <count>
-  Suggestions: <count>
-  Nitpicks:    <count>
-
-  PR URL: <url>
-```
-
-**Phase Output**: Write final review summary and verdict to `.workflows/<pr-name>/04-comment.md`
+**Phase Output**: `.workflows/<pr-name>/04-comment.md`
 
 ---
 
@@ -382,18 +173,19 @@ Review submitted for PR #<number>.
 |---|---|
 | PR not found | Verify PR number and repository |
 | gh CLI not authenticated | Guide user through `gh auth login` |
-| PR is already merged | Report status, skip review |
-| PR is draft | Review anyway but note it is a draft |
-| Diff too large to analyze | Use sub-agents per category, warn about PR size |
-| Cannot determine file context | Read full file from the head branch |
-| API rate limit hit | Wait and retry, or submit comments in batches |
+| PR already merged | Report status, skip review |
+| PR is draft | Review anyway, note draft status |
+| Diff too large | Sub-agents per category, warn about PR size |
+| Cannot determine file context | Read full file from head branch |
+| API rate limit hit | Wait and retry, or batch comments |
+| No checklist files found | Warn user, proceed with fallback checks |
 
 ## Review Principles
 
-1. **Be constructive**: Every criticism must include a suggestion
-2. **Be specific**: Point to exact lines, provide code examples
-3. **Be proportional**: Do not block a PR for nitpicks
+1. **Be constructive**: Every criticism includes a suggestion
+2. **Be specific**: Exact lines, code examples
+3. **Be proportional**: Don't block PRs for nitpicks
 4. **Acknowledge good work**: Call out well-written code
-5. **Focus on behavior**: Prioritize correctness over style
-6. **Consider context**: A hotfix has different standards than a feature PR
-7. **One comment per issue**: Do not combine multiple concerns in one comment
+5. **Focus on behavior**: Correctness over style
+6. **Consider context**: Hotfix vs. feature PR standards differ
+7. **One comment per issue**: Don't combine concerns

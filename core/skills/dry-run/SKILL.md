@@ -5,11 +5,7 @@ description: Preview what a workflow will do without executing any changes. Show
 
 # Dry Run Mode
 
-Preview a workflow's execution plan without making any changes.
-
-## Command
-
-Append `--dry-run` to any workflow command:
+Preview a workflow's execution plan without making any changes. Append `--dry-run` to any workflow command:
 
 ```
 /workflow:new-feature booking-cancellation --dry-run
@@ -45,47 +41,28 @@ PHASES:
   8. PR            — Target: Development, Format: squash
 
 GIT:
-  Branch:          alpha-feature/Booking_cancellation
-  Base:            Development
-  Commit format:   feat(booking): ...
-  PR target:       Development
+  Branch: alpha-feature/Booking_cancellation  Base: Development
+  Commit: feat(booking): ...  PR target: Development
 
-FILES (estimated):
-  Spec:            .workflows/booking-cancellation/02-spec.md
-  Decisions:       .workflows/booking-cancellation/02-spec.md
-  Plan:            .claude/plan-booking-cancellation.md
-  State:           .workflows/current-state.md
-  Todo:            tasks/todo.md (updated)
+FILES: Spec, Plan, State (.workflows/current-state.md), Todo (tasks/todo.md)
 
-GUARDS:
-  Active:          yes (.claude/guards.yml found)
-  Block patterns:  17 rules
-  Protected paths: 11 rules
-
-CHAINS:
-  TEST → /workflow:test --coverage 90
-
-CONFLICTS:
-  None (no active workflow)
-
-LEARNED PATTERNS:
-  If learned patterns exist in .workflows/learned/, relevant ones are shown here
-  e.g., "Delegator pattern for features with >3 state sources" (confidence: 0.8)
+GUARDS: 17 block rules, 11 protected paths
+CHAINS: TEST → /workflow:test --coverage 90
+CONFLICTS: None (no active workflow)
+LEARNED PATTERNS: Relevant patterns from .workflows/learned/ if any
 
 ═══ End dry run. No changes made. ═══
 ```
 
 ## What Dry Run Does NOT Do
 
-- Does NOT create any files
-- Does NOT create any branches
-- Does NOT run any git commands (except read-only: git branch, git status)
-- Does NOT write to state files
-- Does NOT invoke sub-agents
-- Does NOT read Jira/Figma (even if flags provided — just notes the source)
+- Does NOT create any files or branches
+- Does NOT run any git commands (except read-only: `git branch`, `git status`)
+- Does NOT write to state files or invoke sub-agents
+- Does NOT read Jira/Figma (even if flags provided -- just notes the source)
 
 ## Integration with Workflow Engine
 
 The workflow engine checks for `--dry-run` flag FIRST:
-1. If `--dry-run` is present: execute dry-run skill, then STOP
+1. If `--dry-run` present: execute dry-run skill, then STOP
 2. If not: proceed with normal workflow execution

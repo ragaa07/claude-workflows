@@ -37,7 +37,7 @@ Workflow Metrics Dashboard
 
 ---
 
-## `/workflow:metrics <workflow-name>`
+## `/workflow:metrics <workflow-name>` — Per-Workflow Detail
 
 Filter history to matching workflow type:
 

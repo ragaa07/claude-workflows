@@ -1,343 +1,136 @@
 ---
 name: new-feature
-description: End-to-end workflow for implementing a new feature from requirements gathering through PR creation, with spec generation, brainstorming, phased implementation, and testing.
+description: "End-to-end feature workflow from requirements through PR. Eight phases: GATHER -> SPEC -> BRAINSTORM -> PLAN -> BRANCH -> IMPLEMENT -> TEST -> PR."
 ---
 
 # New Feature Workflow
-
-## Command
 
 ```
 /workflow:new-feature <name> [--from-jira <ticket>] [--from-figma <url>] [--from-spec <path>] [--skip-brainstorm]
 ```
 
-## Overview
+**Prerequisites**: `.claude/workflows.yml` exists. Git working tree is clean.
 
-The most comprehensive workflow. Takes a feature from idea to merged PR through eight phases: **GATHER -> SPEC -> BRAINSTORM -> PLAN -> BRANCH -> IMPLEMENT -> TEST -> PR**.
-
-## Prerequisites
-
-- `.claude/workflows.yml` must exist (run `/workflow:new-project` first)
-- Git working tree must be clean (no uncommitted changes)
-- On the development branch or ready to branch from it
+**Config references**: Read `.claude/workflows.yml` for `project.language`, `project.type`, `git.branches.*`, and `workflows.new-feature.*` throughout this workflow.
 
 ---
 
 ## Phase 1: GATHER
 
-**Goal**: Collect all requirements from available sources into a unified understanding.
+**Goal**: Collect all requirements into a unified understanding.
 
-### Step 1.1 — Parse Command Arguments
+### Input routing
 
-Determine input sources from flags:
-- `--from-jira <ticket>`: Jira ticket ID (e.g., `PROJ-1234`)
-- `--from-figma <url>`: Figma design URL
-- `--from-spec <path>`: Path to existing spec document
-- No flags: Interactive requirements gathering
+| Flag | Action |
+|---|---|
+| `--from-jira <ticket>` | Fetch via `mcp__atlassian__getJiraIssue`. Extract title, description, acceptance criteria, subtasks, priority. Fetch subtasks via JQL `parent = <ticket>`. **If MCP unavailable**: print warning, fall back to interactive. |
+| `--from-figma <url>` | Fetch via `mcp__figma__get_design_context` + `mcp__figma__get_screenshot`. Extract screens, components, design tokens, interactions. **If MCP unavailable**: ask user to describe UI manually. |
+| `--from-spec <path>` | Read and parse the file directly. |
+| No flags | Interactive mode (see below). |
 
-### Step 1.2 — Fetch from Jira (if --from-jira)
+### Interactive gathering
 
-Use Jira MCP tools:
-
-```
-mcp__atlassian__getJiraIssue(issueIdOrKey: "<ticket>")
-```
-
-Extract:
-- **Title**: Issue summary
-- **Description**: Full description and acceptance criteria
-- **Subtasks**: Child issues (fetch each for details)
-- **Linked issues**: Dependencies or related work
-- **Priority**: P0-P4
-- **Labels/Components**: For categorization
-- **Attachments**: Note any attached specs or mockups
-
-If the ticket has sub-tasks, fetch each one:
-
-```
-mcp__atlassian__searchJiraIssuesUsingJql(jql: "parent = <ticket>")
-```
-
-### Step 1.3 — Fetch from Figma (if --from-figma)
-
-Use Figma MCP tools:
-
-```
-mcp__figma__get_design_context(fileKey: "<key>", nodeId: "<id>")
-mcp__figma__get_screenshot(fileKey: "<key>", nodeId: "<id>")
-```
-
-Extract:
-- **Screens**: List of screens/states in the design
-- **Components**: UI components used
-- **Design tokens**: Colors, spacing, typography
-- **Annotations**: Designer notes
-- **Interactions**: Prototype flows
-
-### Step 1.4 — Read Spec File (if --from-spec)
-
-Read the provided spec file and parse its structure. Accept markdown, text, or structured formats.
-
-### Step 1.5 — Interactive Gathering (if no flags)
-
-Ask the user a structured set of questions:
-
+Ask sequentially:
 1. "What does this feature do? (1-2 sentences)"
-2. "Who is this for? (user type/persona)"
-3. "What are the acceptance criteria? (list)"
-4. "Are there any UI designs? (Figma URL or description)"
-5. "Are there any API changes needed? (endpoints, models)"
+2. "Who is this for?"
+3. "What are the acceptance criteria?"
+4. "Any UI designs? (Figma URL or description)"
+5. "Any API changes needed?"
 6. "What existing features does this interact with?"
 7. "Any performance requirements or constraints?"
 
-### Decision Point: Sufficient Requirements
+### Gate
 
-Evaluate gathered requirements. If missing critical information:
-- List what is missing
-- Ask user to provide it or confirm proceeding without it
-- Do NOT proceed if acceptance criteria are undefined
+Do NOT proceed if acceptance criteria are undefined. List missing info and ask user to provide or confirm.
 
-**Output**: Write gathered requirements to the phase output document (`.workflows/<name>/01-gather.md`).
+**Output**: `.workflows/<name>/01-gather.md`
 
 ---
 
 ## Phase 2: SPEC
 
-**Goal**: Generate a formal specification document from gathered requirements.
+**Goal**: Produce a formal specification from gathered requirements.
 
-### Step 2.1 — Generate Spec Document
+### Generate spec
+
+If `.claude/templates/spec.md.tmpl` exists, use it as the template. Otherwise use this structure:
 
 Write `.workflows/<name>/02-spec.md`:
+- **Metadata**: date, source, status (Draft), author
+- **Summary**: 1-3 sentences
+- **User Stories**: derived from requirements
+- **Acceptance Criteria**: checkable list
+- **Scope**: in-scope / out-of-scope
+- **Technical Requirements**: API changes, data model, UI/UX
+- **Dependencies**
+- **Edge Cases**
+- **Open Questions**
 
-```markdown
-# Feature Spec: <Feature Name>
+### Approval gate
 
-## Metadata
-- **Date**: <today>
-- **Source**: <jira-ticket|figma-url|manual>
-- **Status**: Draft
-- **Author**: Claude Code
-
-## Summary
-<1-3 sentence description of the feature>
-
-## User Stories
-- As a <persona>, I want to <action>, so that <benefit>
-(generate from gathered requirements)
-
-## Acceptance Criteria
-- [ ] <criterion 1>
-- [ ] <criterion 2>
-- [ ] <criterion N>
-
-## Scope
-
-### In Scope
-- <item>
-
-### Out of Scope
-- <item>
-
-## Technical Requirements
-
-### API Changes
-- <endpoint/model changes if any>
-
-### Data Model
-- <new entities, fields, relationships>
-
-### UI/UX
-- <screens, components, interactions>
-- <link to Figma if available>
-
-## Dependencies
-- <other features, services, or libraries>
-
-## Edge Cases
-- <edge case 1>
-- <edge case 2>
-
-## Open Questions
-- <question 1>
-```
-
-### Step 2.3 — Present Spec for Review
-
-Display the spec summary to the user. Ask: "Review the spec above. Reply with changes or 'approved' to proceed."
-
-### Decision Point: Spec Approval
-
-- If user requests changes: update spec, re-present
-- If user approves: proceed to Phase 3
-- Save final spec regardless
+Present spec summary. Ask: "Review the spec. Reply with changes or 'approved' to proceed."
+- Changes requested: update and re-present.
+- Approved: proceed.
+- Rejected 3+ times: ask if feature scope needs rethinking.
 
 ---
 
 ## Phase 3: BRAINSTORM
 
-**Goal**: Explore implementation approaches before committing to a plan.
+**Skip if**: `--skip-brainstorm` flag OR `workflows.new-feature.require_brainstorm` is `false` in config. Mark `SKIPPED` in phase history.
 
-**Skip condition**: Skip if `--skip-brainstorm` passed OR `workflows.new-feature.require_brainstorm` is `false` in `.claude/workflows.yml`. Mark as `SKIPPED` in Phase History.
+### Execute
 
-### Step 3.1 — Invoke Brainstorm Skill
+Delegate to brainstorm skill:
+- **Input**: spec document from Phase 2
+- **Depth**: `standard` (default) or as configured
+- **Focus areas**: architecture fit, data flow, component reuse, state management, testing strategy
 
-Delegate to the brainstorm skill with context:
+Use a sub-agent to scan the codebase for similar patterns, reusable components, and existing architecture conventions. Let the brainstorm skill handle technique selection and option generation.
 
-- **Input**: The spec document from Phase 2
-- **Technique**: Use "Structured Exploration" by default
-- **Focus areas**:
-  1. Architecture approach (where does this fit in the codebase?)
-  2. Data flow (how does data move through the system?)
-  3. UI component strategy (new vs reuse existing)
-  4. State management approach
-  5. Testing strategy
+### Approval gate
 
-### Step 3.2 — Codebase Analysis
+User selects an approach. Document choice under "## Chosen Approach" in the spec.
 
-Use sub-agent to analyze the existing codebase for:
-
-- **Similar features**: Find features with similar patterns to reuse
-- **Existing components**: UI components that can be reused
-- **Data layer**: Existing repositories, API clients, models that apply
-- **Navigation**: How to integrate with existing navigation graph
-- **DI setup**: Existing modules and component structure
-
-```bash
-# Find similar features
-grep -r "class.*ViewModel" --include="*.kt" -l | head -20
-grep -r "class.*Repository" --include="*.kt" -l | head -20
-grep -r "@Composable" --include="*.kt" -l | head -20
-```
-
-### Step 3.3 — Generate Options
-
-Present 2-3 implementation approaches with trade-offs:
-
-```
-Approach A: <name>
-  Pros: ...
-  Cons: ...
-  Effort: <low|medium|high>
-
-Approach B: <name>
-  Pros: ...
-  Cons: ...
-  Effort: <low|medium|high>
-```
-
-### Decision Point: Approach Selection
-
-Ask user: "Which approach do you prefer? (A/B/C or suggest alternative)"
-
-**Output**: Selected approach documented in spec file under a new "## Chosen Approach" section.
-
-**Phase Output**: Write brainstorm results (options explored, scoring, chosen approach) to `.workflows/<name>/03-brainstorm.md`
+**Output**: `.workflows/<name>/03-brainstorm.md`
 
 ---
 
 ## Phase 4: PLAN
 
-**Goal**: Create a detailed, phase-by-phase implementation plan.
+**Goal**: Create a phased implementation plan tailored to the project's architecture.
 
-**Note**: Detect the project build system from the codebase (e.g., `./gradlew` for Android/KMP, `npm` for Node.js, `cargo` for Rust) and use appropriate build/test commands throughout the plan.
+### Read context
 
-### Step 4.1 — Read Project Configuration
+1. Read `.claude/workflows.yml` -> `project.type`, `project.language`, build/test commands.
+2. Read `tasks/lessons.md` -- apply relevant lessons.
+3. Read chosen approach from brainstorm output.
 
-```bash
-cat .claude/workflows.yml
-cat tasks/lessons.md  # Apply past lessons
-```
+### Generate plan
 
-### Step 4.2 — Generate Implementation Plan
+Write `.claude/plan-<name>.md`. Generate phases dynamically based on the project's architecture, NOT a hardcoded layer structure. Analyze `project.type` and the existing code structure to determine appropriate phases.
 
-Write `.claude/plan-<name>.md`:
+Each phase MUST include:
+- **Files to create/modify**: checkable list with paths and descriptions
+- **Implementation details**: what to build and how
+- **Build check command**: detected from project (e.g., `./gradlew build`, `npm run build`, `cargo build`)
+- **Commit message**: conventional commit format `feat(<scope>): <description>`
 
-```markdown
-# Implementation Plan: <Feature Name>
+Also include:
+- **Rollback plan**: each phase independently revertable via git
+- **Risk assessment**: risks with mitigations
 
-## Spec Reference
-- Spec: `.workflows/<name>/02-spec.md`
-- Approach: <chosen approach from brainstorm>
-- Estimated phases: 6
+Constraint: if plan exceeds 10 phases, split into multiple features.
 
-## Phase A: Data Layer
-### Files to create/modify:
-- [ ] `<path>` — <description>
-### Details:
-- <implementation details>
-### Compile check: `<build-command>`
-### Commit message: `feat(<scope>): add data models for <feature>`
+### Approval gate
 
-## Phase B: Domain Layer
-### Files to create/modify:
-- [ ] `<path>` — <description>
-### Details:
-- <implementation details>
-### Compile check: `<build-command>`
-### Commit message: `feat(<scope>): add use cases for <feature>`
+Present plan summary. Ask: "Review the plan. Reply with changes or 'approved' to proceed."
 
-## Phase C: UI Layer
-### Files to create/modify:
-- [ ] `<path>` — <description>
-### Details:
-- <implementation details>
-### Compile check: `<build-command>`
-### Commit message: `feat(<scope>): add UI components for <feature>`
+### Update tracking
 
-## Phase D: Navigation & Integration
-### Files to create/modify:
-- [ ] `<path>` — <description>
-### Details:
-- <implementation details>
-### Compile check: `<build-command>`
-### Commit message: `feat(<scope>): integrate <feature> navigation`
+Add feature to `tasks/todo.md` with a checkable item per phase.
 
-## Phase E: Analytics
-### Files to create/modify:
-- [ ] `<path>` — <description>
-### Details:
-- <implementation details>
-### Compile check: `<build-command>`
-### Commit message: `feat(<scope>): add analytics for <feature>`
-
-## Phase F: Testing
-### Files to create/modify:
-- [ ] `<path>` — <description>
-### Details:
-- <implementation details>
-### Test command: `<test-command>`
-### Commit message: `test(<scope>): add tests for <feature>`
-
-## Rollback Plan
-- Each phase is independently revertable via git
-- No database migrations until Phase D is verified
-
-## Risk Assessment
-- <risk 1>: <mitigation>
-- <risk 2>: <mitigation>
-```
-
-### Step 4.3 — Present Plan for Review
-
-Display plan summary. Ask: "Review the plan. Reply with changes or 'approved' to proceed."
-
-### Step 4.4 — Update Todo
-
-Add feature to `tasks/todo.md`:
-
-```markdown
-## In Progress
-- [ ] <Feature Name> (plan: `.claude/plan-<name>.md`)
-  - [ ] Phase A: Data Layer
-  - [ ] Phase B: Domain Layer
-  - [ ] Phase C: UI Layer
-  - [ ] Phase D: Navigation
-  - [ ] Phase E: Analytics
-  - [ ] Phase F: Testing
-  - [ ] PR Created
-```
-
-**Phase Output**: Write the plan summary to `.workflows/<name>/04-plan.md` (the detailed plan remains in `.claude/plan-<name>.md`)
+**Output**: `.workflows/<name>/04-plan.md` (summary; detailed plan stays in `.claude/plan-<name>.md`)
 
 ---
 
@@ -345,238 +138,126 @@ Add feature to `tasks/todo.md`:
 
 **Goal**: Create a properly named feature branch.
 
-### Step 5.1 — Read Git Config
+### Execute
 
-From `.claude/workflows.yml`, get:
-- `git.branches.development`: Branch to branch from
-- `git.branches.feature`: Branch naming pattern
+1. Read `git.branches.development` and `git.branches.feature` pattern from config.
+2. Replace `{name}` in pattern with kebab-case feature name.
+3. Run:
+   ```bash
+   git checkout <dev_branch> && git pull origin <dev_branch> && git checkout -b <branch_name>
+   ```
 
-### Step 5.2 — Create Branch
+### Error handling
 
-Replace `{name}` in the branch pattern with a kebab-case version of the feature name (e.g., `add-favorites` -> `feature/add-favorites`).
+- Dirty working tree: tell user to stash or commit first.
+- Branch exists: ask to switch or rename.
+- Dev branch behind remote: pull first, then branch.
 
-```bash
-git checkout <development_branch>
-git pull origin <development_branch>
-git checkout -b <feature_pattern_with_name>
-```
-
-Example: `git checkout -b feature/add-favorites`
-
-### Error Handling
-
-- If working tree is dirty: "You have uncommitted changes. Stash or commit them first."
-- If branch already exists: "Branch `<name>` already exists. Switch to it or choose a different name?"
-- If dev branch is behind remote: Pull first, then branch
-
-**Output**: Write branch details to the phase output document (`.workflows/<name>/05-branch.md`).
+**Output**: `.workflows/<name>/05-branch.md`
 
 ---
 
 ## Phase 6: IMPLEMENT
 
-**Goal**: Execute the plan phase by phase with compile checks and commits.
+**Goal**: Execute the plan phase by phase with build checks and commits.
 
-### Implementation Loop
+### Before starting
 
-For each phase (A through F) in the plan:
+1. Read `.claude/rules/` for language-specific coding rules. Follow ALL DO/DON'T directives.
+2. Read `tasks/lessons.md` for relevant lessons.
 
-#### Step 6.X.1 — Read Phase Details
+### Per-phase loop
 
-Read the current phase from `.claude/plan-<name>.md`.
+For each phase in the plan:
 
-#### Step 6.X.2 — Implement Changes
+1. **Read** phase details from `.claude/plan-<name>.md`.
+2. **Implement** changes. Rules:
+   - One concern per phase. Do not mix layers.
+   - Match existing codebase conventions exactly.
+   - Only create/modify files listed in the plan.
+   - No placeholder code. Every line production-ready.
+3. **Build check**: run the phase's build command. If it fails:
+   - Read error, fix, re-run.
+   - After 3 failures: trigger REPLAN.
+4. **Commit**: `git add <specific-files> && git commit -m "<message>"`.
+5. **Continue**: proceed automatically for straightforward phases. For complex phases, confirm with user.
 
-Write the code for this phase. Follow these rules:
-- **One concern per phase**: Do not mix data layer changes with UI changes
-- **Follow existing patterns**: Match the codebase's conventions exactly
-- **Minimal impact**: Only create/modify files listed in the plan
-- **No placeholder code**: Every line must be production-ready
+### REPLAN protocol
 
-#### Step 6.X.3 — Compile Check
+Trigger when: build fails 3+ times, plan step is wrong/impossible, or user requests mid-flight change.
 
-Run the build command from the plan:
+1. STOP all implementation.
+2. Document what went wrong under "## Replan Notes" in the plan file.
+3. Re-analyze remaining phases.
+4. Generate updated plan, present for approval.
+5. Resume from corrected phase.
 
-```bash
-<build-command>
-```
+### Sub-agent usage
 
-**If compilation fails**:
-1. Read the error output
-2. Fix the error
-3. Re-run compile check
-4. If stuck after 3 attempts: trigger REPLAN (see below)
+Use sub-agents for: researching existing patterns, running build checks, generating boilerplate, writing test scaffolding.
 
-#### Step 6.X.4 — Commit
-
-```bash
-git add <specific-files>
-git commit -m "<commit-message-from-plan>"
-```
-
-#### Step 6.X.5 — Proceed or Pause
-
-Ask: "Phase <X> complete. Continue to Phase <X+1>?" (Only ask if implementation is complex; for straightforward phases, continue automatically.)
-
-### REPLAN Protocol
-
-Triggered when:
-- Compilation fails 3+ times in a phase
-- A phase reveals the plan is wrong
-- User requests a change mid-implementation
-
-Steps:
-1. **STOP** all implementation
-2. Document what went wrong in the plan file under "## Replan Notes"
-3. Re-analyze the remaining phases
-4. Generate updated plan for remaining phases
-5. Present to user for approval
-6. Resume from the corrected phase
-
-### Sub-Agent Usage During Implementation
-
-Use sub-agents for:
-- Researching existing code patterns before writing new code
-- Running compile checks in background
-- Generating boilerplate (DI modules, navigation setup)
-- Writing test scaffolding
-
-### Lesson Integration
-
-Before each phase, check `tasks/lessons.md` for relevant lessons:
-- If a lesson mentions the current file/pattern, apply it
-- After any compilation error, check if a lesson covers it
-
-**Phase Output**: Write implementation summary (files changed, commits made, issues encountered) to `.workflows/<name>/06-implement.md`
+**Output**: `.workflows/<name>/06-implement.md` (files changed, commits made, issues encountered)
 
 ---
 
 ## Phase 7: TEST
 
-**Goal**: Run tests, verify coverage, and ensure quality.
+**Goal**: Verify correctness and quality.
 
-### Step 7.1 — Run Existing Tests
+### Detect test framework
 
-```bash
-<test-command>
-```
+Read `project.language` and `project.type` from config. Detect test runner and coverage tools from the project's build files (e.g., `package.json`, `build.gradle`, `Cargo.toml`, `pyproject.toml`). Do NOT assume any specific test framework.
 
-All existing tests MUST pass. If any fail:
-1. Determine if the failure is caused by the new feature
-2. If yes: fix it
-3. If no: report it but do not block
+### Execute
 
-### Step 7.2 — Run New Tests
+1. **Run all tests**: use the project's test command. All existing tests MUST pass. If failures are caused by the new feature, fix them. If pre-existing, report but do not block.
+2. **Run new tests**: if the plan included a testing phase, verify those tests pass.
+3. **Coverage check**: if coverage tooling is configured, report coverage for new code. Target: 80%+ for new code.
+4. **Present verification checklist**:
+   - All existing tests pass
+   - New tests pass
+   - Build succeeds
+   - Feature works as specified
+   - No regressions in related features
 
-If Phase F added tests:
-
-```bash
-<test-command-for-new-tests>
-```
-
-### Step 7.3 — Coverage Check
-
-If coverage tooling is configured:
-
-```bash
-<coverage-command>
-```
-
-Report coverage for new code. Target: 80%+ for new code.
-
-### Step 7.4 — Manual Verification Checklist
-
-Present to user:
-
-```
-Verification Checklist:
-- [ ] All existing tests pass
-- [ ] New tests pass
-- [ ] Build succeeds
-- [ ] Feature works as specified (manual check)
-- [ ] No regressions in related features
-```
-
-**Phase Output**: Write test results (coverage, pass/fail, gaps) to `.workflows/<name>/07-test.md`
+**Output**: `.workflows/<name>/07-test.md`
 
 ---
 
 ## Phase 8: PR
 
-**Goal**: Create a well-documented pull request.
+**Goal**: Create a well-documented pull request after passing quality gates.
 
-### Step 8.1 — Prepare PR Body
+### Pre-PR quality gate
 
-Generate PR body from spec, plan, and changes:
+1. Load `.claude/reviews/general-checklist.md`.
+2. Load language-specific checklist: `.claude/reviews/<language>-checklist.md` (based on `project.language`).
+3. If a framework checklist exists (e.g., `.claude/reviews/<framework>-checklist.md`), load that too.
+4. Self-check ALL High and Critical severity items from loaded checklists.
+5. Fix any violations before proceeding. Document fixes as additional commits.
 
-```markdown
-## Summary
-<2-3 sentences from spec summary>
+### Create PR
 
-## Changes
-<bulleted list of what was added/modified, organized by phase>
+1. Generate PR body:
+   - **Summary**: 2-3 sentences from spec
+   - **Changes**: bulleted list organized by phase
+   - **Testing**: what was tested, coverage numbers
+   - **Checklist**: items from quality gate, all checked
+2. Push and create:
+   ```bash
+   git push -u origin <branch>
+   gh pr create --base <dev_branch> --title "feat(<scope>): <title>" --body "<body>"
+   ```
 
-## Spec
-<link to spec file or inline key points>
+### Final summary
 
-## Screenshots
-<if UI changes, note that screenshots should be added>
+Print: branch name, PR URL, commit count, files created/modified, spec path, plan path. Suggest next steps: add screenshots (if UI), request review, address feedback.
 
-## Testing
-- [ ] Unit tests added for <components>
-- [ ] All existing tests pass
-- [ ] Manual testing completed for:
-  - <test scenario 1>
-  - <test scenario 2>
-
-## Checklist
-- [ ] Code follows project conventions
-- [ ] No hardcoded strings (i18n ready)
-- [ ] Analytics events tracked
-- [ ] Edge cases handled
-- [ ] Documentation updated (if applicable)
-```
-
-### Step 8.2 — Push and Create PR
-
-```bash
-git push -u origin <branch-name>
-
-gh pr create \
-  --base <dev_branch> \
-  --title "feat(<scope>): <feature title>" \
-  --body "$(cat <<'EOF'
-<generated PR body>
-EOF
-)"
-```
-
-### Step 8.3 — Final Summary
-
-Print:
-
-```
-Feature implementation complete.
-
-  Branch:  <branch-name>
-  PR:      <pr-url>
-  Commits: <count>
-  Files:   <count> created, <count> modified
-
-  Spec:    .workflows/<name>/02-spec.md
-  Plan:    .claude/plan-<name>.md
-
-Next steps:
-  1. Add screenshots to PR (if UI changes)
-  2. Request review
-  3. Address review feedback
-```
-
-**Phase Output**: Write PR details (URL, summary, reviewers) to `.workflows/<name>/08-pr.md`
+**Output**: `.workflows/<name>/08-pr.md`
 
 ---
 
-## Error Handling Summary
+## Error Handling
 
 | Phase | Error | Resolution |
 |---|---|---|
@@ -586,8 +267,8 @@ Next steps:
 | BRAINSTORM | No similar patterns found | Use generic architecture approach |
 | PLAN | Plan too large (>10 phases) | Split into multiple features |
 | BRANCH | Merge conflicts | Rebase on dev branch, resolve conflicts |
-| IMPLEMENT | Compilation fails 3+ times | Trigger REPLAN |
+| IMPLEMENT | Build fails 3+ times | Trigger REPLAN |
 | IMPLEMENT | Plan step is impossible | Trigger REPLAN |
 | TEST | Tests fail | Fix if feature-related, report if pre-existing |
-| PR | gh CLI not authenticated | Guide user through `gh auth login` |
-
+| PR | `gh` CLI not authenticated | Guide user through `gh auth login` |
+| PR | Quality gate violations found | Fix violations before creating PR |

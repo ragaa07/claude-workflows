@@ -276,7 +276,14 @@ function cmdInit(args) {
   console.log("Installing review checklists...");
   const reviewLabel = getReviewLabel(type);
   const reviewsSrc = path.join(PKG_ROOT, "core", "reviews");
-  if (reviewLabel && fs.existsSync(reviewsSrc)) {
+  if (fs.existsSync(reviewsSrc)) {
+    // Always copy general checklist (quality gate requires it)
+    const generalSrc = path.join(reviewsSrc, "general-checklist.md");
+    if (fs.existsSync(generalSrc)) {
+      fs.copyFileSync(generalSrc, path.join(root, ".claude/reviews", "general-checklist.md"));
+      console.log("  Copied review checklist: general-checklist.md");
+    }
+    // Copy language-specific checklist
     if (reviewLabel === "all") {
       for (const f of fs.readdirSync(reviewsSrc).filter((f) => f.endsWith(".md"))) {
         fs.copyFileSync(
@@ -285,13 +292,11 @@ function cmdInit(args) {
         );
       }
       console.log("  Copied all review checklists");
-    } else {
+    } else if (reviewLabel) {
       const src = path.join(reviewsSrc, `${reviewLabel}.md`);
       if (fs.existsSync(src)) {
         fs.copyFileSync(src, path.join(root, ".claude/reviews", `${reviewLabel}.md`));
         console.log(`  Copied review checklist: ${reviewLabel}.md`);
-      } else {
-        console.log(`  No review checklist found for: ${reviewLabel}`);
       }
     }
   }
@@ -390,44 +395,15 @@ function updateClaudeMd(root, team) {
   const block = `${MARKER_START}
 ## Workflows
 
-This project uses [claude-workflows](https://github.com/ragaa07/claude-workflows) for structured development.
+This project uses [claude-workflows](https://github.com/ragaa07/claude-workflows)${teamLine}.
 
-### Session Start — ALWAYS DO THIS
-At the start of every session:
-1. Check \`.workflows/current-state.md\` — if it exists, report the active workflow and current phase to the user. Offer to resume, restart, or abandon.
-2. Check \`.workflows/paused-*.md\` — if paused workflows exist, mention them.
-3. Read \`tasks/todo.md\` — check for in-progress items.
-4. Read \`tasks/lessons.md\` — apply relevant lessons.
+**Session start**: Check \`.workflows/current-state.md\` for active workflows. Check \`.workflows/paused-*.md\` for paused ones. Read \`tasks/todo.md\` and \`tasks/lessons.md\`.
 
-### Workflow State
-- Active workflow state is tracked in \`.workflows/current-state.md\`
-- Update this file at EVERY phase transition (phase name, status, timestamp)
-- When pausing: rename to \`.workflows/paused-<name>.md\`
-- When resuming: rename back to \`.workflows/current-state.md\`
-- When done: move to \`.workflows/history/\`
+**Commands**: \`/start\` (begin workflow), \`/resume\` (continue paused). All skills auto-discovered from \`.claude/skills/\`.
 
-### Quick Start
-- \`/start\` — **Entry point**: shows all workflows, lets you pick one
-- \`/resume\` — Resume a paused or interrupted workflow
+**Config**: \`.claude/workflows.yml\` | **Rules**: \`.claude/rules/\` | **Reviews**: \`.claude/reviews/\` | **State**: \`.workflows/\`
 
-### Available Skills
-All workflow skills are auto-discovered from \`.claude/skills/\`. Key workflows:
-- \`/new-feature\` — Full feature workflow: spec, brainstorm, plan, implement, test, PR
-- \`/extend-feature\` — Extend an existing feature
-- \`/hotfix\` — Quick production fix
-- \`/refactor\` — Refactor existing code
-- \`/release\` — Create a release
-- \`/review\` — Code review workflow
-- \`/brainstorm\` — Brainstorm solutions
-- \`/test\` — Generate tests
-- \`/resume\` — Resume a paused or interrupted workflow
-
-### Configuration
-- Workflow config: \`.claude/workflows.yml\`
-- Skills${teamLine}: \`.claude/skills/\`
-- Language rules: \`.claude/rules/\`
-- Review checklists: \`.claude/reviews/\`
-- Workflow state: \`.workflows/\`
+**Orchestration**: Read \`.claude/skills/_orchestration/RULES.md\` when executing any workflow.
 ${MARKER_END}`;
 
   if (fs.existsSync(claudeMdPath)) {

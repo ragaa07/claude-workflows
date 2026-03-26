@@ -22,14 +22,10 @@ Create a branch from the configured pattern in `.claude/workflows.yml`.
 
 1. Read `git.branches` from `.claude/workflows.yml`
 2. Validate `<type>` is one of: `feature`, `bugfix`, `hotfix`, `release`
-3. Resolve the pattern — replace `{name}` or `{version}` with `<name>`:
-   - `feature/{name}`, `bugfix/{name}`, `hotfix/{name}`, `release/v{version}`
-4. **Protected branch check**: If the current branch is in `git.protected`, warn before branching from it
-5. Ensure working tree is clean, pull latest from the base branch
-6. Create and checkout the new branch:
-   ```bash
-   git checkout -b <resolved-branch-name>
-   ```
+3. Resolve pattern — replace `{name}` or `{version}` with `<name>`
+4. **Protected branch check**: If current branch is in `git.protected`, warn before branching from it
+5. Ensure working tree is clean, pull latest from base branch
+6. Create and checkout: `git checkout -b <resolved-branch-name>`
 7. Print the created branch name
 
 **Error**: If `<type>` is not recognized, list valid types from config and abort.
@@ -43,18 +39,14 @@ Commit staged changes using the configured commit format.
 1. Read `git.commits` from `.claude/workflows.yml`
 2. **Format validation** — if `format: "conventional"`, enforce:
    - Message must match: `<type>(<scope>): <description>` or `<type>: <description>`
-   - `<type>` must be one of the configured `types` list (e.g., `feat`, `fix`, `refactor`, etc.)
-   - If the message does not match, reject with an example of the correct format
-3. **Protected branch check**: If current branch is in `git.protected`, abort with a warning — never commit directly to protected branches
-4. Stage files if none are staged (prompt user to confirm which files)
-5. Create the commit:
-   ```bash
-   git add <specific-files>
-   git commit -m "<validated-message>"
-   ```
-6. Print the commit hash and summary
+   - `<type>` must be in the configured `types` list
+   - Reject non-matching messages with a correct-format example
+3. **Protected branch check**: If current branch is in `git.protected`, abort — never commit directly to protected branches
+4. Stage files if none staged (prompt user to confirm which files)
+5. Create the commit: `git add <files> && git commit -m "<validated-message>"`
+6. Print commit hash and summary
 
-**Error**: If no changes are staged and no untracked files exist, abort with "nothing to commit".
+**Error**: If no changes staged and no untracked files, abort with "nothing to commit".
 
 ---
 
@@ -63,21 +55,14 @@ Commit staged changes using the configured commit format.
 Create a pull request with configured settings.
 
 1. Read `git.pr` from `.claude/workflows.yml`
-2. Determine base branch:
-   - Use `--base <branch>` if provided
-   - Otherwise use `git.pr.base_branch` from config (default: `develop`)
-3. **Protected branch check**: Warn if PR target is `main`/`master` and source is not a `release/` or `hotfix/` branch
-4. Push current branch to remote:
-   ```bash
-   git push -u origin <current-branch>
-   ```
-5. Generate PR title from branch name (e.g., `feature/add-login` -> `feat: add login`)
-6. Generate PR body from commit log:
-   ```bash
-   git log <base-branch>..HEAD --oneline --no-merges
-   ```
-7. Use the PR body template from `git.pr.template` in `.claude/workflows.yml` if configured.
-8. Create the PR:
+2. Determine base branch: use `--base` if provided, else `git.pr.base_branch` (default: `develop`)
+3. **Protected branch check**: Warn if PR target is `main`/`master` and source is not `release/` or `hotfix/`
+4. Read `.claude/reviews/` directory if it exists — include quality verification findings in PR body
+5. Push current branch: `git push -u origin <current-branch>`
+6. Generate PR title from branch name (e.g., `feature/add-login` -> `feat: add login`)
+7. Generate PR body from commit log: `git log <base-branch>..HEAD --oneline --no-merges`
+8. Use `git.pr.template` from config if configured
+9. Create the PR:
    ```bash
    gh pr create \
      --base <base-branch> \
@@ -87,8 +72,8 @@ Create a pull request with configured settings.
      --reviewer <git.pr.reviewers> \
      --label <git.pr.labels>
    ```
-   - Omit `--reviewer` and `--label` flags if their config arrays are empty
-8. Print the PR URL
+   Omit `--reviewer` and `--label` if their config arrays are empty.
+10. Print the PR URL
 
 ---
 
@@ -99,28 +84,21 @@ Merge a branch using the configured strategy.
 1. Read `git.merge` from `.claude/workflows.yml`
 2. **Protected branch check**: If merging INTO a protected branch, require explicit user confirmation
 3. Verify the branch exists and has an open PR (if applicable)
-4. Apply the configured merge strategy:
+4. Apply configured merge strategy:
    - `squash`: `gh pr merge <branch> --squash`
    - `merge`: `gh pr merge <branch> --merge`
    - `rebase`: `gh pr merge <branch> --rebase`
-5. If `git.merge.delete_branch` is `true`:
-   ```bash
-   gh pr merge <branch> --<strategy> --delete-branch
-   ```
-6. Pull latest after merge:
-   ```bash
-   git checkout <base-branch>
-   git pull origin <base-branch>
-   ```
-7. Print merge result and confirm branch deletion status
+5. If `git.merge.delete_branch` is `true`, add `--delete-branch` flag
+6. Pull latest after merge: `git checkout <base-branch> && git pull origin <base-branch>`
+7. Print merge result and branch deletion status
 
-**Error**: If merge conflicts exist, abort and report the conflicting files.
+**Error**: If merge conflicts exist, abort and report conflicting files.
 
 ---
 
 ## Configuration Reference
 
-All settings are read from `.claude/workflows.yml` under the `git` key:
+All settings read from `.claude/workflows.yml` under the `git` key:
 
 | Key | Default | Purpose |
 |-----|---------|---------|
@@ -138,5 +116,5 @@ All settings are read from `.claude/workflows.yml` under the `git` key:
 ## Notes
 
 - Never force-push to protected branches.
-- All subcommands read config fresh each invocation — config changes take effect immediately.
+- All subcommands read config fresh each invocation — changes take effect immediately.
 - If `.claude/workflows.yml` is missing, use the defaults shown above.

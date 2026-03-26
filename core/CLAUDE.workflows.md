@@ -4,25 +4,23 @@ Structured workflow system for feature development, refactoring, hotfixes, and r
 
 ## Session Start
 
-1. Check `.workflows/current-state.md` -- if exists, report the active workflow and offer to resume
-2. Check `.workflows/paused-*.md` -- mention any paused workflows
-3. Read `tasks/todo.md` -- check for in-progress items
-4. Read `tasks/lessons.md` -- apply relevant lessons to current work
+1. Check `.workflows/current-state.md` — if exists, report active workflow and offer to resume
+2. Check `.workflows/paused-*.md` — mention any paused workflows
+3. Read `tasks/todo.md` — check for in-progress items
+4. Read `tasks/lessons.md` — apply relevant lessons
 
-## Quick Start
+## Commands
 
-| Skill | Description |
-|-------|-------------|
-| `/start` | **Entry point** — shows all workflows, manages state, launches the selected one |
-| `/resume` | Resume a paused or interrupted workflow with full context from phase outputs |
+| Command | Description |
+|---------|-------------|
+| `/start` | **Entry point** — shows all workflows, manages state, launches selected one |
+| `/resume` | Resume a paused or interrupted workflow |
 
 ## Available Workflows
 
-All skills are auto-discovered from `.claude/skills/`:
-
 | Skill | Description |
 |-------|-------------|
-| `/new-feature` | Full feature workflow: spec, brainstorm, plan, implement, test, PR |
+| `/new-feature` | Full feature: spec, brainstorm, plan, implement, test, PR |
 | `/extend-feature` | Extend existing feature with backward compatibility |
 | `/hotfix` | Emergency production fix |
 | `/refactor` | Safely restructure code |
@@ -40,25 +38,24 @@ All skills are auto-discovered from `.claude/skills/`:
 |---------|------|
 | Workflow config | `.claude/workflows.yml` |
 | Skills | `.claude/skills/<name>/SKILL.md` |
+| Orchestration rules | `.claude/skills/_orchestration/RULES.md` |
 | Language rules | `.claude/rules/` |
 | Review checklists | `.claude/reviews/` |
 | Active workflow state | `.workflows/current-state.md` |
 | Paused workflows | `.workflows/paused-<name>.md` |
 | Phase output documents | `.workflows/<feature>/01-phase.md, 02-phase.md, ...` |
 | Workflow history | `.workflows/history/` |
-| Task tracking | `tasks/todo.md` |
-| Lessons learned | `tasks/lessons.md` |
 
-## Configuration
+## Orchestration
 
-All workflow config lives in `.claude/workflows.yml`:
-
-- `git.branches` -- branch naming patterns
-- `git.commits.format` -- commit message style
-- `git.pr` -- PR creation settings
-- `workflows.<type>.require_brainstorm` -- skip brainstorm if false
-- `workflows.<type>.require_tests` -- skip tests if false
-- `workflows.<type>.require_spec` -- skip spec if false
+When executing any workflow, read and follow `.claude/skills/_orchestration/RULES.md`. This covers:
+- Phase output documents (Rule 1)
+- State updates (Rule 2)
+- Phase skipping (Rule 3)
+- Quality gate with rules and reviews (Rule 4)
+- Build/test command detection (Rule 5)
+- Workflow chaining (Rule 6)
+- Completion, pausing, error recovery (Rules 7-9)
 
 ## Lessons & Corrections
 

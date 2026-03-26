@@ -5,19 +5,16 @@ description: Captures successful workflow patterns, stores them with confidence 
 
 # Pattern Learning
 
-## Command
-
 ```
 /workflow:learn capture
 /workflow:learn list
 /workflow:learn apply <topic>
 ```
 
-Extracts reusable patterns from completed workflows and stores them as JSON in `.workflows/learned/`. Patterns gain confidence through reuse and are surfaced during future brainstorming.
+Extracts reusable patterns from completed workflows, stores as markdown in `.workflows/learned/`. Patterns gain confidence through reuse.
 
-**Prerequisite**: Check that `learning.enabled` is `true` in `.claude/workflows.yml`. If disabled, inform the user and exit.
-
-**Config**: `learning.enabled`, `learning.min_confidence` (default 0.5), `learning.storage` (default `.workflows/learned`).
+**Prerequisite**: `learning.enabled` must be `true` in `.claude/workflows.yml`. If disabled, inform user and exit.
+**Config**: `learning.min_confidence` (default 0.5), `learning.storage` (default `.workflows/learned`).
 
 ---
 
@@ -25,19 +22,20 @@ Extracts reusable patterns from completed workflows and stores them as JSON in `
 
 1. Find the most recent file in `.workflows/history/` and read its phase output documents.
 2. Extract patterns: architecture decisions (BRAINSTORM/PLAN), implementation patterns (IMPLEMENT), testing strategies (TEST), problem resolutions (any phase).
-3. Store each as JSON in `.workflows/learned/`:
+3. Store each as a markdown file in `.workflows/learned/<pattern-name>.md`:
 
-```json
-{
-  "id": "<uuid>", "name": "<short name>",
-  "category": "<architecture|implementation|testing|resolution>",
-  "description": "<what and when to use>",
-  "context": "<project type, language, framework>",
-  "source_workflow": "<history filename>",
-  "captured_at": "<ISO-8601>",
-  "confidence": 0.5, "times_reused": 0,
-  "tags": ["<tag1>", "<tag2>"]
-}
+```markdown
+# Pattern: <name>
+Category: <architecture|implementation|testing|resolution>
+Confidence: 0.5
+Reused: 0 times
+Tags: <tag1>, <tag2>
+
+## Description
+<what and when to use>
+
+## Source
+<history filename>
 ```
 
 Print: `Captured <N> patterns from <workflow-name>.`
@@ -46,29 +44,28 @@ Print: `Captured <N> patterns from <workflow-name>.`
 
 ## `list` — Show All Patterns
 
+Read all `.md` files in `.workflows/learned/`. Sort by confidence descending:
+
 ```
 Learned Patterns (<N> total):
   [0.90] * event-driven-state — Use event-driven state for complex forms
-         Category: architecture | Reused: 4 times | Tags: state, forms
+         Category: architecture | Reused: 4 | Tags: state, forms
   [0.50]   snapshot-testing — Compose snapshot tests for UI regression
-         Category: testing | Reused: 0 times | Tags: compose, ui
-  * = high confidence (>= 0.8)
+  * = high confidence (>= 0.8). Below min_confidence shown dimmed.
 ```
-
-Sort by confidence descending. Patterns below `min_confidence` shown dimmed.
 
 ---
 
 ## `apply <topic>` — Find Relevant Patterns
 
 1. Load patterns from `.workflows/learned/`. Match by tag, name/description keywords, category.
-2. Present top 5 ranked by relevance then confidence:
+2. Present top 5 by relevance then confidence:
 
 ```
 Patterns relevant to "<topic>":
   1. [0.90] event-driven-state — Use event-driven state for complex forms
   2. [0.65] retry-with-backoff — Exponential backoff for flaky API calls
-Apply a pattern? (pick a number or skip)
+Apply a pattern? (pick number or skip)
 ```
 
-3. If selected, increment `times_reused`, update confidence: `min(1.0, base + 0.1 * times_reused)`.
+3. If selected, increment `Reused` in the file, update confidence: `min(1.0, base + 0.1 * times_reused)`.

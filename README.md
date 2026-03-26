@@ -1,11 +1,11 @@
 # claude-workflows
 
-[![Version](https://img.shields.io/badge/version-1.6.0-blue.svg)](VERSION)
+[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](VERSION)
 [![npm](https://img.shields.io/npm/v/claude-dev-workflows)](https://www.npmjs.com/package/claude-dev-workflows)
 
-**Portable, spec-driven development workflows for Claude Code AI agents.**
+**Portable, language-agnostic development workflows for Claude Code AI agents.**
 
-claude-workflows provides 18 structured workflow skills that guide AI agents through software development tasks with consistent quality, configurable git flow, and multi-session context persistence. Teams can inject their own domain-specific skills, rules, and review checklists.
+claude-workflows provides 18 structured workflow skills that guide AI agents through software development tasks with consistent quality, configurable git flow, and multi-session context persistence. Skills adapt automatically to your project's language via `workflows.yml`. Teams can inject their own domain-specific skills, rules, and review checklists.
 
 ---
 
@@ -62,7 +62,7 @@ npx claude-dev-workflows init --type android --team android --with-guards
 ```bash
 git clone https://github.com/ragaa07/claude-workflows.git /tmp/claude-workflows
 cd /path/to/your/project
-bash /tmp/claude-workflows/install.sh --type android --team android
+node /tmp/claude-workflows/bin/cli.js init --type android --team android
 ```
 
 ### What Gets Installed
@@ -70,6 +70,7 @@ bash /tmp/claude-workflows/install.sh --type android --team android
 | Component | Path | Source |
 |-----------|------|--------|
 | Core skills (18) | `.claude/skills/` | Always installed |
+| Orchestration rules | `.claude/skills/_orchestration/` | Always installed |
 | Team skills | `.claude/skills/` | Merged with `--team` |
 | Language rules | `.claude/rules/` | Based on `--type` |
 | Review checklists | `.claude/reviews/` | Based on `--type` + `--team` |
@@ -82,13 +83,13 @@ bash /tmp/claude-workflows/install.sh --type android --team android
 
 ```bash
 cat .claude/.workflows-version
-# Should print: 1.6.0
+# Should print: 2.0.0
 ```
 
 Then start a Claude Code session and run:
 
 ```
-/workflow:status
+/workflow:start
 ```
 
 ---
@@ -106,13 +107,12 @@ Then start a Claude Code session and run:
 | `/workflow:test` | Generate tests with coverage analysis and gap reporting |
 | `/workflow:brainstorm` | Standalone brainstorming with 5 structured techniques |
 | `/workflow:new-project` | Bootstrap a project: detect stack, generate config, scaffold files |
-| `/workflow:status` | Show active workflow state |
 
 ### Session Management
 
 | Command | Description |
 |---------|-------------|
-| `/workflow:start` | Start a new workflow or show active workflow status |
+| `/workflow:start` | Start a new workflow, show active workflow status, or manage sessions |
 | `/workflow:resume` | Resume a paused or interrupted workflow |
 
 The `/start` and `/resume` skills handle all session management internally, including pausing, abandoning, and viewing history of workflows.
@@ -130,7 +130,7 @@ All workflow configuration lives in `.claude/workflows.yml`. Edit this file to m
 project:
   name: "My Project"
   type: "android"          # android | react | python | generic
-  language: "kotlin"
+  language: "kotlin"       # Skills adapt to this automatically
 
 # Git conventions
 git:
@@ -153,6 +153,11 @@ workflows:
   hotfix:
     base_branch: "main"
     require_tests: false
+
+# Quality gate
+quality:
+  rules_dir: ".claude/rules"
+  reviews_dir: ".claude/reviews"
 
 # Brainstorming
 brainstorm:
@@ -231,6 +236,56 @@ Branches listed in `git.protected` trigger a warning before direct commits. Work
 
 ---
 
+## Quality Gate
+
+Rules and review checklists work together as a quality gate throughout the workflow lifecycle.
+
+### Rules (`.claude/rules/`)
+
+Language-specific rules are loaded during the IMPLEMENT phase. They provide guardrails that the AI agent follows while writing code.
+
+```markdown
+## Architecture
+- DO use MVVM + Clean Architecture
+- DON'T put business logic in ViewModel -- use UseCases
+
+## Error Handling
+- DO wrap IO operations in try/catch
+- DON'T swallow exceptions silently
+```
+
+Rules are sourced from two places:
+1. **Language rules** -- installed based on `--type` (e.g., `kotlin.md`, `react.md`)
+2. **Team rules** -- installed based on `--team` (e.g., `team-conventions.md`)
+
+### Review Checklists (`.claude/reviews/`)
+
+Review checklists are applied as a pre-PR quality gate. Before creating a pull request, the workflow runs through the applicable checklist to catch issues early.
+
+```markdown
+| Check | Severity | What to Look For |
+|-------|----------|------------------|
+| Architecture compliance | High | No layer violations |
+| Error handling | High | All IO operations handle failures |
+| Naming conventions | Medium | Follows team standards |
+```
+
+Checklists are sourced from:
+1. **Language checklists** -- installed based on `--type` (e.g., `kotlin-checklist.md`)
+2. **Team checklists** -- installed based on `--team`
+
+### How They Work Together
+
+```
+IMPLEMENT phase --> Rules loaded as constraints
+    |
+TEST phase ------> Tests verify behavior
+    |
+PR phase --------> Review checklist applied as final gate
+```
+
+---
+
 ## Brainstorming
 
 The brainstorm skill supports 5 structured techniques and 3 depth levels. It can run standalone (`/workflow:brainstorm <topic>`) or as part of a workflow's BRAINSTORM phase.
@@ -283,13 +338,21 @@ Tracks the active workflow's current phase, timestamps, and history. Updated at 
 | SPEC       | COMPLETED | 2025-03-20T10:15:00Z | Spec approved            |
 | BRAINSTORM | COMPLETED | 2025-03-20T11:00:00Z | Option B selected        |
 | PLAN       | COMPLETED | 2025-03-20T11:30:00Z | 6-phase plan approved    |
-| BRANCH     | COMPLETED | 2025-03-20T11:32:00Z | alpha-feature/Payment_Flow |
+| BRANCH     | COMPLETED | 2025-03-20T11:32:00Z | feature/payment-flow     |
 | IMPLEMENT  | ACTIVE    | 2025-03-20T11:35:00Z | Phase C in progress      |
 ```
 
-### 2. Spec and Decision Documents (`.workflows/specs/`)
+### 2. Phase Output Documents (`.workflows/<feature>/`)
 
-Feature specifications and brainstorm decision documents persist between sessions, providing full context for any resumed workflow.
+Each completed phase writes a numbered output document:
+
+```
+.workflows/payment-flow/01-spec.md
+.workflows/payment-flow/02-brainstorm.md
+.workflows/payment-flow/03-plan.md
+```
+
+These documents persist between sessions, providing full context for any resumed workflow.
 
 ### 3. Implementation Plan (`.claude/plan-<name>.md`)
 
@@ -331,10 +394,10 @@ Tracks in-progress work with checkable items. Workflows automatically add and up
 
 ### `tasks/lessons.md`
 
-Captures corrections and patterns discovered during development. After any user correction or unexpected failure, workflows append an entry:
+Captures corrections and patterns discovered during development. The `learn` skill writes entries in markdown format:
 
 ```markdown
-## 2025-03-20 — Build variant ambiguity
+## 2025-03-20 -- Build variant ambiguity
 
 **What went wrong**: Used `compileDebugKotlin` which is ambiguous with multiple flavors.
 **Correct pattern**: Use `compileForSaleDebugKotlin` for the ForSale flavor.
@@ -367,26 +430,29 @@ Workflows use Claude Code sub-agents to keep the main context window clean and f
 
 ## Skills & Customization
 
-Skills are organized in three tiers. Higher tiers override lower ones.
+Skills are language-agnostic and organized in three tiers. Higher tiers override lower ones.
 
 ### Directory Structure
 
 ```
 .claude/
   skills/
-    new-feature/SKILL.md      # Core skill (auto-discovered as /new-feature)
-    hotfix/SKILL.md            # Core skill
-    brainstorm/SKILL.md        # Core skill
-    example-skill/SKILL.md     # Team skill (same level)
-    my-custom-skill/SKILL.md   # Project-specific skill (same level)
+    _orchestration/RULES.md      # Shared orchestration rules (all workflows)
+    new-feature/SKILL.md         # Core skill (auto-discovered as /new-feature)
+    hotfix/SKILL.md              # Core skill
+    brainstorm/SKILL.md          # Core skill
+    example-skill/SKILL.md       # Team skill (same level)
+    my-custom-skill/SKILL.md     # Project-specific skill (same level)
     ...
 ```
 
 All skills are **auto-discovered** by Claude Code as slash commands. No registration needed.
 
+Skills read `project.language` from `workflows.yml` and adapt their instructions accordingly -- no separate language-specific skill variants are needed.
+
 ### Install-Time Priority
 
-The installer copies skills in order — last write wins:
+The installer copies skills in order -- last write wins:
 
 1. **Core skills** are copied first
 2. **Team skills** overwrite core if same name (via `--team`)
@@ -400,7 +466,7 @@ To override a core skill, the team defines a skill with the same name in `teams/
 
 ## Team Setup
 
-Teams can define their own domain-specific skills, architecture rules, and review checklists. The framework provides templates — teams write the content.
+Teams can define their own domain-specific skills, architecture rules, and review checklists. The framework provides templates -- teams write the content.
 
 ### Creating a New Team
 
@@ -446,7 +512,7 @@ reviews:
   - team-review-checklist.md
 ```
 
-**2. Create your skills** — copy the example skeleton and customize:
+**2. Create your skills** -- copy the example skeleton and customize:
 
 ```bash
 cp -r teams/android/skills/example-skill teams/android/skills/integrate-analytics
@@ -487,7 +553,7 @@ What to do when things go wrong...
 ```markdown
 ## Architecture
 - DO use MVVM + Clean Architecture
-- DON'T put business logic in ViewModel — use UseCases
+- DON'T put business logic in ViewModel -- use UseCases
 
 ## Naming
 - DO use PascalCase for classes, camelCase for functions
@@ -504,7 +570,7 @@ What to do when things go wrong...
 | Naming conventions | Medium | Follows team standards |
 ```
 
-**5. Commit to the shared repo** — now every developer on the team gets these skills:
+**5. Commit to the shared repo** -- now every developer on the team gets these skills:
 
 ```bash
 cd claude-workflows
@@ -523,6 +589,7 @@ npx claude-dev-workflows init --type android --team android
 | Source | `--type` only | `--type` + `--team` |
 |--------|---------------|---------------------|
 | Core skills (18) | Yes | Yes |
+| Orchestration rules | Yes | Yes |
 | Language rules | Yes | Yes |
 | Language review checklist | Yes | Yes |
 | Team skills | No | Yes |
@@ -594,7 +661,7 @@ npx claude-dev-workflows@latest upgrade --type android --team android --with-gua
 Pin to a specific version:
 
 ```bash
-npx claude-dev-workflows@1.2.0 upgrade
+npx claude-dev-workflows@1.6.0 upgrade
 ```
 
 The upgrade:
@@ -620,8 +687,9 @@ claude-workflows/
     defaults.yml              # Default configuration template
   core/
     CLAUDE.workflows.md       # Main workflow instructions (appended to CLAUDE.md)
-    skills/                   # 18 core workflow skills
-      start/                  # Start new workflows, show status
+    skills/                   # 18 core workflow skills + orchestration
+      _orchestration/         # Shared rules applied to every workflow execution
+      start/                  # Start new workflows, manage sessions
       resume/                 # Resume paused or interrupted workflows
       git-flow/               # Branch, commit, PR, and merge operations
       new-project/            # Project bootstrapping and detection
@@ -635,37 +703,45 @@ claude-workflows/
       brainstorm/             # 5 brainstorming techniques
       ci-fix/                 # CI pipeline fixes
       migrate/                # Project migrations
-      learn/                  # Capture patterns from workflows
+      learn/                  # Capture patterns in markdown
       dry-run/                # Preview workflows
       metrics/                # Workflow metrics
       guards/                 # Safety guard enforcement
     rules/                    # Language-specific rules (7 files)
-    reviews/                  # Language-specific review checklists (6 files)
-    templates/                # Spec, plan, state, changelog templates
+    reviews/                  # Language-specific review checklists (8 files)
+    templates/                # spec, plan, state, changelog, guards templates
   teams/                      # Team-specific content
     _template/                # Skeleton for creating new teams
       manifest.yml
       skills/example-skill/SKILL.md
       rules/team-conventions.md
       reviews/team-review-checklist.md
-  install.sh                  # Installer: --type, --team, --with-guards
-  upgrade.sh                  # Upgrader: --type, --team, --with-guards
   VERSION                     # Current version
 ```
 
 ### State Machine
 
-All workflows follow a phase-based state machine. Phases must proceed sequentially -- no skipping unless the configuration explicitly allows it.
+All workflows follow a phase-based state machine. Phases proceed sequentially unless configuration explicitly allows skipping.
 
 ```
-IDLE -> SPEC -> BRAINSTORM -> PLAN -> BRANCH -> IMPLEMENT -> TEST -> PR -> DONE
-              (skippable)                                  (skippable)
+INIT -> SPEC -> BRAINSTORM -> PLAN -> BRANCH -> IMPLEMENT -> TEST -> PR -> DONE
+               (skippable)                                  (skippable)
 ```
 
-Phases can be skipped based on workflow config:
+Phase skipping based on workflow config:
 - `require_brainstorm: false` skips BRAINSTORM
 - `require_tests: false` skips TEST
 - `require_spec: false` skips SPEC
+
+### Orchestration Rules
+
+The `_orchestration/RULES.md` file contains rules that apply to every workflow execution. These include:
+- Phase output document format and naming
+- State file update protocol
+- Sub-agent usage constraints
+- Error handling procedures
+
+Previously these rules were duplicated in `start` and `resume` skills. They are now centralized in a single location.
 
 ### Skill Resolution Priority
 
@@ -684,16 +760,16 @@ When a `/workflow:<command>` is invoked:
 1. Create a directory under `teams/<your-team>/skills/<skill-name>/`
 2. Write `SKILL.md` using the template at `teams/_template/skills/example-skill/SKILL.md`
 3. Update your team's `manifest.yml` to list the new skill
-4. Test by installing with `bash install.sh --type <type> --team <your-team>`
+4. Test by running `npx claude-dev-workflows init --type <type> --team <your-team>` on a sample project
 
 ### Adding a New Core Workflow
 
 1. Create a directory under `core/skills/<workflow-name>/`
 2. Write `SKILL.md` with YAML frontmatter (`name`, `description`) and full phase instructions
-3. Follow the existing pattern: phases with numbered steps, decision points, error handling table
-4. Add the workflow to `core/CLAUDE.workflows.md` command table
-5. Add default config entries to `config/defaults.yml`
-6. Create an example entry if the workflow needs project-specific config
+3. Make the skill language-agnostic -- reference `project.language` from config rather than hardcoding language details
+4. Follow the existing pattern: phases with numbered steps, decision points, error handling table
+5. Add the workflow to `core/CLAUDE.workflows.md` command table
+6. Add default config entries to `config/defaults.yml`
 
 ### Modifying an Existing Workflow
 
@@ -701,6 +777,12 @@ When a `/workflow:<command>` is invoked:
 2. Update `config/defaults.yml` if new config keys are added
 3. Bump the version in `VERSION` if the change is user-facing
 4. Test by running the workflow on a sample project
+
+### Modifying Orchestration Rules
+
+1. Edit `core/skills/_orchestration/RULES.md`
+2. Changes apply to all workflows -- test across multiple workflow types
+3. Keep rules concise -- every token counts in the context window
 
 ### Adding a Brainstorming Technique
 

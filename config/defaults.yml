@@ -156,8 +156,10 @@ learning:
   storage: ".workflows/learned"        # Where learned patterns are stored
 
 # ============================================================
-# Spec Templates
+# Quality Gate
 # ============================================================
-specs:
-  default_template: "auto"             # auto | ui | api | background | full
-  # auto: Ask user during GATHER phase which template to use
+quality:
+  self_review: true                    # Run review checklists before PR creation
+  review_checklists:                   # Loaded in order; all applicable checks run
+    - "general-checklist.md"           # Always loaded
+    # Language-specific checklist auto-detected from project.language
