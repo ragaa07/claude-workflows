@@ -5,7 +5,7 @@ description: Emergency hotfix — diagnose, minimal fix, regression test, PR, ch
 
 # Hotfix Workflow
 
-`/workflow:hotfix <description> [--crashlytics <issue-id>] [--log <path>] [--branch <production-branch>]`
+`/hotfix <description> [--crashlytics <issue-id>] [--log <path>] [--branch <production-branch>]`
 
 Emergency fix for production issues. Optimized for **SPEED**. No brainstorming. No spec. Fix the crash, nothing else.
 

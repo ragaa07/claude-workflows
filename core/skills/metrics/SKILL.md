@@ -6,15 +6,15 @@ description: Tracks and reports workflow execution metrics — completion rates,
 # Workflow Metrics
 
 ```
-/workflow:metrics
-/workflow:metrics <workflow-name>
+/metrics
+/metrics <workflow-name>
 ```
 
 Analyzes workflow history files in `.workflows/history/` to produce execution metrics.
 
 ---
 
-## `/workflow:metrics` — Summary Dashboard
+## `/metrics` — Summary Dashboard
 
 Read all files in `.workflows/history/`. Extract workflow type, feature, timestamps, phase history, and outcome. Display:
 
@@ -37,7 +37,7 @@ Workflow Metrics Dashboard
 
 ---
 
-## `/workflow:metrics <workflow-name>` — Per-Workflow Detail
+## `/metrics <workflow-name>` — Per-Workflow Detail
 
 Filter history to matching workflow type:
 

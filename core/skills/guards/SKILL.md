@@ -6,16 +6,16 @@ description: Safety guard enforcement — checks files against block patterns, p
 # Safety Guards
 
 ```
-/workflow:guards init
-/workflow:guards check [--staged] [--force]
-/workflow:guards report
+/guards init
+/guards check [--staged] [--force]
+/guards report
 ```
 
 Prevents dangerous operations and credential leaks by enforcing rules from `.claude/guards.yml`. Runs as a pre-commit/pre-push check or manually.
 
 ---
 
-## `init`
+## `/guards init`
 
 1. If `.claude/guards.yml` exists, print: `Guards config already exists at .claude/guards.yml`
 2. Otherwise, copy `.claude/templates/guards.yml.tmpl` to `.claude/guards.yml`.
@@ -25,7 +25,7 @@ Prevents dangerous operations and credential leaks by enforcing rules from `.cla
 
 ---
 
-## `check [--staged] [--force]`
+## `/guards check [--staged] [--force]`
 
 **Step 1 -- Load Rules**: Read `.claude/guards.yml` (run `init` if missing). Extract `block_patterns`, `warn_patterns`, `protected_paths`, `no_commit_patterns`.
 
@@ -56,7 +56,7 @@ If `--force` passed, log override to `.workflows/history/guard-overrides.log` an
 
 ---
 
-## `report`
+## `/guards report`
 
 ```
 Guards Status:

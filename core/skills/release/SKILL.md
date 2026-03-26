@@ -7,7 +7,7 @@ description: Automate versioned releases with changelog, version bump, release b
 
 ## Command
 
-`/workflow:release <version>`
+`/release <version>`
 
 ## Phases
 

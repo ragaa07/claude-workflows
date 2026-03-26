@@ -6,7 +6,7 @@ description: Review a GitHub pull request by fetching changes, categorizing by a
 # Code Review Workflow
 
 ```
-/workflow:review <pr-number> [--strict] [--focus <area>]
+/review <pr-number> [--strict] [--focus <area>]
 ```
 
 - `--strict`: Treat warnings as errors

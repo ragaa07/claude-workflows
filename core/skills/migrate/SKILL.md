@@ -7,7 +7,7 @@ description: Plan and execute incremental migrations for dependencies, APIs, arc
 
 ## Command
 
-`/workflow:migrate <type>`
+`/migrate <type>`
 
 Where `<type>` is one of: `dependency`, `api-version`, `architecture`, `database`
 

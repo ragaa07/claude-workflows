@@ -6,7 +6,7 @@ description: Generate comprehensive tests for a target class, file, module, or f
 # Test Workflow
 
 ```
-/workflow:test <target> [--coverage <pct>] [--type <unit|integration>]
+/test <target> [--coverage <pct>] [--type <unit|integration>]
 ```
 
 **Targets**: `class:Name`, `file:path/to/file`, `module:name`, `feature:name` | **Defaults**: coverage=90%, type=unit

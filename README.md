@@ -89,7 +89,7 @@ cat .claude/.workflows-version
 Then start a Claude Code session and run:
 
 ```
-/workflow:start
+/start
 ```
 
 ---
@@ -98,22 +98,22 @@ Then start a Claude Code session and run:
 
 | Command | Description |
 |---------|-------------|
-| `/workflow:new-feature` | Full feature workflow: spec, brainstorm, plan, implement, test, PR |
-| `/workflow:extend-feature` | Add capabilities to an existing feature with backward compatibility |
-| `/workflow:hotfix` | Emergency production fix: diagnose, fix, regression test, PR, cherry-pick |
-| `/workflow:refactor` | Safely restructure code with behavioral contracts and rollback plans |
-| `/workflow:release` | Versioned release: changelog, version bump, release branch, PR, tag |
-| `/workflow:review` | Systematic PR review: fetch, categorize, check, comment |
-| `/workflow:test` | Generate tests with coverage analysis and gap reporting |
-| `/workflow:brainstorm` | Standalone brainstorming with 5 structured techniques |
-| `/workflow:new-project` | Bootstrap a project: detect stack, generate config, scaffold files |
+| `/new-feature` | Full feature workflow: spec, brainstorm, plan, implement, test, PR |
+| `/extend-feature` | Add capabilities to an existing feature with backward compatibility |
+| `/hotfix` | Emergency production fix: diagnose, fix, regression test, PR, cherry-pick |
+| `/refactor` | Safely restructure code with behavioral contracts and rollback plans |
+| `/release` | Versioned release: changelog, version bump, release branch, PR, tag |
+| `/review` | Systematic PR review: fetch, categorize, check, comment |
+| `/test` | Generate tests with coverage analysis and gap reporting |
+| `/brainstorm` | Standalone brainstorming with 5 structured techniques |
+| `/new-project` | Bootstrap a project: detect stack, generate config, scaffold files |
 
 ### Session Management
 
 | Command | Description |
 |---------|-------------|
-| `/workflow:start` | Start a new workflow, show active workflow status, or manage sessions |
-| `/workflow:resume` | Resume a paused or interrupted workflow |
+| `/start` | Start a new workflow, show active workflow status, or manage sessions |
+| `/resume` | Resume a paused or interrupted workflow |
 
 The `/start` and `/resume` skills handle all session management internally, including pausing, abandoning, and viewing history of workflows.
 
@@ -288,7 +288,7 @@ PR phase --------> Review checklist applied as final gate
 
 ## Brainstorming
 
-The brainstorm skill supports 5 structured techniques and 3 depth levels. It can run standalone (`/workflow:brainstorm <topic>`) or as part of a workflow's BRAINSTORM phase.
+The brainstorm skill supports 5 structured techniques and 3 depth levels. It can run standalone (`/brainstorm <topic>`) or as part of a workflow's BRAINSTORM phase.
 
 ### Techniques
 
@@ -311,7 +311,7 @@ The brainstorm skill supports 5 structured techniques and 3 depth levels. It can
 Override depth on any invocation:
 
 ```
-/workflow:brainstorm --depth deep "authentication redesign"
+/brainstorm --depth deep "authentication redesign"
 ```
 
 ---
@@ -394,7 +394,7 @@ Tracks in-progress work with checkable items. Workflows automatically add and up
 
 ### `tasks/lessons.md`
 
-Captures corrections and patterns discovered during development. The `learn` skill writes entries in markdown format:
+Captures corrections and patterns discovered during development. The `/learn` skill writes entries in markdown format:
 
 ```markdown
 ## 2025-03-20 -- Build variant ambiguity
@@ -530,7 +530,7 @@ description: Add analytics event tracking following team conventions.
 # Skill Name
 
 ## Command
-/workflow:integrate-analytics <event-name>
+/integrate-analytics <event-name>
 
 ## Overview
 What this skill does and when to use it.
@@ -741,11 +741,11 @@ The `_orchestration/RULES.md` file contains rules that apply to every workflow e
 - Sub-agent usage constraints
 - Error handling procedures
 
-Previously these rules were duplicated in `start` and `resume` skills. They are now centralized in a single location.
+Previously these rules were duplicated in `/start` and `/resume` skills. They are now centralized in a single location.
 
 ### Skill Resolution Priority
 
-When a `/workflow:<command>` is invoked:
+When a `/<command>` is invoked:
 
 1. Check if it is an **alias** defined in `skills.aliases`
 2. Resolve to a **skill** (`.claude/skills/<name>/SKILL.md`)

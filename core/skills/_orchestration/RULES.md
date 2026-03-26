@@ -156,7 +156,7 @@ Store detected commands. Use them wherever `<build-command>` or `<test-command>`
 
 Read `chains` from `.claude/workflows.yml`. If a chain is defined for the current workflow + phase, invoke that skill after the phase completes.
 
-Example config: `chains.new-feature.TEST: "/workflow:test"` means after the TEST phase of new-feature, run the test skill.
+Example config: `chains.new-feature.TEST: "/test"` means after the TEST phase of new-feature, run the test skill.
 
 ## Rule 7: Workflow Completion
 

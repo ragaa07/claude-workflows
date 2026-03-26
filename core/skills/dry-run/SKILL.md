@@ -8,9 +8,9 @@ description: Preview what a workflow will do without executing any changes. Show
 Preview a workflow's execution plan without making any changes. Append `--dry-run` to any workflow command:
 
 ```
-/workflow:new-feature booking-cancellation --dry-run
-/workflow:hotfix --crashlytics ISSUE-123 --dry-run
-/workflow:refactor BookingRepository --dry-run
+/new-feature booking-cancellation --dry-run
+/hotfix --crashlytics ISSUE-123 --dry-run
+/refactor BookingRepository --dry-run
 ```
 
 ## What Dry Run Does
@@ -25,7 +25,7 @@ Preview a workflow's execution plan without making any changes. Append `--dry-ru
 ## Output Format
 
 ```
-═══ DRY RUN: /workflow:new-feature booking-cancellation ═══
+═══ DRY RUN: /new-feature booking-cancellation ═══
 
 Workflow:    new-feature
 Feature:     booking-cancellation
@@ -37,7 +37,7 @@ PHASES:
   4. PLAN          — Will create .claude/plan-booking-cancellation.md
   5. BRANCH        — alpha-feature/Booking_cancellation (from Development)
   6. IMPLEMENT     — Phases A-F with compile checks
-  7. TEST          — Chained: /workflow:test (require_tests: true)
+  7. TEST          — Chained: /test (require_tests: true)
   8. PR            — Target: Development, Format: squash
 
 GIT:
@@ -47,7 +47,7 @@ GIT:
 FILES: Spec, Plan, State (.workflows/current-state.md), Todo (tasks/todo.md)
 
 GUARDS: 17 block rules, 11 protected paths
-CHAINS: TEST → /workflow:test --coverage 90
+CHAINS: TEST → /test --coverage 90
 CONFLICTS: None (no active workflow)
 LEARNED PATTERNS: Relevant patterns from .workflows/learned/ if any
 

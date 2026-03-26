@@ -6,9 +6,9 @@ description: Captures successful workflow patterns, stores them with confidence 
 # Pattern Learning
 
 ```
-/workflow:learn capture
-/workflow:learn list
-/workflow:learn apply <topic>
+/learn capture
+/learn list
+/learn apply <topic>
 ```
 
 Extracts reusable patterns from completed workflows, stores as markdown in `.workflows/learned/`. Patterns gain confidence through reuse.
@@ -18,7 +18,7 @@ Extracts reusable patterns from completed workflows, stores as markdown in `.wor
 
 ---
 
-## `capture` — Extract Patterns from Last Workflow
+## `/learn capture` — Extract Patterns from Last Workflow
 
 1. Find the most recent file in `.workflows/history/` and read its phase output documents.
 2. Extract patterns: architecture decisions (BRAINSTORM/PLAN), implementation patterns (IMPLEMENT), testing strategies (TEST), problem resolutions (any phase).
@@ -42,7 +42,7 @@ Print: `Captured <N> patterns from <workflow-name>.`
 
 ---
 
-## `list` — Show All Patterns
+## `/learn list` — Show All Patterns
 
 Read all `.md` files in `.workflows/learned/`. Sort by confidence descending:
 
@@ -56,7 +56,7 @@ Learned Patterns (<N> total):
 
 ---
 
-## `apply <topic>` — Find Relevant Patterns
+## `/learn apply <topic>` — Find Relevant Patterns
 
 1. Load patterns from `.workflows/learned/`. Match by tag, name/description keywords, category.
 2. Present top 5 by relevance then confidence:

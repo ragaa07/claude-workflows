@@ -7,7 +7,7 @@ description: Diagnose and fix CI/CD pipeline failures automatically.
 
 ## Command
 
-`/workflow:ci-fix [--run <run-id>] [--pr <pr-number>]`
+`/ci-fix [--run <run-id>] [--pr <pr-number>]`
 
 ## Phases
 

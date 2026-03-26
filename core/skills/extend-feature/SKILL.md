@@ -8,7 +8,7 @@ description: Extend an existing feature with new capabilities while preserving b
 ## Command
 
 ```
-/workflow:extend-feature <feature-name> <extension-description> [--skip-brainstorm]
+/extend-feature <feature-name> <extension-description> [--skip-brainstorm]
 ```
 
 ## Overview

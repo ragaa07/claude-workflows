@@ -70,7 +70,7 @@ git add .claude/ CLAUDE.md .workflows/ .gitignore
 git commit -m "chore: install claude-workflows v2.0.0"
 ```
 
-Then open Claude Code and run `/workflow:start`.
+Then open Claude Code and run `/start`.
 
 ---
 
@@ -194,21 +194,21 @@ quality:
 
 | Command | Description |
 |---------|-------------|
-| `/workflow:new-feature <name>` | Build a new feature end-to-end |
-| `/workflow:extend-feature <name>` | Add to an existing feature |
-| `/workflow:refactor <target>` | Safely restructure code |
-| `/workflow:hotfix [--crash <id>]` | Emergency production fix |
-| `/workflow:test <target>` | Generate tests with coverage |
-| `/workflow:review <pr-number>` | Review a pull request |
-| `/workflow:release <version>` | Prepare a versioned release |
-| `/workflow:ci-fix [--run <id>]` | Fix CI/CD failures |
-| `/workflow:migrate <type>` | Incremental migration |
-| `/workflow:new-project` | Bootstrap project setup |
-| `/workflow:brainstorm <topic>` | Standalone brainstorming |
-| `/workflow:start` | Start a new workflow or show status |
-| `/workflow:resume` | Resume a paused/interrupted workflow |
+| `/new-feature <name>` | Build a new feature end-to-end |
+| `/extend-feature <name>` | Add to an existing feature |
+| `/refactor <target>` | Safely restructure code |
+| `/hotfix [--crash <id>]` | Emergency production fix |
+| `/test <target>` | Generate tests with coverage |
+| `/review <pr-number>` | Review a pull request |
+| `/release <version>` | Prepare a versioned release |
+| `/ci-fix [--run <id>]` | Fix CI/CD failures |
+| `/migrate <type>` | Incremental migration |
+| `/new-project` | Bootstrap project setup |
+| `/brainstorm <topic>` | Standalone brainstorming |
+| `/start` | Start a new workflow or show status |
+| `/resume` | Resume a paused/interrupted workflow |
 
-Aliases (configurable): `/workflow:build` -> new-feature, `/workflow:fix` -> hotfix, `/workflow:ship` -> release.
+Aliases (configurable): `/build` -> `/new-feature`, `/fix` -> `/hotfix`, `/ship` -> `/release`.
 
 ---
 
@@ -219,7 +219,7 @@ Aliases (configurable): `/workflow:build` -> new-feature, `/workflow:fix` -> hot
 The most comprehensive workflow. Takes a feature from idea to merged PR.
 
 ```
-/workflow:new-feature <name> [--from-jira <ticket>] [--from-figma <url>] [--from-spec <path>] [--skip-brainstorm]
+/new-feature <name> [--from-jira <ticket>] [--from-figma <url>] [--from-spec <path>] [--skip-brainstorm]
 ```
 
 **GATHER**: Collects from Jira (MCP), Figma (MCP), spec file, or interactive questions. Multiple sources combinable. **SPEC**: Generates spec with user stories, acceptance criteria, scope, technical requirements, edge cases. **BRAINSTORM**: 2-4 approaches evaluated with structured techniques; produces decision document. **PLAN**: Phased implementation in `.claude/plan-<name>.md` with files, details, build checks, commit messages per phase. Also generates `tasks/todo.md`. **BRANCH**: Per git config. **IMPLEMENT**: Phase-by-phase with build checks, commits, and state updates. Coding rules loaded. REPLAN on repeated failures. **TEST**: Targets all new code, reports coverage. **PR**: Quality gate checklists run, then `gh pr create`.
@@ -229,7 +229,7 @@ Decision points after SPEC, BRAINSTORM, PLAN, UI implementation, and before PR.
 ### Extend Feature
 
 ```
-/workflow:extend-feature <name> [--describe "what to add"]
+/extend-feature <name> [--describe "what to add"]
 ```
 
 **Conservative** workflow: existing behavior must be preserved. Prefers adding new files over modifying existing ones. Uses SCAMPER brainstorming. If existing tests break, the extension is fixed (not the tests).
@@ -237,7 +237,7 @@ Decision points after SPEC, BRAINSTORM, PLAN, UI implementation, and before PR.
 ### Refactor
 
 ```
-/workflow:refactor <target> [--scope files|module|feature] [--goal "description"]
+/refactor <target> [--scope files|module|feature] [--goal "description"]
 ```
 
 Full dependency graph analysis, behavioral contracts documented before changes, incremental migration where **every step compiles and passes tests independently**. Uses Trade-off Matrix + Reverse Brainstorm.
@@ -245,7 +245,7 @@ Full dependency graph analysis, behavioral contracts documented before changes, 
 ### Hotfix
 
 ```
-/workflow:hotfix [--crash <id>] [--error "description"] [--log <path>]
+/hotfix [--crash <id>] [--error "description"] [--log <path>]
 ```
 
 Optimized for **speed**. No brainstorming, no spec. Absolute minimum change, branches from production. Diagnose, Fix, Regression-Test, PR-to-Prod, Cherry-Pick. Should complete in minutes.
@@ -253,7 +253,7 @@ Optimized for **speed**. No brainstorming, no spec. Absolute minimum change, bra
 ### Test
 
 ```
-/workflow:test <target> [--coverage <pct>] [--type unit|integration]
+/test <target> [--coverage <pct>] [--type unit|integration]
 ```
 
 Targets: `class:Name`, `file:path`, `module:name`, `feature:name`. Analyzes public API, dependencies, branches, edge cases. Writes tests following project conventions. Default coverage: 90%.
@@ -261,7 +261,7 @@ Targets: `class:Name`, `file:path`, `module:name`, `feature:name`. Analyzes publ
 ### Review
 
 ```
-/workflow:review <pr-number>
+/review <pr-number>
 ```
 
 Fetches PR via `gh`, categorizes changes by layer, checks architecture/quality/security/performance/coverage/standards. Generates inline comments with severity levels. You choose which to submit.
@@ -269,7 +269,7 @@ Fetches PR via `gh`, categorizes changes by layer, checks architecture/quality/s
 ### Release
 
 ```
-/workflow:release <version>
+/release <version>
 ```
 
 Changelog from commits since last tag, version bump (language-agnostic detection), release branch, PR to production, tag command.
@@ -277,7 +277,7 @@ Changelog from commits since last tag, version bump (language-agnostic detection
 ### CI Fix
 
 ```
-/workflow:ci-fix [--run <run-id>] [--pr <pr-number>]
+/ci-fix [--run <run-id>] [--pr <pr-number>]
 ```
 
 Fetches failure details via `gh`, classifies (compile/test/lint/dependency/config/timeout), applies targeted fix, pushes, provides watch command.
@@ -285,7 +285,7 @@ Fetches failure details via `gh`, classifies (compile/test/lint/dependency/confi
 ### Migrate
 
 ```
-/workflow:migrate <type>
+/migrate <type>
 ```
 
 Types: `dependency`, `api-version`, `architecture`, `database`. Each step compiles and tests pass independently. Type-specific guidance for version comparison, endpoint mapping, pattern migration, schema migration.
@@ -293,7 +293,7 @@ Types: `dependency`, `api-version`, `architecture`, `database`. Each step compil
 ### New Project
 
 ```
-/workflow:new-project [project-path]
+/new-project [project-path]
 ```
 
 Detects project type from build files, CI system, and git conventions. Generates `workflows.yml`, `CLAUDE.md`, and directory structure.
@@ -302,7 +302,7 @@ Detects project type from build files, CI system, and git conventions. Generates
 
 ## 8. Brainstorming System
 
-Runs standalone (`/workflow:brainstorm <topic>`) or as part of any workflow.
+Runs standalone (`/brainstorm <topic>`) or as part of any workflow.
 
 ### 5 Techniques
 
@@ -328,7 +328,7 @@ Runs standalone (`/workflow:brainstorm <topic>`) or as part of any workflow.
 
 ## 9. Git Flow Management
 
-Handled by the `git-flow` skill, reading from `workflows.yml`.
+Handled by the `/git-flow` skill, reading from `workflows.yml`.
 
 - **Branches**: Pattern-based (`feature/{name}`, `release/v{version}`)
 - **Commits**: Conventional, Angular, or Simple format
@@ -348,7 +348,7 @@ Three-layer persistence solves context loss between sessions:
 | Spec + Plan | `.workflows/<feature>/`, `.claude/plan-<name>.md` | What and how (with `[x]` progress) |
 | Git | Branch, log, diff | Committed and uncommitted code |
 
-**Session recovery** (`/workflow:resume`): Reads state, spec, plan; verifies branch; reports phase and progress; continues from where it left off.
+**Session recovery** (`/resume`): Reads state, spec, plan; verifies branch; reports phase and progress; continues from where it left off.
 
 **Context notes** in the state file capture decisions and discoveries throughout the workflow.
 

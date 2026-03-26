@@ -8,7 +8,7 @@ description: Safely refactor code with dependency graph mapping, behavioral cont
 ## Command
 
 ```
-/workflow:refactor <target> [--scope <file|module|feature>] [--goal <description>] [--skip-brainstorm]
+/refactor <target> [--scope <file|module|feature>] [--goal <description>] [--skip-brainstorm]
 ```
 
 **Target formats**: `class:Name`, `file:path/to/file`, `module:name`, `feature:name`

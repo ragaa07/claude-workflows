@@ -26,6 +26,6 @@ rules: []
   # - naming-conventions.md
 
 # Reviews — additional checklist files copied to .claude/reviews/
-# Used during /workflow:review for team-specific quality gates
+# Used during /review for team-specific quality gates
 reviews: []
   # - team-review-checklist.md

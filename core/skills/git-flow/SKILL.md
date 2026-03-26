@@ -8,10 +8,10 @@ description: Direct git operations — branch creation, commits, PRs, and merges
 ## Commands
 
 ```
-/workflow:git-flow branch <type> <name>
-/workflow:git-flow commit <message>
-/workflow:git-flow pr [--base <branch>]
-/workflow:git-flow merge <branch>
+/git-flow branch <type> <name>
+/git-flow commit <message>
+/git-flow pr [--base <branch>]
+/git-flow merge <branch>
 ```
 
 ---

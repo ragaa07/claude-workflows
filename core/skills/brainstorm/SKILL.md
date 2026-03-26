@@ -8,7 +8,7 @@ description: Explore implementation approaches using structured techniques (trad
 ## Command
 
 ```
-/workflow:brainstorm <--topic "description"> [--depth <quick|standard|deep>]
+/brainstorm <--topic "description"> [--depth <quick|standard|deep>]
 ```
 
 - `--topic` (required): Problem or feature to brainstorm approaches for.

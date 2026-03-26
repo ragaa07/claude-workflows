@@ -8,7 +8,7 @@ description: Brief description of what this skill does and when to use it.
 ## Command
 
 ```
-/workflow:example-skill <required-arg> [--optional-flag]
+/example-skill <required-arg> [--optional-flag]
 ```
 
 ## Overview

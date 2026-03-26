@@ -1,7 +1,7 @@
 # Team Review Checklist
 #
 # This file is copied to .claude/reviews/ during install.
-# Used by /workflow:review for team-specific quality gates.
+# Used by /review for team-specific quality gates.
 #
 # Format: Markdown table with Check, Severity, and What to Look For.
 # ─────────────────────────────────────────────

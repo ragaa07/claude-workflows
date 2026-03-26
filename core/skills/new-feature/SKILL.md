@@ -6,7 +6,7 @@ description: "End-to-end feature workflow from requirements through PR. Eight ph
 # New Feature Workflow
 
 ```
-/workflow:new-feature <name> [--from-jira <ticket>] [--from-figma <url>] [--from-spec <path>] [--skip-brainstorm]
+/new-feature <name> [--from-jira <ticket>] [--from-figma <url>] [--from-spec <path>] [--skip-brainstorm]
 ```
 
 **Prerequisites**: `.claude/workflows.yml` exists. Git working tree is clean.

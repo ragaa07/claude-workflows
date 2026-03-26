@@ -125,20 +125,20 @@ state:
 skills:
   disabled: []                         # Skills to disable (by name)
   aliases:                             # Command aliases
-    build: "new-feature"               # /workflow:build → /workflow:new-feature
-    fix: "hotfix"                      # /workflow:fix → /workflow:hotfix
-    ship: "release"                    # /workflow:ship → /workflow:release
+    build: "new-feature"               # /build → /new-feature
+    fix: "hotfix"                      # /fix → /hotfix
+    ship: "release"                    # /ship → /release
 
 # ============================================================
 # Workflow Composition (Chaining)
 # ============================================================
 chains:
   new-feature:
-    TEST: "/workflow:test"             # Chain test workflow during TEST phase
+    TEST: "/test"                      # Chain test workflow during TEST phase
   extend-feature:
-    TEST: "/workflow:test"
+    TEST: "/test"
   refactor:
-    VERIFY: "/workflow:test --full-suite"
+    VERIFY: "/test --full-suite"
 
 # ============================================================
 # Safety Guards
