@@ -384,8 +384,8 @@ function validateProject(project) {
   const resumeContent = fs.readFileSync(path.join(root, ".claude/skills/resume/SKILL.md"), "utf8");
 
   test(
-    "start references _orchestration/RULES.md",
-    startContent.includes("_orchestration/RULES.md"),
+    "start delegates to workflow skills (not executing internally)",
+    startContent.includes("Do NOT attempt to read and execute"),
   );
   test(
     "resume references _orchestration/RULES.md",

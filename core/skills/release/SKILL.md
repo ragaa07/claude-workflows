@@ -9,6 +9,86 @@ description: Automate versioned releases with changelog, version bump, release b
 
 `/release <version>`
 
+## BEFORE YOU START — Initialize State
+
+Check if `.workflows/current-state.md` exists (it may have been created by `/start`).
+
+**If it does NOT exist**, create it now. Run these commands and create the file:
+
+```bash
+mkdir -p .workflows/<version>
+```
+
+Then use your **Write tool** to create `.workflows/current-state.md`:
+
+```
+# Workflow State
+
+- **workflow**: release
+- **feature**: <version>
+- **phase**: CHANGELOG
+- **started**: <current ISO-8601 timestamp>
+- **updated**: <current ISO-8601 timestamp>
+- **branch**:
+- **output_dir**: .workflows/<version>/
+- **retry_count**: 0
+
+## Phase History
+
+| Phase | Status | Timestamp | Output | Notes |
+|-------|--------|-----------|--------|-------|
+| CHANGELOG | ACTIVE | <timestamp> | | Starting workflow |
+
+## Phase Outputs
+
+_Documents produced by each phase:_
+
+## Context
+
+_Key decisions and resume context:_
+```
+
+**If it already exists**, read it and continue from the current active phase.
+
+**Verify**: Read `.workflows/current-state.md` to confirm it exists before proceeding.
+
+---
+
+## AFTER EVERY PHASE — You MUST Create Files
+
+After completing each phase below, do these TWO things using your tools before moving on:
+
+**Action 1 — Create the phase output file.** Use your **Write tool** to create the file at the path shown at the end of each phase (the `>> Write output to` line). Use this format:
+
+```
+# <Phase Name> — <Feature>
+
+**Date**: <ISO-8601>
+**Status**: Complete
+
+## Summary
+<1-3 sentences>
+
+## Details
+<Phase-specific content>
+
+## Decisions
+<Key decisions>
+
+## Next Phase Input
+<What next phase needs>
+```
+
+**Action 2 — Rewrite the state file.** Use your **Write tool** to REWRITE the entire `.workflows/current-state.md` file. Read the current content first, then write the full file back with these updates:
+- Update `phase` and `updated` in the header
+- In Phase History table: change the completed phase status to `COMPLETED`, add output filename, add new row for next phase as `ACTIVE`
+- Under `## Phase Outputs`: add a link to the new output file
+- Under `## Context`: add key decisions from this phase
+
+**You must REWRITE the whole file — do not try to edit individual lines. Do NOT proceed to the next phase until both files are written.**
+
+---
+
 ## Phases
 
 ### Phase 1: CHANGELOG
@@ -25,7 +105,7 @@ Generate changelog from git history since last tag.
 5. Prepend entry to CHANGELOG.md (create if missing)
 6. Present to user for review before proceeding
 
-**Phase Output**: `.workflows/<version>/01-changelog.md`
+**>> Write output to**: `.workflows/<version>/01-changelog.md` — then update `.workflows/current-state.md` (see State Tracking above).
 
 ### Phase 2: VERSION-BUMP
 
@@ -46,7 +126,7 @@ Bump version in the project's version file.
 4. Show diff and confirm with user
 5. Commit: `chore(version): bump to {version}`
 
-**Phase Output**: `.workflows/<version>/02-version-bump.md` (old version, new version, files changed)
+**>> Write output to**: `.workflows/<version>/02-version-bump.md` — then update `.workflows/current-state.md`. (Old version, new version, files changed)
 
 ### Phase 3: RELEASE-BRANCH
 
@@ -59,7 +139,7 @@ Create release branch from development branch.
 5. Cherry-pick/merge version bump and changelog commits if not present
 6. Push release branch to remote
 
-**Phase Output**: `.workflows/<version>/03-release-branch.md`
+**>> Write output to**: `.workflows/<version>/03-release-branch.md` — then update `.workflows/current-state.md`.
 
 ### Phase 4: PR
 
@@ -73,7 +153,7 @@ Create pull request from release branch to production.
 4. Create via `gh pr create`
 5. Output PR URL
 
-**Phase Output**: `.workflows/<version>/04-pr.md` (URL, summary)
+**>> Write output to**: `.workflows/<version>/04-pr.md` — then update `.workflows/current-state.md`. (URL, summary)
 
 ### Phase 5: TAG
 
@@ -90,7 +170,9 @@ After PR is merged, provide tagging commands.
    gh release create v{version} --title "v{version}" --notes "See CHANGELOG.md"
    ```
 
-**Phase Output**: `.workflows/<version>/05-tag.md`
+**>> Write output to**: `.workflows/<version>/05-tag.md` — then update `.workflows/current-state.md`.
+
+**After this final phase**: Move `.workflows/current-state.md` to `.workflows/history/<version>-<YYYY-MM-DD>.md`. Report completion.
 
 ## Configuration
 

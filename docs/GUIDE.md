@@ -148,7 +148,7 @@ IDLE → GATHER → SPEC → BRAINSTORM → PLAN → BRANCH → IMPLEMENT → TE
 | **GATHER** | Collect requirements (Jira, Figma, user, spec file) | Structured requirements |
 | **SPEC** | Generate formal specification | `.workflows/<feature>/01-spec.md` |
 | **BRAINSTORM** | Explore approaches, evaluate trade-offs | `.workflows/<feature>/02-brainstorm.md` |
-| **PLAN** | Phased implementation plan | `.claude/plan-<name>.md` |
+| **PLAN** | Phased implementation plan | `.workflows/<feature>/plan<name>.md` |
 | **BRANCH** | Create feature branch per git config | Git branch |
 | **IMPLEMENT** | Write code phase-by-phase with build checks | Source code + commits |
 | **TEST** | Write and run tests | Test files + results |
@@ -222,7 +222,7 @@ The most comprehensive workflow. Takes a feature from idea to merged PR.
 /new-feature <name> [--from-jira <ticket>] [--from-figma <url>] [--from-spec <path>] [--skip-brainstorm]
 ```
 
-**GATHER**: Collects from Jira (MCP), Figma (MCP), spec file, or interactive questions. Multiple sources combinable. **SPEC**: Generates spec with user stories, acceptance criteria, scope, technical requirements, edge cases. **BRAINSTORM**: 2-4 approaches evaluated with structured techniques; produces decision document. **PLAN**: Phased implementation in `.claude/plan-<name>.md` with files, details, build checks, commit messages per phase. Also generates `tasks/todo.md`. **BRANCH**: Per git config. **IMPLEMENT**: Phase-by-phase with build checks, commits, and state updates. Coding rules loaded. REPLAN on repeated failures. **TEST**: Targets all new code, reports coverage. **PR**: Quality gate checklists run, then `gh pr create`.
+**GATHER**: Collects from Jira (MCP), Figma (MCP), spec file, or interactive questions. Multiple sources combinable. **SPEC**: Generates spec with user stories, acceptance criteria, scope, technical requirements, edge cases. **BRAINSTORM**: 2-4 approaches evaluated with structured techniques; produces decision document. **PLAN**: Phased implementation in `.workflows/<feature>/plan<name>.md` with files, details, build checks, commit messages per phase. Also generates `tasks/todo.md`. **BRANCH**: Per git config. **IMPLEMENT**: Phase-by-phase with build checks, commits, and state updates. Coding rules loaded. REPLAN on repeated failures. **TEST**: Targets all new code, reports coverage. **PR**: Quality gate checklists run, then `gh pr create`.
 
 Decision points after SPEC, BRAINSTORM, PLAN, UI implementation, and before PR.
 
@@ -345,7 +345,7 @@ Three-layer persistence solves context loss between sessions:
 | Layer | File | Purpose |
 |-------|------|---------|
 | State | `.workflows/current-state.md` | Phase, progress, context notes |
-| Spec + Plan | `.workflows/<feature>/`, `.claude/plan-<name>.md` | What and how (with `[x]` progress) |
+| Spec + Plan | `.workflows/<feature>/`, `.workflows/<feature>/plan<name>.md` | What and how (with `[x]` progress) |
 | Git | Branch, log, diff | Committed and uncommitted code |
 
 **Session recovery** (`/resume`): Reads state, spec, plan; verifies branch; reports phase and progress; continues from where it left off.
@@ -365,7 +365,7 @@ Three-layer persistence solves context loss between sessions:
 | File | What | Updated |
 |------|------|---------|
 | `tasks/todo.md` | Day-to-day checklist | After each step |
-| `.claude/plan-*.md` | Architectural plan | Planning and REPLAN |
+| `.workflows/<feature>/plan*.md` | Architectural plan | Planning and REPLAN |
 | `.workflows/current-state.md` | Session metadata | Phase boundaries |
 
 ---
@@ -410,7 +410,7 @@ Rules: One task per agent. Main thread writes all code. Max 3 concurrent. Result
 | `.workflows/current-state.md` | No | Phase transitions |
 | `.workflows/paused-*.md` | No | Pause command |
 | `.workflows/history/` | No | Completion |
-| `.claude/plan-<name>.md` | Yes | PLAN phase |
+| `.workflows/<feature>/plan<name>.md` | Yes | PLAN phase |
 | `tasks/todo.md` | Yes | PLAN phase |
 | `tasks/lessons.md` | Yes | Corrections |
 

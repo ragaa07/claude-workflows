@@ -11,6 +11,84 @@ description: Initialize a new project with Claude Code configuration, detecting 
 
 Four phases: **DETECT -> CONFIGURE -> GENERATE -> SETUP**
 
+## BEFORE YOU START — Initialize State
+
+Check if `.workflows/current-state.md` exists (it may have been created by `/start`).
+
+**If it does NOT exist**, create it now. Run these commands and create the file:
+
+```bash
+mkdir -p .workflows/<project-name>
+```
+
+Then use your **Write tool** to create `.workflows/current-state.md`:
+
+```
+# Workflow State
+
+- **workflow**: new-project
+- **feature**: <project-name>
+- **phase**: DETECT
+- **started**: <current ISO-8601 timestamp>
+- **updated**: <current ISO-8601 timestamp>
+- **branch**:
+- **output_dir**: .workflows/<project-name>/
+- **retry_count**: 0
+
+## Phase History
+
+| Phase | Status | Timestamp | Output | Notes |
+|-------|--------|-----------|--------|-------|
+| DETECT | ACTIVE | <timestamp> | | Starting workflow |
+
+## Phase Outputs
+
+_Documents produced by each phase:_
+
+## Context
+
+_Key decisions and resume context:_
+```
+
+**If it already exists**, read it and continue from the current active phase.
+
+**Verify**: Read `.workflows/current-state.md` to confirm it exists before proceeding.
+
+---
+
+## AFTER EVERY PHASE — You MUST Create Files
+
+After completing each phase below, do these TWO things using your tools before moving on:
+
+**Action 1 — Create the phase output file.** Use your **Write tool** to create the file at the path shown at the end of each phase (the `>> Write output to` line). Use this format:
+
+```
+# <Phase Name> — <Feature>
+
+**Date**: <ISO-8601>
+**Status**: Complete
+
+## Summary
+<1-3 sentences>
+
+## Details
+<Phase-specific content>
+
+## Decisions
+<Key decisions>
+
+## Next Phase Input
+<What next phase needs>
+```
+
+**Action 2 — Rewrite the state file.** Use your **Write tool** to REWRITE the entire `.workflows/current-state.md` file. Read the current content first, then write the full file back with these updates:
+- Update `phase` and `updated` in the header
+- In Phase History table: change the completed phase status to `COMPLETED`, add output filename, add new row for next phase as `ACTIVE`
+- Under `## Phase Outputs`: add a link to the new output file
+- Under `## Context`: add key decisions from this phase
+
+**You must REWRITE the whole file — do not try to edit individual lines. Do NOT proceed to the next phase until both files are written.**
+
 ---
 
 ## Phase 1: DETECT
@@ -49,7 +127,7 @@ Sub-agent scan for: architecture pattern (MVVM, Clean, etc.), DI framework, key 
 
 If fewer than 3 attributes detected, ask user for manual input. Use `--preset` as fallback.
 
-**Phase Output**: `.workflows/<project-name>/01-detect.md`
+**>> Write output to**: `.workflows/<project-name>/01-detect.md` — then update `.workflows/current-state.md` (see State Tracking above).
 
 ---
 
@@ -84,7 +162,7 @@ git:
     base_branch: "<dev>"
 ```
 
-**Phase Output**: `.workflows/<project-name>/02-configure.md`
+**>> Write output to**: `.workflows/<project-name>/02-configure.md` — then update `.workflows/current-state.md`.
 
 ---
 
@@ -119,7 +197,7 @@ Read back generated file. Verify commands are valid, paths exist, no placeholder
 
 If CLAUDE.md exists, ask: **overwrite**, **merge** (preserve custom, update detected), or **skip**.
 
-**Phase Output**: `.workflows/<project-name>/03-generate.md`
+**>> Write output to**: `.workflows/<project-name>/03-generate.md` — then update `.workflows/current-state.md`.
 
 ---
 
@@ -140,7 +218,9 @@ Create `tasks/lessons.md` (with `# Lessons Learned` header).
 
 Print created files (CLAUDE.md, workflows.yml, tasks/todo.md, tasks/lessons.md, .claude/skills/) and next steps: review CLAUDE.md, commit files, run `/new-feature`.
 
-**Phase Output**: `.workflows/<project-name>/04-setup.md`
+**>> Write output to**: `.workflows/<project-name>/04-setup.md` — then update `.workflows/current-state.md`.
+
+**After this final phase**: Move `.workflows/current-state.md` to `.workflows/history/<project-name>-<YYYY-MM-DD>.md`. Report completion.
 
 ---
 

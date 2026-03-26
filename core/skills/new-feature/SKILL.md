@@ -13,6 +13,84 @@ description: "End-to-end feature workflow from requirements through PR. Eight ph
 
 **Config references**: Read `.claude/workflows.yml` for `project.language`, `project.type`, `git.branches.*`, and `workflows.new-feature.*` throughout this workflow.
 
+## BEFORE YOU START — Initialize State
+
+Check if `.workflows/current-state.md` exists (it may have been created by `/start`).
+
+**If it does NOT exist**, create it now. Run these commands and create the file:
+
+```bash
+mkdir -p .workflows/<name>
+```
+
+Then use your **Write tool** to create `.workflows/current-state.md`:
+
+```
+# Workflow State
+
+- **workflow**: new-feature
+- **feature**: <name>
+- **phase**: GATHER
+- **started**: <current ISO-8601 timestamp>
+- **updated**: <current ISO-8601 timestamp>
+- **branch**:
+- **output_dir**: .workflows/<name>/
+- **retry_count**: 0
+
+## Phase History
+
+| Phase | Status | Timestamp | Output | Notes |
+|-------|--------|-----------|--------|-------|
+| GATHER | ACTIVE | <timestamp> | | Starting workflow |
+
+## Phase Outputs
+
+_Documents produced by each phase:_
+
+## Context
+
+_Key decisions and resume context:_
+```
+
+**If it already exists**, read it and continue from the current active phase.
+
+**Verify**: Read `.workflows/current-state.md` to confirm it exists before proceeding.
+
+---
+
+## AFTER EVERY PHASE — You MUST Create Files
+
+After completing each phase below, do these TWO things using your tools before moving on:
+
+**Action 1 — Create the phase output file.** Use your **Write tool** to create the file at the path shown at the end of each phase (the `>> Write output to` line). Use this format:
+
+```
+# <Phase Name> — <Feature>
+
+**Date**: <ISO-8601>
+**Status**: Complete
+
+## Summary
+<1-3 sentences>
+
+## Details
+<Phase-specific content>
+
+## Decisions
+<Key decisions>
+
+## Next Phase Input
+<What next phase needs>
+```
+
+**Action 2 — Rewrite the state file.** Use your **Write tool** to REWRITE the entire `.workflows/current-state.md` file. Read the current content first, then write the full file back with these updates:
+- Update `phase` and `updated` in the header
+- In Phase History table: change the completed phase status to `COMPLETED`, add output filename, add new row for next phase as `ACTIVE`
+- Under `## Phase Outputs`: add a link to the new output file
+- Under `## Context`: add key decisions from this phase
+
+**You must REWRITE the whole file — do not try to edit individual lines. Do NOT proceed to the next phase until both files are written.**
+
 ---
 
 ## Phase 1: GATHER
@@ -43,7 +121,7 @@ Ask sequentially:
 
 Do NOT proceed if acceptance criteria are undefined. List missing info and ask user to provide or confirm.
 
-**Output**: `.workflows/<name>/01-gather.md`
+**>> Write output to**: `.workflows/<name>/01-gather.md` — then update `.workflows/current-state.md` (see State Tracking above).
 
 ---
 
@@ -55,7 +133,7 @@ Do NOT proceed if acceptance criteria are undefined. List missing info and ask u
 
 If `.claude/templates/spec.md.tmpl` exists, use it as the template. Otherwise use this structure:
 
-Write `.workflows/<name>/02-spec.md`:
+Write the spec document with this structure:
 - **Metadata**: date, source, status (Draft), author
 - **Summary**: 1-3 sentences
 - **User Stories**: derived from requirements
@@ -73,11 +151,13 @@ Present spec summary. Ask: "Review the spec. Reply with changes or 'approved' to
 - Approved: proceed.
 - Rejected 3+ times: ask if feature scope needs rethinking.
 
+**>> Write output to**: `.workflows/<name>/02-spec.md` — then update `.workflows/current-state.md`.
+
 ---
 
 ## Phase 3: BRAINSTORM
 
-**Skip if**: `--skip-brainstorm` flag OR `workflows.new-feature.require_brainstorm` is `false` in config. Mark `SKIPPED` in phase history.
+**Skip if**: `--skip-brainstorm` flag OR `workflows.new-feature.require_brainstorm` is `false` in config. If skipping, mark as `SKIPPED` in state and proceed to Phase 4.
 
 ### Execute
 
@@ -92,7 +172,7 @@ Use a sub-agent to scan the codebase for similar patterns, reusable components, 
 
 User selects an approach. Document choice under "## Chosen Approach" in the spec.
 
-**Output**: `.workflows/<name>/03-brainstorm.md`
+**>> Write output to**: `.workflows/<name>/03-brainstorm.md` — then update `.workflows/current-state.md`.
 
 ---
 
@@ -108,7 +188,7 @@ User selects an approach. Document choice under "## Chosen Approach" in the spec
 
 ### Generate plan
 
-Write `.claude/plan-<name>.md`. Generate phases dynamically based on the project's architecture, NOT a hardcoded layer structure. Analyze `project.type` and the existing code structure to determine appropriate phases.
+Write the implementation plan to `.workflows/<name>/plan.md`. Generate phases dynamically based on the project's architecture, NOT a hardcoded layer structure. Analyze `project.type` and the existing code structure to determine appropriate phases.
 
 Each phase MUST include:
 - **Files to create/modify**: checkable list with paths and descriptions
@@ -130,7 +210,7 @@ Present plan summary. Ask: "Review the plan. Reply with changes or 'approved' to
 
 Add feature to `tasks/todo.md` with a checkable item per phase.
 
-**Output**: `.workflows/<name>/04-plan.md` (summary; detailed plan stays in `.claude/plan-<name>.md`)
+**>> Write output to**: `.workflows/<name>/04-plan.md` — then rewrite `.workflows/current-state.md`. (The detailed plan is in `.workflows/<name>/plan.md`)
 
 ---
 
@@ -153,7 +233,7 @@ Add feature to `tasks/todo.md` with a checkable item per phase.
 - Branch exists: ask to switch or rename.
 - Dev branch behind remote: pull first, then branch.
 
-**Output**: `.workflows/<name>/05-branch.md`
+**>> Write output to**: `.workflows/<name>/05-branch.md` — then update `.workflows/current-state.md`.
 
 ---
 
@@ -170,7 +250,7 @@ Add feature to `tasks/todo.md` with a checkable item per phase.
 
 For each phase in the plan:
 
-1. **Read** phase details from `.claude/plan-<name>.md`.
+1. **Read** phase details from `.workflows/<name>/plan.md`.
 2. **Implement** changes. Rules:
    - One concern per phase. Do not mix layers.
    - Match existing codebase conventions exactly.
@@ -196,7 +276,7 @@ Trigger when: build fails 3+ times, plan step is wrong/impossible, or user reque
 
 Use sub-agents for: researching existing patterns, running build checks, generating boilerplate, writing test scaffolding.
 
-**Output**: `.workflows/<name>/06-implement.md` (files changed, commits made, issues encountered)
+**>> Write output to**: `.workflows/<name>/06-implement.md` — then update `.workflows/current-state.md`. (Files changed, commits made, issues encountered)
 
 ---
 
@@ -220,7 +300,7 @@ Read `project.language` and `project.type` from config. Detect test runner and c
    - Feature works as specified
    - No regressions in related features
 
-**Output**: `.workflows/<name>/07-test.md`
+**>> Write output to**: `.workflows/<name>/07-test.md` — then update `.workflows/current-state.md`.
 
 ---
 
@@ -253,7 +333,9 @@ Read `project.language` and `project.type` from config. Detect test runner and c
 
 Print: branch name, PR URL, commit count, files created/modified, spec path, plan path. Suggest next steps: add screenshots (if UI), request review, address feedback.
 
-**Output**: `.workflows/<name>/08-pr.md`
+**>> Write output to**: `.workflows/<name>/08-pr.md` — then update `.workflows/current-state.md`.
+
+**After this final phase**: Move `.workflows/current-state.md` to `.workflows/history/<name>-<YYYY-MM-DD>.md`. Report completion.
 
 ---
 

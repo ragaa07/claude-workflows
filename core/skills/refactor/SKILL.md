@@ -19,6 +19,84 @@ Restructure existing code while preserving all external behavior. Seven phases: 
 
 **Core principle**: Refactored code MUST produce identical outputs for identical inputs. Every step must compile and pass tests. If any step breaks behavior, roll back and re-approach.
 
+## BEFORE YOU START — Initialize State
+
+Check if `.workflows/current-state.md` exists (it may have been created by `/start`).
+
+**If it does NOT exist**, create it now. Run these commands and create the file:
+
+```bash
+mkdir -p .workflows/<target>
+```
+
+Then use your **Write tool** to create `.workflows/current-state.md`:
+
+```
+# Workflow State
+
+- **workflow**: refactor
+- **feature**: <target>
+- **phase**: ANALYZE
+- **started**: <current ISO-8601 timestamp>
+- **updated**: <current ISO-8601 timestamp>
+- **branch**:
+- **output_dir**: .workflows/<target>/
+- **retry_count**: 0
+
+## Phase History
+
+| Phase | Status | Timestamp | Output | Notes |
+|-------|--------|-----------|--------|-------|
+| ANALYZE | ACTIVE | <timestamp> | | Starting workflow |
+
+## Phase Outputs
+
+_Documents produced by each phase:_
+
+## Context
+
+_Key decisions and resume context:_
+```
+
+**If it already exists**, read it and continue from the current active phase.
+
+**Verify**: Read `.workflows/current-state.md` to confirm it exists before proceeding.
+
+---
+
+## AFTER EVERY PHASE — You MUST Create Files
+
+After completing each phase below, do these TWO things using your tools before moving on:
+
+**Action 1 — Create the phase output file.** Use your **Write tool** to create the file at the path shown at the end of each phase (the `>> Write output to` line). Use this format:
+
+```
+# <Phase Name> — <Feature>
+
+**Date**: <ISO-8601>
+**Status**: Complete
+
+## Summary
+<1-3 sentences>
+
+## Details
+<Phase-specific content>
+
+## Decisions
+<Key decisions>
+
+## Next Phase Input
+<What next phase needs>
+```
+
+**Action 2 — Rewrite the state file.** Use your **Write tool** to REWRITE the entire `.workflows/current-state.md` file. Read the current content first, then write the full file back with these updates:
+- Update `phase` and `updated` in the header
+- In Phase History table: change the completed phase status to `COMPLETED`, add output filename, add new row for next phase as `ACTIVE`
+- Under `## Phase Outputs`: add a link to the new output file
+- Under `## Context`: add key decisions from this phase
+
+**You must REWRITE the whole file — do not try to edit individual lines. Do NOT proceed to the next phase until both files are written.**
+
 ---
 
 ## Phase 1: ANALYZE
@@ -31,7 +109,7 @@ Restructure existing code while preserving all external behavior. Seven phases: 
 4. **Map public API surface** — Document every public member: functions, properties, types.
 5. **Measure current state** — Record: lines of code, public member count, cyclomatic complexity (estimate), direct dependent count, test coverage.
 
-**Phase Output**: Write dependency graph and blast radius to `.workflows/<target>/01-analyze.md`.
+**>> Write output to**: `.workflows/<target>/01-analyze.md` — then update `.workflows/current-state.md` (see State Tracking above). (Dependency graph and blast radius)
 
 ---
 
@@ -39,7 +117,7 @@ Restructure existing code while preserving all external behavior. Seven phases: 
 
 **Goal**: Explore refactoring approaches before committing to a plan.
 
-**Skip condition**: Skip if `--skip-brainstorm` passed OR `workflows.refactor.require_brainstorm` is `false` in `.claude/workflows.yml`. Mark as `SKIPPED` in Phase History.
+**Skip condition**: Skip if `--skip-brainstorm` passed OR `workflows.refactor.require_brainstorm` is `false` in `.claude/workflows.yml`. If skipping, mark as `SKIPPED` in state and proceed to Phase 3.
 
 Delegate to the brainstorm skill with Phase 1 context. Focus on:
 1. Structural approach (extract, inline, reshape)
@@ -48,7 +126,7 @@ Delegate to the brainstorm skill with Phase 1 context. Focus on:
 
 Present recommendation. Lowest blast radius wins ties. Ask: "Which approach? Or suggest an alternative."
 
-**Phase Output**: Write brainstorm results to `.workflows/<target>/02-brainstorm.md`.
+**>> Write output to**: `.workflows/<target>/02-brainstorm.md` — then update `.workflows/current-state.md`.
 
 ---
 
@@ -56,7 +134,7 @@ Present recommendation. Lowest blast radius wins ties. Ask: "Which approach? Or 
 
 **Goal**: Document exact behavioral contract BEFORE changing any code.
 
-Create `.workflows/<target>/03-contract.md` covering:
+Create the behavioral contract document covering:
 - **Invariants**: Input/output pairs, conditional behaviors, side effects, error conditions
 - **Public API contract**: Signatures that must not change (or must be deprecated with forwarding)
 - **Performance contract**: Latency bounds, memory limits
@@ -66,6 +144,8 @@ Create `.workflows/<target>/03-contract.md` covering:
 Map every test assertion to a contract invariant. If tests are missing for an invariant, add them BEFORE starting the refactor.
 
 **Decision Point**: Present contract. Ask: "Does this contract capture all expected behaviors?"
+
+**>> Write output to**: `.workflows/<target>/03-contract.md` — then update `.workflows/current-state.md`.
 
 ---
 
@@ -79,7 +159,7 @@ Describe post-refactor code: new structure, new abstractions, new module boundar
 
 ### 4.2 — Plan Migration Steps
 
-Write `.claude/plan-refactor-<target>.md`. Each step must include:
+Write the migration plan to `.workflows/<target>/plan.md`. Each step must include:
 - Action, files affected, compile command, test command, rollback command, commit message
 
 Each step MUST satisfy: project compiles, all tests pass, step is independently revertable.
@@ -96,7 +176,7 @@ For each step: files directly changed, transitive dependents affected, risk leve
 
 Present plan. Ask: "Approve migration plan or request changes?"
 
-**Phase Output**: Write design summary to `.workflows/<target>/04-design.md`.
+**>> Write output to**: `.workflows/<target>/04-design.md` — then update `.workflows/current-state.md`.
 
 ---
 
@@ -127,7 +207,7 @@ For each step:
 
 Revert to last good commit -> document failure -> re-evaluate approach -> revised plan -> user approval.
 
-**Phase Output**: Write migration progress to `.workflows/<target>/05-migrate.md`.
+**>> Write output to**: `.workflows/<target>/05-migrate.md` — then update `.workflows/current-state.md`.
 
 ---
 
@@ -142,7 +222,7 @@ Revert to last good commit -> document failure -> re-evaluate approach -> revise
 
 **Verification failure**: Critical -> revert entire refactor. Minor -> fix and re-verify.
 
-**Phase Output**: Write verification results to `.workflows/<target>/06-verify.md`.
+**>> Write output to**: `.workflows/<target>/06-verify.md` — then update `.workflows/current-state.md`.
 
 ---
 
@@ -173,7 +253,9 @@ EOF
 )"
 ```
 
-**Phase Output**: Write PR details to `.workflows/<target>/07-pr.md`.
+**>> Write output to**: `.workflows/<target>/07-pr.md` — then update `.workflows/current-state.md`.
+
+**After this final phase**: Move `.workflows/current-state.md` to `.workflows/history/<target>-<YYYY-MM-DD>.md`. Report completion.
 
 ---
 

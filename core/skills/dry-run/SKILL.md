@@ -34,7 +34,7 @@ PHASES:
   1. GATHER        — Interactive (no --from-jira or --from-figma)
   2. SPEC          — Will create .workflows/booking-cancellation/02-spec.md
   3. BRAINSTORM    — Depth: standard, Technique: auto-select
-  4. PLAN          — Will create .claude/plan-booking-cancellation.md
+  4. PLAN          — Will create .workflows/booking-cancellation/plan.md
   5. BRANCH        — alpha-feature/Booking_cancellation (from Development)
   6. IMPLEMENT     — Phases A-F with compile checks
   7. TEST          — Chained: /test (require_tests: true)

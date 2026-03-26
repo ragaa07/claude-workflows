@@ -25,6 +25,86 @@ Add new capabilities to an existing feature while strictly preserving backward c
 
 ---
 
+## BEFORE YOU START — Initialize State
+
+Check if `.workflows/current-state.md` exists (it may have been created by `/start`).
+
+**If it does NOT exist**, create it now. Run these commands and create the file:
+
+```bash
+mkdir -p .workflows/<feature-name>
+```
+
+Then use your **Write tool** to create `.workflows/current-state.md`:
+
+```
+# Workflow State
+
+- **workflow**: extend-feature
+- **feature**: <feature-name>
+- **phase**: ANALYZE
+- **started**: <current ISO-8601 timestamp>
+- **updated**: <current ISO-8601 timestamp>
+- **branch**:
+- **output_dir**: .workflows/<feature-name>/
+- **retry_count**: 0
+
+## Phase History
+
+| Phase | Status | Timestamp | Output | Notes |
+|-------|--------|-----------|--------|-------|
+| ANALYZE | ACTIVE | <timestamp> | | Starting workflow |
+
+## Phase Outputs
+
+_Documents produced by each phase:_
+
+## Context
+
+_Key decisions and resume context:_
+```
+
+**If it already exists**, read it and continue from the current active phase.
+
+**Verify**: Read `.workflows/current-state.md` to confirm it exists before proceeding.
+
+---
+
+## AFTER EVERY PHASE — You MUST Create Files
+
+After completing each phase below, do these TWO things using your tools before moving on:
+
+**Action 1 — Create the phase output file.** Use your **Write tool** to create the file at the path shown at the end of each phase (the `>> Write output to` line). Use this format:
+
+```
+# <Phase Name> — <Feature>
+
+**Date**: <ISO-8601>
+**Status**: Complete
+
+## Summary
+<1-3 sentences>
+
+## Details
+<Phase-specific content>
+
+## Decisions
+<Key decisions>
+
+## Next Phase Input
+<What next phase needs>
+```
+
+**Action 2 — Rewrite the state file.** Use your **Write tool** to REWRITE the entire `.workflows/current-state.md` file. Read the current content first, then write the full file back with these updates:
+- Update `phase` and `updated` in the header
+- In Phase History table: change the completed phase status to `COMPLETED`, add output filename, add new row for next phase as `ACTIVE`
+- Under `## Phase Outputs`: add a link to the new output file
+- Under `## Context`: add key decisions from this phase
+
+**You must REWRITE the whole file — do not try to edit individual lines. Do NOT proceed to the next phase until both files are written.**
+
+---
+
 ## Phase 1: ANALYZE
 
 **Goal**: Fully understand the existing feature before touching anything.
@@ -35,7 +115,7 @@ Identify extension points where new behavior attaches without modifying existing
 
 Document current behavior: what the user sees/does, data flows, edge cases.
 
-**Phase Output**: `.workflows/<feature>/01-analyze.md`
+**>> Write output to**: `.workflows/<feature>/01-analyze.md` — then update `.workflows/current-state.md` (see State Tracking above).
 
 ---
 
@@ -43,7 +123,7 @@ Document current behavior: what the user sees/does, data flows, edge cases.
 
 **Goal**: Explore extension approaches before committing to a plan.
 
-**Skip condition**: `--skip-brainstorm` passed OR `workflows.extend-feature.require_brainstorm` is `false`.
+**Skip condition**: `--skip-brainstorm` passed OR `workflows.extend-feature.require_brainstorm` is `false`. If skipping, mark as `SKIPPED` in state and proceed to Phase 3.
 
 Delegate to the brainstorm skill:
 - **Input**: Feature analysis from Phase 1 + extension description
@@ -54,7 +134,7 @@ Always prefer fewer modified files and zero changed signatures.
 
 Present top 2 approaches. Ask: "Which approach? (A/B or suggest alternative)"
 
-**Phase Output**: `.workflows/<feature>/02-brainstorm.md`
+**>> Write output to**: `.workflows/<feature>/02-brainstorm.md` — then update `.workflows/current-state.md`.
 
 ---
 
@@ -62,13 +142,13 @@ Present top 2 approaches. Ask: "Which approach? (A/B or suggest alternative)"
 
 **Goal**: Create implementation plan with explicit compatibility guarantees.
 
-Write `.claude/plan-<feature-name>-extension.md` containing: architecture summary, chosen approach, compatibility guarantees (no signatures changed, no variants removed, no test assertions modified, no behavior altered), new files (preferred) and modified files (minimal), implementation phases based on project architecture with build/test commands and commit messages, rollback strategy.
+Write the implementation plan to `.workflows/<feature-name>/plan.md` containing: architecture summary, chosen approach, compatibility guarantees (no signatures changed, no variants removed, no test assertions modified, no behavior altered), new files (preferred) and modified files (minimal), implementation phases based on project architecture with build/test commands and commit messages, rollback strategy.
 
 **Verify**: Modified files must not exceed new files. No signature changes allowed. Load `.claude/rules/` and apply project-specific rules.
 
 Present plan. Ask: "Approve plan or request changes?"
 
-**Phase Output**: `.workflows/<feature>/03-plan.md`
+**>> Write output to**: `.workflows/<feature>/03-plan.md` — then update `.workflows/current-state.md`.
 
 ---
 
@@ -92,7 +172,7 @@ For each phase: read plan details, implement (new files first, modifications las
 
 If an existing file needs more changes than planned, a signature must change, or an abstraction needs restructuring: STOP, document the discovery, re-evaluate with user approval.
 
-**Phase Output**: `.workflows/<feature>/04-implement.md`
+**>> Write output to**: `.workflows/<feature>/04-implement.md` — then update `.workflows/current-state.md`.
 
 ---
 
@@ -106,7 +186,7 @@ If an existing file needs more changes than planned, a signature must change, or
 
 If any test fails: fix the new code (not the existing test) to restore compatibility.
 
-**Phase Output**: `.workflows/<feature>/05-verify-compat.md`
+**>> Write output to**: `.workflows/<feature>/05-verify-compat.md` — then update `.workflows/current-state.md`.
 
 ---
 
@@ -114,13 +194,13 @@ If any test fails: fix the new code (not the existing test) to restore compatibi
 
 **Goal**: Add tests for the new extension.
 
-**Skip condition**: `workflows.extend-feature.require_tests` is `false`.
+**Skip condition**: `workflows.extend-feature.require_tests` is `false`. If skipping, mark as `SKIPPED` in state and proceed to Phase 7.
 
 Detect the project's test framework and conventions. Create NEW test files (do not modify existing) covering: new functions/logic, new UI states or endpoints, integration with existing feature, edge cases.
 
 Target: 80%+ coverage for new code.
 
-**Phase Output**: `.workflows/<feature>/06-test.md`
+**>> Write output to**: `.workflows/<feature>/06-test.md` — then update `.workflows/current-state.md`.
 
 ---
 
@@ -128,7 +208,7 @@ Target: 80%+ coverage for new code.
 
 **Goal**: Create PR with clear extension documentation.
 
-**Pre-PR quality gate**: If `.claude/reviews/` exists, load review checklists and verify all items pass.
+**Pre-PR quality gate**: Load `.claude/reviews/general-checklist.md` and the language-specific checklist from `.claude/reviews/`. Self-check all High/Critical items. Fix violations before proceeding.
 
 Push branch and create PR. Body must include: summary, changes (new files vs modified), compatibility verification results, and test results.
 
@@ -141,7 +221,9 @@ gh pr create --base <dev_branch> \
 
 Report PR URL to user.
 
-**Phase Output**: `.workflows/<feature>/07-pr.md`
+**>> Write output to**: `.workflows/<feature>/07-pr.md` — then update `.workflows/current-state.md`.
+
+**After this final phase**: Move `.workflows/current-state.md` to `.workflows/history/<feature>-<YYYY-MM-DD>.md`. Report completion.
 
 ---
 

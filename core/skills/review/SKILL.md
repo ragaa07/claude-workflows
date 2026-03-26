@@ -14,6 +14,84 @@ description: Review a GitHub pull request by fetching changes, categorizing by a
 
 Four phases: **FETCH -> CATEGORIZE -> CHECK -> COMMENT**
 
+## BEFORE YOU START — Initialize State
+
+Check if `.workflows/current-state.md` exists (it may have been created by `/start`).
+
+**If it does NOT exist**, create it now. Run these commands and create the file:
+
+```bash
+mkdir -p .workflows/<pr-name>
+```
+
+Then use your **Write tool** to create `.workflows/current-state.md`:
+
+```
+# Workflow State
+
+- **workflow**: review
+- **feature**: <pr-name>
+- **phase**: FETCH
+- **started**: <current ISO-8601 timestamp>
+- **updated**: <current ISO-8601 timestamp>
+- **branch**:
+- **output_dir**: .workflows/<pr-name>/
+- **retry_count**: 0
+
+## Phase History
+
+| Phase | Status | Timestamp | Output | Notes |
+|-------|--------|-----------|--------|-------|
+| FETCH | ACTIVE | <timestamp> | | Starting workflow |
+
+## Phase Outputs
+
+_Documents produced by each phase:_
+
+## Context
+
+_Key decisions and resume context:_
+```
+
+**If it already exists**, read it and continue from the current active phase.
+
+**Verify**: Read `.workflows/current-state.md` to confirm it exists before proceeding.
+
+---
+
+## AFTER EVERY PHASE — You MUST Create Files
+
+After completing each phase below, do these TWO things using your tools before moving on:
+
+**Action 1 — Create the phase output file.** Use your **Write tool** to create the file at the path shown at the end of each phase (the `>> Write output to` line). Use this format:
+
+```
+# <Phase Name> — <Feature>
+
+**Date**: <ISO-8601>
+**Status**: Complete
+
+## Summary
+<1-3 sentences>
+
+## Details
+<Phase-specific content>
+
+## Decisions
+<Key decisions>
+
+## Next Phase Input
+<What next phase needs>
+```
+
+**Action 2 — Rewrite the state file.** Use your **Write tool** to REWRITE the entire `.workflows/current-state.md` file. Read the current content first, then write the full file back with these updates:
+- Update `phase` and `updated` in the header
+- In Phase History table: change the completed phase status to `COMPLETED`, add output filename, add new row for next phase as `ACTIVE`
+- Under `## Phase Outputs`: add a link to the new output file
+- Under `## Context`: add key decisions from this phase
+
+**You must REWRITE the whole file — do not try to edit individual lines. Do NOT proceed to the next phase until both files are written.**
+
 ---
 
 ## Phase 1: FETCH
@@ -46,7 +124,7 @@ gh api repos/{owner}/{repo}/issues/<pr-number>/comments
 - **Medium** (10-30 files, 200-500 lines): Review by category
 - **Large** (> 30 files, > 500 lines): Sub-agents per category, warn PR should be split
 
-**Phase Output**: `.workflows/<pr-name>/01-fetch.md`
+**>> Write output to**: `.workflows/<pr-name>/01-fetch.md` — then update `.workflows/current-state.md` (see State Tracking above).
 
 ---
 
@@ -73,7 +151,7 @@ Adapt to the project's actual architecture (e.g., Rails: Models/Views/Controller
 
 **2.3 — Summarize** file counts per category with additions/deletions.
 
-**Phase Output**: `.workflows/<pr-name>/02-categorize.md`
+**>> Write output to**: `.workflows/<pr-name>/02-categorize.md` — then update `.workflows/current-state.md`.
 
 ---
 
@@ -109,7 +187,7 @@ For each changed file, run through ALL loaded checklist items. For each violatio
 - **Issue**: clear description
 - **Suggestion**: actionable fix or code example
 
-**Phase Output**: `.workflows/<pr-name>/03-check.md`
+**>> Write output to**: `.workflows/<pr-name>/03-check.md` — then update `.workflows/current-state.md`.
 
 ---
 
@@ -163,7 +241,9 @@ gh api repos/{owner}/{repo}/pulls/<pr-number>/reviews \
 
 Print verdict, comment counts by severity, and PR URL.
 
-**Phase Output**: `.workflows/<pr-name>/04-comment.md`
+**>> Write output to**: `.workflows/<pr-name>/04-comment.md` — then update `.workflows/current-state.md`.
+
+**After this final phase**: Move `.workflows/current-state.md` to `.workflows/history/<pr-name>-<YYYY-MM-DD>.md`. Report completion.
 
 ---
 

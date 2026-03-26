@@ -13,6 +13,84 @@ Emergency fix for production issues. Optimized for **SPEED**. No brainstorming. 
 
 **Prerequisites**: Clean git tree. Production branch identifiable from `.claude/workflows.yml` or `--branch`.
 
+## BEFORE YOU START — Initialize State
+
+Check if `.workflows/current-state.md` exists (it may have been created by `/start`).
+
+**If it does NOT exist**, create it now. Run these commands and create the file:
+
+```bash
+mkdir -p .workflows/<description>
+```
+
+Then use your **Write tool** to create `.workflows/current-state.md`:
+
+```
+# Workflow State
+
+- **workflow**: hotfix
+- **feature**: <description>
+- **phase**: DIAGNOSE
+- **started**: <current ISO-8601 timestamp>
+- **updated**: <current ISO-8601 timestamp>
+- **branch**:
+- **output_dir**: .workflows/<description>/
+- **retry_count**: 0
+
+## Phase History
+
+| Phase | Status | Timestamp | Output | Notes |
+|-------|--------|-----------|--------|-------|
+| DIAGNOSE | ACTIVE | <timestamp> | | Starting workflow |
+
+## Phase Outputs
+
+_Documents produced by each phase:_
+
+## Context
+
+_Key decisions and resume context:_
+```
+
+**If it already exists**, read it and continue from the current active phase.
+
+**Verify**: Read `.workflows/current-state.md` to confirm it exists before proceeding.
+
+---
+
+## AFTER EVERY PHASE — You MUST Create Files
+
+After completing each phase below, do these TWO things using your tools before moving on:
+
+**Action 1 — Create the phase output file.** Use your **Write tool** to create the file at the path shown at the end of each phase (the `>> Write output to` line). Use this format:
+
+```
+# <Phase Name> — <Feature>
+
+**Date**: <ISO-8601>
+**Status**: Complete
+
+## Summary
+<1-3 sentences>
+
+## Details
+<Phase-specific content>
+
+## Decisions
+<Key decisions>
+
+## Next Phase Input
+<What next phase needs>
+```
+
+**Action 2 — Rewrite the state file.** Use your **Write tool** to REWRITE the entire `.workflows/current-state.md` file. Read the current content first, then write the full file back with these updates:
+- Update `phase` and `updated` in the header
+- In Phase History table: change the completed phase status to `COMPLETED`, add output filename, add new row for next phase as `ACTIVE`
+- Under `## Phase Outputs`: add a link to the new output file
+- Under `## Context`: add key decisions from this phase
+
+**You must REWRITE the whole file — do not try to edit individual lines. Do NOT proceed to the next phase until both files are written.**
+
 ---
 
 ### Phase 1: DIAGNOSE
@@ -40,7 +118,7 @@ Identify the exact crash cause in minimum time.
 
 Document: `"Root cause: <X> is null/invalid when <Y> because <Z>"`
 
-**Phase Output**: `.workflows/<description>/01-diagnose.md` — root cause, crash site, blast radius.
+**>> Write output to**: `.workflows/<description>/01-diagnose.md` — then update `.workflows/current-state.md` (see State Tracking above). (Root cause, crash site, blast radius)
 
 ---
 
@@ -73,7 +151,7 @@ Check `.claude/rules/` for project-specific conventions. Apply them.
 
 **Commit**: `fix: <short description>` with root cause and crash location in body.
 
-**Phase Output**: `.workflows/<description>/02-fix.md` — changes made, diff summary.
+**>> Write output to**: `.workflows/<description>/02-fix.md` — then update `.workflows/current-state.md`. (Changes made, diff summary)
 
 ---
 
@@ -94,7 +172,7 @@ Check `.claude/rules/` for project-specific conventions. Apply them.
 
 3. **Commit**: `test: add regression test for <crash description>`
 
-**Phase Output**: `.workflows/<description>/03-regression-test.md` — test results.
+**>> Write output to**: `.workflows/<description>/03-regression-test.md` — then update `.workflows/current-state.md`. (Test results)
 
 ---
 
@@ -121,7 +199,7 @@ PR body includes: severity, root cause, fix description, files changed, regressi
 
 Check `.claude/reviews/` for project-specific review criteria. Print PR URL and summary.
 
-**Phase Output**: `.workflows/<description>/04-pr.md` — PR URL, summary.
+**>> Write output to**: `.workflows/<description>/04-pr.md` — then update `.workflows/current-state.md`. (PR URL, summary)
 
 ---
 
@@ -142,7 +220,9 @@ Preview conflicts: `git log <prod>..<dev> -- <changed-files>`. Warn if diverged.
 
 Ask: "Cherry-pick now, or handle after merge?"
 
-**Phase Output**: `.workflows/<description>/05-cherry-pick.md` — cherry-pick plan.
+**>> Write output to**: `.workflows/<description>/05-cherry-pick.md` — then update `.workflows/current-state.md`. (Cherry-pick plan)
+
+**After this final phase**: Move `.workflows/current-state.md` to `.workflows/history/<description>-<YYYY-MM-DD>.md`. Report completion.
 
 ---
 
@@ -158,10 +238,6 @@ Hotfix complete.
   Tests added: <N>
   Cherry-pick: <done|pending>
 ```
-
-## State Management
-
-When invoked via `/start`, the orchestrator handles state automatically — writes phase outputs to `.workflows/<feature>/` and updates `.workflows/current-state.md`. This skill does not manage state directly.
 
 ## Error Handling
 

@@ -1,13 +1,13 @@
 ---
 name: start
-description: Entry point for all workflows. Shows available workflows, initializes state, launches the selected one.
+description: Entry point — shows available workflows, creates state file, then tells user to invoke the selected workflow skill.
 ---
 
 # Start a Workflow
 
-> **You are the workflow orchestrator.** You manage state, phase transitions, and output documents. Individual workflow skills define the phases — you handle everything else. Read and follow `.claude/skills/_orchestration/RULES.md` for all orchestration rules.
-
 ## Step 1: Setup
+
+Run this command:
 
 ```bash
 mkdir -p .workflows/history
@@ -17,19 +17,19 @@ Read `.claude/workflows.yml` for configuration.
 
 ## Step 2: Check for Active Workflows
 
-Read `.workflows/current-state.md`. If it exists:
+Read the file `.workflows/current-state.md`. If it exists:
 
 ```
 Active workflow detected:
    <workflow> — <feature> (at <phase>, updated <date>)
 
 Options:
-  1. Resume this workflow
+  1. Resume this workflow (run /resume)
   2. Pause it and start something new
   3. Abandon it and start fresh
 ```
 
-- Resume → load state, load skill, continue from current phase.
+- Resume → tell user to run `/resume`.
 - Pause → rename to `.workflows/paused-<feature>.md`, continue to Step 3.
 - Abandon → move to `.workflows/history/<feature>-<date>.md`, continue to Step 3.
 
@@ -79,22 +79,24 @@ Ask for required input based on selection:
 - **Test**: target to test
 - **New Project**: project path
 
-## Step 5: Create State
+## Step 5: Create State File — ACTION REQUIRED
+
+**5a.** Run this command to create the workflow directory:
 
 ```bash
 mkdir -p .workflows/<feature>
 ```
 
-Write `.workflows/current-state.md`:
+**5b.** Use your **Write tool** to create the file `.workflows/current-state.md` with this exact content (fill in the actual values):
 
-```markdown
+```
 # Workflow State
 
 - **workflow**: <selected-workflow>
 - **feature**: <feature>
-- **phase**: <first-phase>
-- **started**: <ISO-8601>
-- **updated**: <ISO-8601>
+- **phase**: <first-phase-of-the-selected-workflow>
+- **started**: <current ISO-8601 timestamp>
+- **updated**: <current ISO-8601 timestamp>
 - **branch**:
 - **output_dir**: .workflows/<feature>/
 - **retry_count**: 0
@@ -114,11 +116,34 @@ _Documents produced by each phase:_
 _Key decisions and resume context:_
 ```
 
-## Step 6: Load and Execute
+**Verify**: Read back `.workflows/current-state.md` to confirm it was created. Do NOT proceed until this file exists.
 
-1. Read `.claude/skills/_orchestration/RULES.md` — follow all rules throughout execution
-2. Detect build/test commands per Rule 5
-3. Read `.claude/skills/<selected-workflow>/SKILL.md`
-4. Begin executing from Phase 1
-5. After each phase: write output document (Rule 1), update state (Rule 2), check chains (Rule 6)
-6. On completion: follow Rule 7
+## Step 6: Launch the Workflow
+
+Tell the user which skill command to run next. Map the selection:
+
+| Selection | Command |
+|-----------|---------|
+| 1. New Feature | `/new-feature <name>` |
+| 2. Extend Feature | `/extend-feature <feature> <description>` |
+| 3. New Project | `/new-project` |
+| 4. Hotfix | `/hotfix <description>` |
+| 5. CI Fix | `/ci-fix` |
+| 6. Refactor | `/refactor <target>` |
+| 7. Migrate | `/migrate <type>` |
+| 8. Release | `/release <version>` |
+| 9. Review | `/review <pr-number>` |
+| 10. Brainstorm | `/brainstorm --topic "<topic>"` |
+| 11. Test | `/test <target>` |
+
+Tell the user:
+
+```
+State file created at .workflows/current-state.md
+Workflow directory created at .workflows/<feature>/
+
+To start the workflow, run:
+  <command with their arguments>
+```
+
+**Do NOT attempt to read and execute the workflow skill yourself.** The user must invoke it as a slash command so Claude Code loads it as the active skill.

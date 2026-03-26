@@ -354,7 +354,7 @@ Each completed phase writes a numbered output document:
 
 These documents persist between sessions, providing full context for any resumed workflow.
 
-### 3. Implementation Plan (`.claude/plan-<name>.md`)
+### 3. Implementation Plan (`.workflows/<feature>/plan<name>.md`)
 
 The phased implementation plan with checkable items. Progress is tracked per-phase so a new session knows exactly where to resume.
 
@@ -382,7 +382,7 @@ Tracks in-progress work with checkable items. Workflows automatically add and up
 
 ```markdown
 ## In Progress
-- [ ] Payment Flow (plan: `.claude/plan-payment-flow.md`)
+- [ ] Payment Flow (plan: `.workflows/<feature>/planpayment-flow.md`)
   - [x] Phase A: Data Layer
   - [x] Phase B: Domain Layer
   - [ ] Phase C: UI Layer
