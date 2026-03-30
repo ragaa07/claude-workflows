@@ -1,4 +1,5 @@
 {
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "claude-workflows",
   "description": "Structured development workflows for Claude Code — 23 skills, proportional quality gates, multi-session state, team extensibility.",
   "owner": {
@@ -8,9 +9,13 @@
   "plugins": [
     {
       "name": "claude-workflows",
-      "source": ".",
       "description": "23 workflow skills with quality gates, multi-session state, and team extensibility.",
-      "version": "3.1.0"
+      "source": {
+        "source": "url",
+        "url": "https://github.com/ragaa07/claude-workflows.git"
+      },
+      "category": "development",
+      "homepage": "https://ragaa07.github.io/claude-workflows/"
     }
   ]
 }
