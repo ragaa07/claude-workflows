@@ -1,6 +1,7 @@
 .git/
 .idea/
 .claude/
+docs/
 tests/
 .gitignore
 .DS_Store
