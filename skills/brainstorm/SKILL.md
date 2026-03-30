@@ -21,6 +21,9 @@ rules: [0, 1, 5, 6, 10, 16, 17]
 
 Three phases: **EXPLORE → EVALUATE → RECOMMEND**. Can run standalone or delegated from other workflows.
 
+> **Protocol**: Follow the execution protocol injected at session start.
+> Create `.workflows/current-state.md` before Phase 1. Write output + update state after EVERY phase. Never skip phases unless config allows.
+
 ---
 
 ## Depth Levels

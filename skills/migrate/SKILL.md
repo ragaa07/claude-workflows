@@ -10,7 +10,8 @@ rules: [0, 1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 16, 17]
 
 Where `<type>` is one of: `dependency`, `api-version`, `architecture`, `database`
 
-> **Orchestration**: Rules 0, 1, 5 handle state, phase output, and completion.
+> **Protocol**: Follow the execution protocol injected at session start.
+> Create `.workflows/current-state.md` before Phase 1. Write output + update state after EVERY phase. Never skip phases unless config allows.
 
 ---
 

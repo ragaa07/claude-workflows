@@ -16,6 +16,9 @@ Systematic bug investigation. Not a fix workflow — this FINDS the root cause a
 
 **Phases**: REPRODUCE → HYPOTHESIZE → NARROW → ROOT-CAUSE
 
+> **Protocol**: Follow the execution protocol injected at session start.
+> Create `.workflows/current-state.md` before Phase 1. Write output + update state after EVERY phase. Never skip phases unless config allows.
+
 ---
 
 ## Phase 1: REPRODUCE

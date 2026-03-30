@@ -12,7 +12,8 @@ rules: [0, 1, 3, 4, 5, 6, 10, 12, 17]
 
 If `--type` is provided instead of an explicit version, auto-calculate the next version from the latest git tag using semver rules.
 
-> **Orchestration**: Rules 0, 1, 5 handle state, phase output, and completion.
+> **Protocol**: Follow the execution protocol injected at session start.
+> Create `.workflows/current-state.md` before Phase 1. Write output + update state after EVERY phase. Never skip phases unless config allows.
 
 ---
 

@@ -14,7 +14,8 @@ Four phases: **DETECT -> CONFIGURE -> GENERATE -> SETUP**
 
 **Note**: This skill supersedes `/claude-workflows:setup` — it performs full project detection plus setup. You do NOT need to run `/setup` separately if you use `/new-project`.
 
-> **Orchestration**: Rules 0, 1, 5 handle state, phase output, and completion.
+> **Protocol**: Follow the execution protocol injected at session start.
+> Create `.workflows/current-state.md` before Phase 1. Write output + update state after EVERY phase. Never skip phases unless config allows.
 
 ---
 

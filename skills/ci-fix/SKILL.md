@@ -14,6 +14,9 @@ rules: [0, 1, 3, 4, 5, 6, 7, 10, 11, 12, 17]
 
 ---
 
+> **Protocol**: Follow the execution protocol injected at session start.
+> Create `.workflows/current-state.md` before Phase 1. Write output + update state after EVERY phase. Never skip phases unless config allows.
+
 ## Phases
 
 ### Phase 1: FETCH

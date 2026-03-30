@@ -4,6 +4,10 @@
       {
         "hooks": [
           {
+            "type": "command",
+            "command": "cat ${CLAUDE_PLUGIN_ROOT}/PROTOCOL.md"
+          },
+          {
             "type": "prompt",
             "prompt": "Silently check if .workflows/current-state.md exists. If yes, read its YAML frontmatter and tell the user in ONE line: 'Active workflow: <workflow> — <feature> (phase: <phase>). Use /claude-workflows:resume to continue.' Also check for .workflows/paused-*.md files and mention any paused workflows. If nothing found, say nothing."
           }

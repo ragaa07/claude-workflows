@@ -22,7 +22,8 @@ Add new capabilities to an existing feature while strictly preserving backward c
 4. Add new test files — do not modify existing test assertions
 5. If you must modify an existing file, change the fewest lines possible
 
-> **Orchestration**: Rules 0, 1, 5 handle state, phase output, and completion.
+> **Protocol**: Follow the execution protocol injected at session start.
+> Create `.workflows/current-state.md` before Phase 1. Write output + update state after EVERY phase. Never skip phases unless config allows.
 
 ---
 

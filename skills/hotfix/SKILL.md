@@ -16,7 +16,8 @@ Emergency fix for production issues. Optimized for **SPEED**. No brainstorming. 
 
 **Prerequisites**: Clean git tree. Production branch: `--branch` flag > `workflows.hotfix.base_branch` in config > `git.branches.main`.
 
-> **Orchestration**: Rules 0, 1, 5 handle state, phase output, and completion.
+> **Protocol**: Follow the execution protocol injected at session start.
+> Create `.workflows/current-state.md` before Phase 1. Write output + update state after EVERY phase. Never skip phases unless config allows.
 
 ---
 

@@ -20,7 +20,8 @@ rules: [0, 1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 15, 16, 17]
 
 **Config**: Read `.workflows/config.yml` for `project.language`, `project.type`, `git.branches.*`, and `workflows.new-feature.*`. Fall back to user plugin settings, then `<plugin-root>/config/defaults.yml`.
 
-> **Orchestration**: Rules 0, 1, 5 handle state, phase output, and completion.
+> **Protocol**: Follow the execution protocol injected at session start.
+> Create `.workflows/current-state.md` before Phase 1. Write output + update state after EVERY phase. Never skip phases unless config allows.
 
 ---
 

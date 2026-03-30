@@ -14,7 +14,8 @@ Restructure existing code while preserving all external behavior. **Phases**: AN
 
 **Core principle**: Identical outputs for identical inputs. Every step must compile and pass tests. Breaks behavior → roll back.
 
-> **Orchestration**: Rules 0, 1, 5 handle state, phase output, and completion.
+> **Protocol**: Follow the execution protocol injected at session start.
+> Create `.workflows/current-state.md` before Phase 1. Write output + update state after EVERY phase. Never skip phases unless config allows.
 
 ---
 

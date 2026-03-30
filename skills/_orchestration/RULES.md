@@ -1,10 +1,10 @@
 # Orchestration Rules
 
-> These rules apply to EVERY workflow execution.
+> **Primary execution protocol**: `<plugin-root>/PROTOCOL.md` — auto-injected at session start via hooks. It contains the core state management, phase output, and skip governance rules that apply to every workflow.
 >
-> **Selective loading**: Each skill's frontmatter includes a `rules` list (e.g., `rules: [0, 1, 2, 5]`). Read ONLY those numbered rule files from `<plugin-root>/skills/_orchestration/rules/rule-NN-*.md`. If the `rules` list is absent (not empty — absent), load all rules. If `rules: []` (empty array), load NO rules — the skill manages its own flow.
+> **Detailed rules**: Individual rule files in `<plugin-root>/skills/_orchestration/rules/rule-NN-*.md` provide extended behavior. Each skill's frontmatter `rules` list indicates which apply.
 >
-> **Always-available rules**: Rules 8 (common errors) and 14 (dry-run) apply to ALL skills regardless of the `rules` list — they are reference/utility rules, not active orchestration. Always check for `--dry-run` before executing, and consult Rule 8 when encountering git/gh errors.
+> **Always-available rules**: Rules 8 (common errors) and 14 (dry-run) apply to ALL skills regardless of the `rules` list.
 
 ## Quick Reference
 
