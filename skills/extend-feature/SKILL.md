@@ -22,8 +22,15 @@ Add new capabilities to an existing feature while strictly preserving backward c
 4. Add new test files — do not modify existing test assertions
 5. If you must modify an existing file, change the fewest lines possible
 
-> **Protocol**: Follow the execution protocol injected at session start.
-> Create `.workflows/current-state.md` before Phase 1. Write output + update state after EVERY phase. Never skip phases unless config allows.
+> **EXECUTION PROTOCOL — MANDATORY**
+> 1. **BEFORE Phase 1**: Create `.workflows/<feature>/` dir and `.workflows/current-state.md` with YAML frontmatter (workflow, feature, phase, phases list, started, updated, branch, output_dir, replan_count) + Phase History table + Context section + Constraints section
+> 2. **Execute phases IN ORDER** — never skip ahead to implementation
+> 3. **After EACH phase** — do ALL before moving on:
+>    - Write output file (path at end of each phase section)
+>    - Update `.workflows/current-state.md`: advance `phase`, mark completed, add new ACTIVE row, append decisions to Context
+>    - Print progress: `✓ANALYZE ▶BRAINSTORM ·PLAN ·IMPLEMENT ·VERIFY-COMPAT ·TEST ·PR`
+> 4. Read `.workflows/config.yml` for project settings and skip flags
+> **NEVER skip phases unless explicitly allowed. NEVER proceed without writing output AND updating state.**
 
 ---
 
@@ -31,7 +38,7 @@ Add new capabilities to an existing feature while strictly preserving backward c
 
 Map the feature: entry points, business logic, data layer, config/wiring, existing tests. Identify extension points (new subtypes, new fields with defaults, callable public functions, registration mechanisms). Document current behavior.
 
-**>> Write output to**: `.workflows/<feature>/01-analyze.md`
+**>> Phase complete** — write output to `.workflows/<feature>/01-analyze.md`
 
 ---
 
@@ -41,7 +48,7 @@ Map the feature: entry points, business logic, data layer, config/wiring, existi
 
 Run brainstorm inline (Rule 9): Constraint Mapping (implicit constraint: minimal impact) → Generate Options → SCAMPER technique → Trade-off Matrix (score on modified-files count + standard criteria) → Recommend top 2.
 
-**>> Write output to**: `.workflows/<feature>/02-brainstorm.md`
+**>> Phase complete** — write output to `.workflows/<feature>/02-brainstorm.md`
 
 ---
 
@@ -53,7 +60,7 @@ Write plan to `.workflows/<feature>/plan.md`: architecture summary, chosen appro
 
 Present plan. Ask: "Approve plan or request changes?"
 
-**>> Write output to**: `.workflows/<feature>/03-plan.md`
+**>> Phase complete** — write output to `.workflows/<feature>/03-plan.md`
 
 ---
 
@@ -63,7 +70,7 @@ Per phase: read plan → implement (new files first, modifications last) → bui
 
 **REPLAN trigger**: More changes than planned, signature must change, or abstraction needs restructuring.
 
-**>> Write output to**: `.workflows/<feature>/04-implement.md`
+**>> Phase complete** — write output to `.workflows/<feature>/04-implement.md`
 
 ---
 
@@ -75,7 +82,7 @@ Per phase: read plan → implement (new files first, modifications last) → bui
 
 If any test fails: fix the NEW code (not the existing test).
 
-**>> Write output to**: `.workflows/<feature>/05-verify-compat.md`
+**>> Phase complete** — write output to `.workflows/<feature>/05-verify-compat.md`
 
 ---
 
@@ -85,7 +92,7 @@ If any test fails: fix the NEW code (not the existing test).
 
 Create NEW test files (do not modify existing) covering: new functions/logic, integration with existing feature, edge cases. Target: `workflows.test.default_coverage` from config (default 90%) for new code.
 
-**>> Write output to**: `.workflows/<feature>/06-test.md`
+**>> Phase complete** — write output to `.workflows/<feature>/06-test.md`
 
 ---
 
@@ -95,7 +102,7 @@ Create NEW test files (do not modify existing) covering: new functions/logic, in
 
 Push and create PR with: summary, changes (new vs modified files), compatibility results, test results.
 
-**>> Write output to**: `.workflows/<feature>/07-pr.md`
+**>> Phase complete** — write output to `.workflows/<feature>/07-pr.md`
 
 ---
 

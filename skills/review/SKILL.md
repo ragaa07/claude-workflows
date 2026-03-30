@@ -15,8 +15,15 @@ rules: [0, 1, 5, 6, 7, 10, 12, 17]
 
 Four phases: **FETCH → CATEGORIZE → CHECK → COMMENT**
 
-> **Protocol**: Follow the execution protocol injected at session start.
-> Create `.workflows/current-state.md` before Phase 1. Write output + update state after EVERY phase. Never skip phases unless config allows.
+> **EXECUTION PROTOCOL — MANDATORY**
+> 1. **BEFORE Phase 1**: Create `.workflows/<pr-name>/` dir and `.workflows/current-state.md` with YAML frontmatter (workflow, feature, phase, phases list, started, updated, branch, output_dir, replan_count) + Phase History table + Context section
+> 2. **Execute phases IN ORDER** — never skip ahead
+> 3. **After EACH phase** — do ALL before moving on:
+>    - Write output file (path at end of each phase section)
+>    - Update `.workflows/current-state.md`: advance `phase`, mark completed, add new ACTIVE row, append decisions to Context
+>    - Print progress: `✓FETCH ▶CATEGORIZE ·CHECK ·COMMENT`
+> 4. Read `.workflows/config.yml` for project settings
+> **NEVER skip phases. NEVER proceed without writing output AND updating state.**
 
 ---
 
@@ -35,7 +42,7 @@ Fetch via `gh`: PR metadata (`gh pr view --json`), diff (`gh pr diff`), changed 
 - **Medium PRs** (11-30 files): Read files only when checking them in Phase 3
 - **Large PRs** (>30 files): Warn PR should be split. Read files per-category during CHECK.
 
-**>> Write output to**: `.workflows/<pr-name>/01-fetch.md`
+**>> Phase complete** — write output to `.workflows/<pr-name>/01-fetch.md`
 
 ---
 
@@ -49,7 +56,7 @@ Review order (foundations first): Models/Data → Domain → Logic/Controllers �
 
 Summarize file counts per category with additions/deletions.
 
-**>> Write output to**: `.workflows/<pr-name>/02-categorize.md`
+**>> Phase complete** — write output to `.workflows/<pr-name>/02-categorize.md`
 
 ---
 
@@ -63,7 +70,7 @@ Summarize file counts per category with additions/deletions.
 
 **Execute**: For each changed file, check applicable items. Record violations with: severity (Critical/High/Medium/Low), file+line, issue, actionable suggestion.
 
-**>> Write output to**: `.workflows/<pr-name>/03-check.md`
+**>> Phase complete** — write output to `.workflows/<pr-name>/03-check.md`
 
 ---
 
@@ -86,7 +93,7 @@ Submit: `gh pr review <pr-number> --approve|--request-changes|--comment --body "
 
 Print verdict, counts by severity (Critical/High/Medium/Low), PR URL.
 
-**>> Write output to**: `.workflows/<pr-name>/04-comment.md`
+**>> Phase complete** — write output to `.workflows/<pr-name>/04-comment.md`
 
 ---
 

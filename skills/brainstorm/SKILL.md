@@ -21,8 +21,15 @@ rules: [0, 1, 5, 6, 10, 16, 17]
 
 Three phases: **EXPLORE → EVALUATE → RECOMMEND**. Can run standalone or delegated from other workflows.
 
-> **Protocol**: Follow the execution protocol injected at session start.
-> Create `.workflows/current-state.md` before Phase 1. Write output + update state after EVERY phase. Never skip phases unless config allows.
+> **EXECUTION PROTOCOL — MANDATORY**
+> 1. **BEFORE Phase 1**: Create `.workflows/<topic>/` dir and `.workflows/current-state.md` with YAML frontmatter (workflow, feature, phase, phases list, started, updated, branch, output_dir, replan_count) + Phase History table + Context section
+> 2. **Execute phases IN ORDER** — never skip ahead
+> 3. **After EACH phase** — do ALL before moving on:
+>    - Write output file (path at end of each phase section)
+>    - Update `.workflows/current-state.md`: advance `phase`, mark completed, add new ACTIVE row, append decisions to Context
+>    - Print progress: `✓EXPLORE ▶EVALUATE ·RECOMMEND`
+> 4. Read `.workflows/config.yml` for project settings
+> **NEVER skip phases. NEVER proceed without writing output AND updating state.**
 
 ---
 
@@ -119,7 +126,7 @@ Present: `A: <name> — <summary>`, `B: ...`, `C: ...`. Ask: "Right options to e
 
 **Wait for confirmation.** Discard hard-constraint violations.
 
-**>> Write output to**: `.workflows/<topic>/01-explore.md`
+**>> Phase complete** — write output to `.workflows/<topic>/01-explore.md`
 
 ---
 
@@ -145,7 +152,7 @@ For any score of 1-2: "Option A scored 2 on Risk — deal-breaker? Acceptable, o
 - **Standard**: "Top 3 ways the leading option could fail?" Discuss mitigations.
 - **Deep**: Six Thinking Hats on top 2, one hat at a time.
 
-**>> Write output to**: `.workflows/<topic>/02-evaluate.md`
+**>> Phase complete** — write output to `.workflows/<topic>/02-evaluate.md`
 
 ---
 
@@ -167,7 +174,7 @@ Options: (1) go with it, (2) different option, (3) go deeper, (4) combine elemen
 
 Once confirmed: chosen approach, rationale, constraints satisfied, risks with mitigations, next steps.
 
-**>> Write output to**: `.workflows/<topic>/03-recommend.md`
+**>> Phase complete** — write output to `.workflows/<topic>/03-recommend.md`
 
 ---
 

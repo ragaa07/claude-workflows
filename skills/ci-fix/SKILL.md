@@ -14,8 +14,15 @@ rules: [0, 1, 3, 4, 5, 6, 7, 10, 11, 12, 17]
 
 ---
 
-> **Protocol**: Follow the execution protocol injected at session start.
-> Create `.workflows/current-state.md` before Phase 1. Write output + update state after EVERY phase. Never skip phases unless config allows.
+> **EXECUTION PROTOCOL — MANDATORY**
+> 1. **BEFORE Phase 1**: Create `.workflows/<description>/` dir and `.workflows/current-state.md` with YAML frontmatter (workflow, feature, phase, phases list, started, updated, branch, output_dir, replan_count) + Phase History table + Context section
+> 2. **Execute phases IN ORDER** — never skip ahead
+> 3. **After EACH phase** — do ALL before moving on:
+>    - Write output file (path at end of each phase section)
+>    - Update `.workflows/current-state.md`: advance `phase`, mark completed, add new ACTIVE row, append decisions to Context
+>    - Print progress: `✓FETCH ▶DIAGNOSE ·FIX ·PUSH ·MONITOR`
+> 4. Read `.workflows/config.yml` for project settings
+> **NEVER skip phases. NEVER proceed without writing output AND updating state.**
 
 ## Phases
 
@@ -28,7 +35,7 @@ Retrieve CI failure details.
 3. If neither: `gh run list --status failure --limit 5` and ask user which to investigate
 4. Capture full failure output for diagnosis
 
-**>> Write output to**: `.workflows/<description>/01-fetch.md`
+**>> Phase complete** — write output to `.workflows/<description>/01-fetch.md`
 
 ### Phase 2: DIAGNOSE
 
@@ -48,7 +55,7 @@ Classify failure by parsing log output. Read `<plugin-root>/rules/` for language
 2. Extract error message, file path, line number when available
 3. Present diagnosis: category, root cause, affected files
 
-**>> Write output to**: `.workflows/<description>/02-diagnose.md` (category, root cause, affected files)
+**>> Phase complete** — write output to `.workflows/<description>/02-diagnose.md` (category, root cause, affected files)
 
 ### Phase 3: FIX
 
@@ -63,7 +70,7 @@ Apply targeted fix based on diagnosis.
 | **Config Error** | Identify missing config/secret/file; inform user (cannot auto-create secrets) |
 | **Timeout** | Suggest optimizations (caching, parallelism, test splitting); provide recommendations |
 
-**>> Write output to**: `.workflows/<description>/03-fix.md` (changes made, approach)
+**>> Phase complete** — write output to `.workflows/<description>/03-fix.md` (changes made, approach)
 
 ### Phase 4: PUSH
 
@@ -74,7 +81,7 @@ Commit and push the fix.
 3. Push to current branch
 4. Note open PR number if applicable
 
-**>> Write output to**: `.workflows/<description>/04-push.md` (commit hash, branch, PR)
+**>> Phase complete** — write output to `.workflows/<description>/04-push.md` (commit hash, branch, PR)
 
 ### Phase 5: MONITOR
 
@@ -84,6 +91,6 @@ Verify the fix resolved the CI failure.
 2. Or check status: `gh run list --branch <current-branch> --limit 3`
 3. **Retry on failure**: If CI fails again, re-read the new failure log and apply a targeted fix. Commit and push. Check status again. Max 3 total fix attempts across the workflow. After 3, STOP and present the failure details to the user.
 
-**>> Write output to**: `.workflows/<description>/05-monitor.md` (CI run status, pass/fail)
+**>> Phase complete** — write output to `.workflows/<description>/05-monitor.md` (CI run status, pass/fail)
 
 

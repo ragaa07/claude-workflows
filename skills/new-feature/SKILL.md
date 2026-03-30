@@ -20,8 +20,15 @@ rules: [0, 1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 15, 16, 17]
 
 **Config**: Read `.workflows/config.yml` for `project.language`, `project.type`, `git.branches.*`, and `workflows.new-feature.*`. Fall back to user plugin settings, then `<plugin-root>/config/defaults.yml`.
 
-> **Protocol**: Follow the execution protocol injected at session start.
-> Create `.workflows/current-state.md` before Phase 1. Write output + update state after EVERY phase. Never skip phases unless config allows.
+> **EXECUTION PROTOCOL — MANDATORY**
+> 1. **BEFORE Phase 1**: Create `.workflows/<name>/` dir and `.workflows/current-state.md` with YAML frontmatter (workflow, feature, phase, phases list, started, updated, branch, output_dir, replan_count) + Phase History table + Context section + Constraints section
+> 2. **Execute phases IN ORDER** — never skip ahead to implementation
+> 3. **After EACH phase** — do ALL before moving on:
+>    - Write output file (path at end of each phase section)
+>    - Update `.workflows/current-state.md`: advance `phase`, mark completed, add new ACTIVE row, append decisions to Context
+>    - Print progress: `✓GATHER ▶SPEC ·BRAINSTORM ·PLAN ·BRANCH ·IMPLEMENT ·TEST ·PR`
+> 4. Read `.workflows/config.yml` for project settings and skip flags
+> **NEVER skip phases unless explicitly allowed. NEVER proceed without writing output AND updating state.**
 
 ---
 
@@ -65,7 +72,7 @@ Announce: "Estimated complexity: [depth]. Adjusting workflow accordingly." User 
 
 Do NOT proceed if acceptance criteria are undefined. List missing info and ask user to provide or confirm.
 
-**>> Write output to**: `.workflows/<name>/01-gather.md`
+**>> Phase complete** — write output to `.workflows/<name>/01-gather.md`
 
 ---
 
@@ -94,7 +101,7 @@ Present spec summary. Ask: "Review the spec. Reply with changes or 'approved' to
 - Approved: proceed.
 - Rejected 3+ times: ask if feature scope needs rethinking.
 
-**>> Write output to**: `.workflows/<name>/02-spec.md`
+**>> Phase complete** — write output to `.workflows/<name>/02-spec.md`
 
 ---
 
@@ -116,7 +123,7 @@ Delegation parameters:
 
 User selects an approach. Document choice under "## Chosen Approach" in the spec.
 
-**>> Write output to**: `.workflows/<name>/03-brainstorm.md`
+**>> Phase complete** — write output to `.workflows/<name>/03-brainstorm.md`
 
 ---
 
@@ -173,7 +180,7 @@ Present plan summary. Ask: "Review the plan. Reply with changes or 'approved' to
 
 If `tasks/todo.md` exists, add feature to it with a checkable item per phase.
 
-**>> Write output to**: `.workflows/<name>/04-plan.md`
+**>> Phase complete** — write output to `.workflows/<name>/04-plan.md`
 
 ---
 
@@ -192,7 +199,7 @@ If `tasks/todo.md` exists, add feature to it with a checkable item per phase.
 
 **Error handling**: Dirty tree → tell user to stash. Branch exists → ask to switch or rename. Dev branch behind → pull first.
 
-**>> Write output to**: `.workflows/<name>/05-branch.md`
+**>> Phase complete** — write output to `.workflows/<name>/05-branch.md`
 
 ---
 
@@ -219,7 +226,7 @@ For each phase in the plan:
 5. **Checkpoint** (Rule 11): record files changed, commit hash, status.
 6. **Continue**: proceed automatically for straightforward phases. For complex phases, confirm with user.
 
-**>> Write output to**: `.workflows/<name>/06-implement.md` (files changed, commits, issues encountered)
+**>> Phase complete** — write output to `.workflows/<name>/06-implement.md` (files changed, commits, issues encountered)
 
 ---
 
@@ -240,7 +247,7 @@ For each phase in the plan:
    - Feature works as specified
    - No regressions
 
-**>> Write output to**: `.workflows/<name>/07-test.md`
+**>> Phase complete** — write output to `.workflows/<name>/07-test.md`
 
 ---
 
@@ -271,7 +278,7 @@ Load checklists proportional to change size. Self-check applicable items. Fix Cr
 
 Print: branch name, PR URL, commit count, files created/modified, spec path, plan path. Suggest next steps.
 
-**>> Write output to**: `.workflows/<name>/08-pr.md`
+**>> Phase complete** — write output to `.workflows/<name>/08-pr.md`
 
 ---
 

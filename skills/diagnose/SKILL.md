@@ -16,8 +16,15 @@ Systematic bug investigation. Not a fix workflow — this FINDS the root cause a
 
 **Phases**: REPRODUCE → HYPOTHESIZE → NARROW → ROOT-CAUSE
 
-> **Protocol**: Follow the execution protocol injected at session start.
-> Create `.workflows/current-state.md` before Phase 1. Write output + update state after EVERY phase. Never skip phases unless config allows.
+> **EXECUTION PROTOCOL — MANDATORY**
+> 1. **BEFORE Phase 1**: Create `.workflows/<symptom>/` dir and `.workflows/current-state.md` with YAML frontmatter (workflow, feature, phase, phases list, started, updated, branch, output_dir, replan_count) + Phase History table + Context section
+> 2. **Execute phases IN ORDER** — never skip ahead
+> 3. **After EACH phase** — do ALL before moving on:
+>    - Write output file (path at end of each phase section)
+>    - Update `.workflows/current-state.md`: advance `phase`, mark completed, add new ACTIVE row, append decisions to Context
+>    - Print progress: `✓REPRODUCE ▶HYPOTHESIZE ·NARROW ·ROOT-CAUSE`
+> 4. Read `.workflows/config.yml` for project settings
+> **NEVER skip phases. NEVER proceed without writing output AND updating state.**
 
 ---
 
@@ -35,7 +42,7 @@ Systematic bug investigation. Not a fix workflow — this FINDS the root cause a
 
 **Gate**: If bug cannot be reproduced, ask user for more context. Do NOT proceed to hypothesize without a confirmed symptom.
 
-**>> Write output to**: `.workflows/<symptom>/01-reproduce.md`
+**>> Phase complete** — write output to `.workflows/<symptom>/01-reproduce.md`
 
 ---
 
@@ -55,7 +62,7 @@ Systematic bug investigation. Not a fix workflow — this FINDS the root cause a
 
 Ask user: "These are my top hypotheses. Any you'd rule out or add based on your knowledge?"
 
-**>> Write output to**: `.workflows/<symptom>/02-hypothesize.md`
+**>> Phase complete** — write output to `.workflows/<symptom>/02-hypothesize.md`
 
 ---
 
@@ -80,7 +87,7 @@ git bisect reset
 
 If all hypotheses eliminated: generate new ones based on what was learned. Max 2 rounds.
 
-**>> Write output to**: `.workflows/<symptom>/03-narrow.md`
+**>> Phase complete** — write output to `.workflows/<symptom>/03-narrow.md`
 
 ---
 
@@ -102,7 +109,7 @@ Fix approach: <1-2 sentence suggestion, NOT the implementation>
 
 Ask: "Root cause confirmed. Want to fix it now? Suggest: `/hotfix <description>` for urgent fixes or `/new-feature` if it needs design work."
 
-**>> Write output to**: `.workflows/<symptom>/04-root-cause.md`
+**>> Phase complete** — write output to `.workflows/<symptom>/04-root-cause.md`
 
 ---
 

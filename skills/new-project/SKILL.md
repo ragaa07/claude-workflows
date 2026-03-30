@@ -14,8 +14,15 @@ Four phases: **DETECT -> CONFIGURE -> GENERATE -> SETUP**
 
 **Note**: This skill supersedes `/claude-workflows:setup` — it performs full project detection plus setup. You do NOT need to run `/setup` separately if you use `/new-project`.
 
-> **Protocol**: Follow the execution protocol injected at session start.
-> Create `.workflows/current-state.md` before Phase 1. Write output + update state after EVERY phase. Never skip phases unless config allows.
+> **EXECUTION PROTOCOL — MANDATORY**
+> 1. **BEFORE Phase 1**: Create `.workflows/<project-name>/` dir and `.workflows/current-state.md` with YAML frontmatter (workflow, feature, phase, phases list, started, updated, branch, output_dir, replan_count) + Phase History table + Context section
+> 2. **Execute phases IN ORDER** — never skip ahead
+> 3. **After EACH phase** — do ALL before moving on:
+>    - Write output file (path at end of each phase section)
+>    - Update `.workflows/current-state.md`: advance `phase`, mark completed, add new ACTIVE row, append decisions to Context
+>    - Print progress: `✓DETECT ▶CONFIGURE ·GENERATE ·SETUP`
+> 4. Read `.workflows/config.yml` for project settings
+> **NEVER skip phases. NEVER proceed without writing output AND updating state.**
 
 ---
 
@@ -57,7 +64,7 @@ Search per category: architecture pattern (MVVM, Clean, etc.), DI framework, key
 
 If fewer than 3 attributes detected, ask user for manual input. Use `--preset` as fallback.
 
-**>> Write output to**: `.workflows/<project-name>/01-detect.md`
+**>> Phase complete** — write output to `.workflows/<project-name>/01-detect.md`
 
 ---
 
@@ -71,7 +78,7 @@ Display detection summary (stack, commands, CI, conventions, architecture). Ask:
 
 Create `.workflows/config.yml` from `<plugin-root>/config/defaults.yml` with: `project` (name, type, language), `git.branches` (main, development, feature/bugfix/hotfix/release patterns), `git.commits` (format, types), `git.pr` (base_branch). Populate from detected values.
 
-**>> Write output to**: `.workflows/<project-name>/02-configure.md`
+**>> Phase complete** — write output to `.workflows/<project-name>/02-configure.md`
 
 ---
 
@@ -87,7 +94,7 @@ Read back generated file. Verify commands are valid, paths exist, no placeholder
 
 If CLAUDE.md exists, ask: **overwrite**, **merge** (preserve custom, update detected), or **skip**.
 
-**>> Write output to**: `.workflows/<project-name>/03-generate.md`
+**>> Phase complete** — write output to `.workflows/<project-name>/03-generate.md`
 
 ---
 
@@ -108,7 +115,7 @@ Create `tasks/lessons.md` (with `# Lessons Learned` header).
 
 Print created files (CLAUDE.md, .workflows/config.yml, tasks/todo.md, tasks/lessons.md) and next steps: review CLAUDE.md, commit files, run `/claude-workflows:new-feature`.
 
-**>> Write output to**: `.workflows/<project-name>/04-setup.md`
+**>> Phase complete** — write output to `.workflows/<project-name>/04-setup.md`
 
 ---
 

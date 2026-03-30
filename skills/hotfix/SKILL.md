@@ -16,8 +16,15 @@ Emergency fix for production issues. Optimized for **SPEED**. No brainstorming. 
 
 **Prerequisites**: Clean git tree. Production branch: `--branch` flag > `workflows.hotfix.base_branch` in config > `git.branches.main`.
 
-> **Protocol**: Follow the execution protocol injected at session start.
-> Create `.workflows/current-state.md` before Phase 1. Write output + update state after EVERY phase. Never skip phases unless config allows.
+> **EXECUTION PROTOCOL — MANDATORY**
+> 1. **BEFORE Phase 1**: Create `.workflows/<description>/` dir and `.workflows/current-state.md` with YAML frontmatter (workflow, feature, phase, phases list, started, updated, branch, output_dir, replan_count) + Phase History table + Context section + Constraints section
+> 2. **Execute phases IN ORDER** — never skip ahead
+> 3. **After EACH phase** — do ALL before moving on:
+>    - Write output file (path at end of each phase section)
+>    - Update `.workflows/current-state.md`: advance `phase`, mark completed, add new ACTIVE row, append decisions to Context
+>    - Print progress: `✓DIAGNOSE ▶FIX ·REGRESSION-TEST ·PR ·CHERRY-PICK`
+> 4. Read `.workflows/config.yml` for project settings
+> **NEVER skip phases unless explicitly allowed. NEVER proceed without writing output AND updating state.**
 
 ---
 
@@ -43,7 +50,7 @@ Identify the exact crash cause in minimum time.
 
 Document: `"Root cause: <X> is null/invalid when <Y> because <Z>"`
 
-**>> Write output to**: `.workflows/<description>/01-diagnose.md`
+**>> Phase complete** — write output to `.workflows/<description>/01-diagnose.md`
 
 ---
 
@@ -74,7 +81,7 @@ Read `<plugin-root>/rules/` for project-specific conventions. Apply them.
 
 **Commit**: `fix: <short description>` with root cause in body.
 
-**>> Write output to**: `.workflows/<description>/02-fix.md`
+**>> Phase complete** — write output to `.workflows/<description>/02-fix.md`
 
 ---
 
@@ -86,7 +93,7 @@ Read `<plugin-root>/rules/` for project-specific conventions. Apply them.
 2. **Run tests**: affected module first, then full suite. Related failures → adjust fix. Unrelated → note but don't block.
 3. **Commit**: `test: add regression test for <crash description>`
 
-**>> Write output to**: `.workflows/<description>/03-regression-test.md`
+**>> Phase complete** — write output to `.workflows/<description>/03-regression-test.md`
 
 ---
 
@@ -98,7 +105,7 @@ Read `<plugin-root>/rules/` for project-specific conventions. Apply them.
 
 Push and create PR to production branch with: severity, root cause, fix description, files changed, regression test, checklist.
 
-**>> Write output to**: `.workflows/<description>/04-pr.md`
+**>> Phase complete** — write output to `.workflows/<description>/04-pr.md`
 
 ---
 
@@ -110,7 +117,7 @@ Preview conflicts: `git log <prod>..<dev> -- <changed-files>`. Warn if diverged.
 
 Ask: "Cherry-pick now, or handle after merge?"
 
-**>> Write output to**: `.workflows/<description>/05-cherry-pick.md`
+**>> Phase complete** — write output to `.workflows/<description>/05-cherry-pick.md`
 
 ---
 

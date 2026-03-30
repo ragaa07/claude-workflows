@@ -12,8 +12,15 @@ rules: [0, 1, 3, 4, 5, 6, 10, 12, 17]
 
 If `--type` is provided instead of an explicit version, auto-calculate the next version from the latest git tag using semver rules.
 
-> **Protocol**: Follow the execution protocol injected at session start.
-> Create `.workflows/current-state.md` before Phase 1. Write output + update state after EVERY phase. Never skip phases unless config allows.
+> **EXECUTION PROTOCOL — MANDATORY**
+> 1. **BEFORE Phase 1**: Create `.workflows/<version>/` dir and `.workflows/current-state.md` with YAML frontmatter (workflow, feature, phase, phases list, started, updated, branch, output_dir, replan_count) + Phase History table + Context section
+> 2. **Execute phases IN ORDER** — never skip ahead
+> 3. **After EACH phase** — do ALL before moving on:
+>    - Write output file (path at end of each phase section)
+>    - Update `.workflows/current-state.md`: advance `phase`, mark completed, add new ACTIVE row, append decisions to Context
+>    - Print progress: `✓CHANGELOG ▶VERSION-BUMP ·RELEASE-BRANCH ·PR ·TAG`
+> 4. Read `.workflows/config.yml` for project settings
+> **NEVER skip phases. NEVER proceed without writing output AND updating state.**
 
 ---
 
@@ -33,7 +40,7 @@ Generate changelog from git history since last tag.
 5. Prepend entry to CHANGELOG.md (create if missing)
 6. Present to user for review before proceeding
 
-**>> Write output to**: `.workflows/<version>/01-changelog.md`
+**>> Phase complete** — write output to `.workflows/<version>/01-changelog.md`
 
 ### Phase 2: VERSION-BUMP
 
@@ -54,7 +61,7 @@ Bump version in the project's version file.
 4. Show diff and confirm with user
 5. Commit: `chore(version): bump to {version}`
 
-**>> Write output to**: `.workflows/<version>/02-version-bump.md` (old version, new version, files changed)
+**>> Phase complete** — write output to `.workflows/<version>/02-version-bump.md` (old version, new version, files changed)
 
 ### Phase 3: RELEASE-BRANCH
 
@@ -67,7 +74,7 @@ Create release branch from development branch.
 5. Cherry-pick/merge version bump and changelog commits if not present
 6. Push release branch to remote
 
-**>> Write output to**: `.workflows/<version>/03-release-branch.md`
+**>> Phase complete** — write output to `.workflows/<version>/03-release-branch.md`
 
 ### Phase 4: PR
 
@@ -81,7 +88,7 @@ Create pull request from release branch to production.
 4. Create via `gh pr create`
 5. Output PR URL
 
-**>> Write output to**: `.workflows/<version>/04-pr.md` (URL, summary)
+**>> Phase complete** — write output to `.workflows/<version>/04-pr.md` (URL, summary)
 
 ### Phase 5: TAG
 
@@ -91,7 +98,7 @@ After PR is merged, provide tagging commands.
 2. Tag: `git tag -a v{version} -m "Release v{version}" && git push origin v{version}`
 3. Optional: `gh release create v{version} --title "v{version}" --notes "See CHANGELOG.md"`
 
-**>> Write output to**: `.workflows/<version>/05-tag.md`
+**>> Phase complete** — write output to `.workflows/<version>/05-tag.md`
 
 ## Configuration
 

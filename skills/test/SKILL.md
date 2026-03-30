@@ -14,8 +14,15 @@ rules: [0, 1, 3, 4, 5, 6, 7, 10, 11, 12, 17]
 
 **Before starting**: Read `<plugin-root>/rules/` for language-specific testing conventions. Scan build files to detect test framework, runner, mocking library, and coverage tooling.
 
-> **Protocol**: Follow the execution protocol injected at session start.
-> Create `.workflows/current-state.md` before Phase 1. Write output + update state after EVERY phase. Never skip phases unless config allows.
+> **EXECUTION PROTOCOL — MANDATORY**
+> 1. **BEFORE Phase 1**: Create `.workflows/<target>/` dir and `.workflows/current-state.md` with YAML frontmatter (workflow, feature, phase, phases list, started, updated, branch, output_dir, replan_count) + Phase History table + Context section
+> 2. **Execute phases IN ORDER** — never skip ahead
+> 3. **After EACH phase** — do ALL before moving on:
+>    - Write output file (path at end of each phase section)
+>    - Update `.workflows/current-state.md`: advance `phase`, mark completed, add new ACTIVE row, append decisions to Context
+>    - Print progress: `✓ANALYZE ▶PLAN ·WRITE ·VERIFY ·REPORT`
+> 4. Read `.workflows/config.yml` for project settings
+> **NEVER skip phases. NEVER proceed without writing output AND updating state.**
 
 ---
 
@@ -55,7 +62,7 @@ functionName(params)
 ### 1.5 Check Existing Tests
 Search for existing test files. If found, document covered branches and identify gaps against 1.4.
 
-**>> Write output to**: `.workflows/<target>/01-analyze.md`.
+**>> Phase complete** — write output to `.workflows/<target>/01-analyze.md`.
 
 ---
 
@@ -73,7 +80,7 @@ Count total branches vs planned tests. If expected coverage < target, add cases.
 ### 2.4 File Structure
 Group tests by function/behavior. For `module:` or `feature:` targets, plan multiple files.
 
-**>> Write output to**: `.workflows/<target>/02-plan.md`.
+**>> Phase complete** — write output to `.workflows/<target>/02-plan.md`.
 
 ---
 
@@ -91,7 +98,7 @@ Include where applicable: null/nil/undefined, empty collections, boundary values
 ### 3.4 Compile/Lint
 Run build or lint. Fix any compilation errors in test code.
 
-**>> Write output to**: `.workflows/<target>/03-write.md`.
+**>> Phase complete** — write output to `.workflows/<target>/03-write.md`.
 
 ---
 
@@ -109,7 +116,7 @@ Each test: tests ONE behavior, uses Given/When/Then naming, mocks only outside b
 ### 4.4 Coverage
 Run coverage tool if available. Compare against target from `--coverage` flag or `workflows.test.default_coverage` in config.
 
-**>> Write output to**: `.workflows/<target>/04-verify.md`.
+**>> Phase complete** — write output to `.workflows/<target>/04-verify.md`.
 
 ---
 
@@ -136,7 +143,7 @@ git add <test-files>
 git commit -m "test(<scope>): add tests for <target> (<coverage>% coverage)"
 ```
 
-**>> Write output to**: `.workflows/<target>/05-report.md`.
+**>> Phase complete** — write output to `.workflows/<target>/05-report.md`.
 
 Rule 5 handles completion after the last phase.
 

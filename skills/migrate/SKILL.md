@@ -10,8 +10,15 @@ rules: [0, 1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 16, 17]
 
 Where `<type>` is one of: `dependency`, `api-version`, `architecture`, `database`
 
-> **Protocol**: Follow the execution protocol injected at session start.
-> Create `.workflows/current-state.md` before Phase 1. Write output + update state after EVERY phase. Never skip phases unless config allows.
+> **EXECUTION PROTOCOL — MANDATORY**
+> 1. **BEFORE Phase 1**: Create `.workflows/<type>/` dir and `.workflows/current-state.md` with YAML frontmatter (workflow, feature, phase, phases list, started, updated, branch, output_dir, replan_count) + Phase History table + Context section
+> 2. **Execute phases IN ORDER** — never skip ahead
+> 3. **After EACH phase** — do ALL before moving on:
+>    - Write output file (path at end of each phase section)
+>    - Update `.workflows/current-state.md`: advance `phase`, mark completed, add new ACTIVE row, append decisions to Context
+>    - Print progress: `✓ANALYZE ▶BRAINSTORM ·PLAN ·EXECUTE ·VERIFY ·PR`
+> 4. Read `.workflows/config.yml` for project settings and skip flags
+> **NEVER skip phases unless explicitly allowed. NEVER proceed without writing output AND updating state.**
 
 ---
 
@@ -32,7 +39,7 @@ Document current state before any changes.
 | `architecture` | Current pattern, target pattern, boundary identification |
 | `database` | Current schema, target schema, data volume estimates |
 
-**>> Write output to**: `.workflows/<type>/01-analyze.md`
+**>> Phase complete** — write output to `.workflows/<type>/01-analyze.md`
 
 ## Phase 2: BRAINSTORM
 
@@ -40,7 +47,7 @@ Document current state before any changes.
 
 Inline brainstorm (Rule 9): constraints → evaluate strategies (big bang, incremental, parallel run, strangler fig) → score risks → recommend.
 
-**>> Write output to**: `.workflows/<type>/02-brainstorm.md`
+**>> Phase complete** — write output to `.workflows/<type>/02-brainstorm.md`
 
 ## Phase 3: PLAN
 
@@ -48,19 +55,19 @@ Create incremental plan where each step is independently safe. Every step MUST c
 
 Write plan to `.workflows/<type>/plan.md` (this standalone file is the executable plan, referenced by EXECUTE and resume. The phase output `03-plan.md` captures the planning summary and approval).
 
-**>> Write output to**: `.workflows/<type>/03-plan.md`
+**>> Phase complete** — write output to `.workflows/<type>/03-plan.md`
 
 ## Phase 4: EXECUTE
 
 Per step: apply changes → compile → test → fix if needed (max 3, then STOP) → commit → report. Read `<plugin-root>/rules/` before starting.
 
-**>> Write output to**: `.workflows/<type>/04-execute.md`
+**>> Phase complete** — write output to `.workflows/<type>/04-execute.md`
 
 ## Phase 5: VERIFY
 
 Full test suite + full build + manual verification checklist + check for leftover TODOs/deprecated refs + linters.
 
-**>> Write output to**: `.workflows/<type>/05-verify.md`
+**>> Phase complete** — write output to `.workflows/<type>/05-verify.md`
 
 ## Phase 6: PR
 
@@ -68,7 +75,7 @@ Full test suite + full build + manual verification checklist + check for leftove
 
 PR body: summary, migration details (before/after table), steps applied, rollback plan, testing, breaking changes.
 
-**>> Write output to**: `.workflows/<type>/06-pr.md`
+**>> Phase complete** — write output to `.workflows/<type>/06-pr.md`
 
 ---
 

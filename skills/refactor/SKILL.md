@@ -14,8 +14,15 @@ Restructure existing code while preserving all external behavior. **Phases**: AN
 
 **Core principle**: Identical outputs for identical inputs. Every step must compile and pass tests. Breaks behavior → roll back.
 
-> **Protocol**: Follow the execution protocol injected at session start.
-> Create `.workflows/current-state.md` before Phase 1. Write output + update state after EVERY phase. Never skip phases unless config allows.
+> **EXECUTION PROTOCOL — MANDATORY**
+> 1. **BEFORE Phase 1**: Create `.workflows/<target>/` dir and `.workflows/current-state.md` with YAML frontmatter (workflow, feature, phase, phases list, started, updated, branch, output_dir, replan_count) + Phase History table + Context section
+> 2. **Execute phases IN ORDER** — never skip ahead
+> 3. **After EACH phase** — do ALL before moving on:
+>    - Write output file (path at end of each phase section)
+>    - Update `.workflows/current-state.md`: advance `phase`, mark completed, add new ACTIVE row, append decisions to Context
+>    - Print progress: `✓ANALYZE ▶BRAINSTORM ·CONTRACT ·DESIGN ·MIGRATE ·VERIFY ·PR`
+> 4. Read `.workflows/config.yml` for project settings and skip flags
+> **NEVER skip phases unless explicitly allowed. NEVER proceed without writing output AND updating state.**
 
 ---
 
@@ -29,7 +36,7 @@ Restructure existing code while preserving all external behavior. **Phases**: AN
 4. **Map public API surface** — Every public member: functions, properties, types
 5. **Measure current state** — LOC, public member count, complexity estimate, dependent count, test coverage
 
-**>> Write output to**: `.workflows/<target>/01-analyze.md`
+**>> Phase complete** — write output to `.workflows/<target>/01-analyze.md`
 
 ---
 
@@ -39,7 +46,7 @@ Restructure existing code while preserving all external behavior. **Phases**: AN
 
 Run brainstorm inline (Rule 9): Constraint Mapping → Generate Options → Trade-off Matrix (blast radius as highest weight) → Recommend. Lowest blast radius wins ties.
 
-**>> Write output to**: `.workflows/<target>/02-brainstorm.md`
+**>> Phase complete** — write output to `.workflows/<target>/02-brainstorm.md`
 
 ---
 
@@ -53,7 +60,7 @@ Map every test assertion to an invariant. Missing coverage → add tests BEFORE 
 
 Present contract. Ask: "Does this capture all expected behaviors?"
 
-**>> Write output to**: `.workflows/<target>/03-contract.md`
+**>> Phase complete** — write output to `.workflows/<target>/03-contract.md`
 
 ---
 
@@ -69,7 +76,7 @@ Present contract. Ask: "Does this capture all expected behaviors?"
 
 Present plan. Ask: "Approve migration plan or request changes?"
 
-**>> Write output to**: `.workflows/<target>/04-design.md`
+**>> Phase complete** — write output to `.workflows/<target>/04-design.md`
 
 ---
 
@@ -81,7 +88,7 @@ Per step: Read → Implement (this step ONLY) → Compile (fail → revert, max 
 
 **Parallel deprecation**: Create new alongside old → mark old deprecated → migrate consumers → delete old → verify no references.
 
-**>> Write output to**: `.workflows/<target>/05-migrate.md`
+**>> Phase complete** — write output to `.workflows/<target>/05-migrate.md`
 
 ---
 
@@ -94,7 +101,7 @@ Per step: Read → Implement (this step ONLY) → Compile (fail → revert, max 
 3. Metrics comparison — before/after: LOC, public members, dependents, test count
 4. Cleanup check — no deprecation markers, unused imports, dead code, refactor TODOs
 
-**>> Write output to**: `.workflows/<target>/06-verify.md`
+**>> Phase complete** — write output to `.workflows/<target>/06-verify.md`
 
 ---
 
@@ -104,7 +111,7 @@ Per step: Read → Implement (this step ONLY) → Compile (fail → revert, max 
 
 PR body: summary, motivation, approach, contract verification, per-step changes, metrics table, rollback plan (`git revert <first>..<last>`).
 
-**>> Write output to**: `.workflows/<target>/07-pr.md`
+**>> Phase complete** — write output to `.workflows/<target>/07-pr.md`
 
 ---
 
