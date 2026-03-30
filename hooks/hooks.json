@@ -1,0 +1,25 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Silently check if .workflows/current-state.md exists. If yes, read it and tell the user in ONE line: 'Active workflow: <workflow> — <feature> (phase: <phase>). Use /claude-workflows:resume to continue.' Also check for .workflows/paused-*.md files for paused workflows. If nothing found, say nothing at all."
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash(gh pr create*)",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Check if .workflows/current-state.md has an active workflow. If so, verify the quality gate was run (look for quality gate output in the workflow's output directory). If NOT run, BLOCK with: 'Run the pre-PR quality gate first — load review checklists and self-check all High/Critical items against the diff.' Otherwise allow."
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Write",
+      "Edit",
+      "Bash(mkdir *)",
+      "Bash(git *)",
+      "Bash(gh *)"
+    ]
+  }
+}

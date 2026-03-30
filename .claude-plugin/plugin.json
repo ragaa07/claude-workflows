@@ -1,0 +1,53 @@
+{
+  "name": "claude-workflows",
+  "version": "3.0.0",
+  "description": "Structured development workflows for Claude Code — 20 skills, quality gates, multi-session state, team extensibility.",
+  "author": {
+    "name": "ragaa07",
+    "url": "https://github.com/ragaa07"
+  },
+  "license": "MIT",
+  "homepage": "https://ragaa07.github.io/claude-workflows/",
+  "repository": "https://github.com/ragaa07/claude-workflows",
+  "keywords": [
+    "workflows",
+    "development",
+    "quality",
+    "code-review",
+    "testing",
+    "refactoring",
+    "ci-cd"
+  ],
+  "userConfig": {
+    "project_type": {
+      "type": "string",
+      "title": "Project Type",
+      "description": "Project type: android, react, python, swift, go, generic (determines language rules and review checklists)",
+      "sensitive": false
+    },
+    "team": {
+      "type": "string",
+      "title": "Team",
+      "description": "Team: android, ios, frontend, backend, none (loads team-specific conventions)",
+      "sensitive": false
+    },
+    "git_main_branch": {
+      "type": "string",
+      "title": "Main Branch",
+      "description": "Production branch name (default: main)",
+      "sensitive": false
+    },
+    "git_dev_branch": {
+      "type": "string",
+      "title": "Development Branch",
+      "description": "Development branch name (default: develop)",
+      "sensitive": false
+    },
+    "commit_format": {
+      "type": "string",
+      "title": "Commit Format",
+      "description": "Commit format: conventional, angular, simple (default: conventional)",
+      "sensitive": false
+    }
+  }
+}
