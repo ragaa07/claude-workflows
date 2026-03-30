@@ -8,9 +8,9 @@
   "plugins": [
     {
       "name": "claude-workflows",
-      "source": "./",
+      "source": ".",
       "description": "23 workflow skills with quality gates, multi-session state, and team extensibility.",
-      "version": "3.0.0"
+      "version": "3.1.0"
     }
   ]
 }
