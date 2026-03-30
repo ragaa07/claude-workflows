@@ -272,7 +272,7 @@
     &mdash; across multiple sessions, without losing context.
   </p>
   <div class="hero-cmd">
-    <span class="dim">$</span> npx claude-dev-workflows init <span class="dim">--type</span> android
+    <span class="dim">$</span> claude plugin install <span class="ev-str">ragaa07/claude-workflows</span>
   </div>
 </header>
 
@@ -342,7 +342,7 @@
       <h3>Skills: Step-by-Step Instructions</h3>
       <p>
         Each workflow is a <strong>skill</strong> &mdash; a markdown file with detailed phase-by-phase
-        instructions that Claude follows. When you type <code>/new-feature</code>, Claude reads the skill
+        instructions that Claude follows. When you type <code>/claude-workflows:new-feature</code>, Claude reads the skill
         and executes each phase in order, writing output documents and updating state along the way.
       </p>
       <ul class="check">
@@ -350,12 +350,12 @@
         <li>Each skill has 3-8 phases with approval gates</li>
         <li>Phase outputs persist as markdown for context recovery</li>
         <li>Skills compose &mdash; new-feature delegates to brainstorm</li>
-        <li>Create your own skills with /compose-skill</li>
+        <li>Create your own skills with /claude-workflows:compose-skill</li>
       </ul>
     </div>
     <div class="explainer-visual">
       <div class="ev-line"><span class="ev-num">1</span><span class="ev-cmt"># You type:</span></div>
-      <div class="ev-line"><span class="ev-num">2</span><span class="ev-kw">/new-feature</span> <span class="ev-str">user-authentication</span></div>
+      <div class="ev-line"><span class="ev-num">2</span><span class="ev-kw">/claude-workflows:new-feature</span> <span class="ev-str">user-authentication</span></div>
       <div class="ev-line"><span class="ev-num">3</span></div>
       <div class="ev-line"><span class="ev-num">4</span><span class="ev-cmt"># Claude executes 8 phases:</span></div>
       <div class="ev-line"><span class="ev-num">5</span><span class="ev-val">Phase 1: GATHER</span> <span class="ev-cmt">— collects requirements</span></div>
@@ -387,7 +387,7 @@
       </ul>
     </div>
     <div class="explainer-visual">
-      <div class="ev-line"><span class="ev-num"></span><span class="ev-cmt"># .claude/rules/kotlin.md</span></div>
+      <div class="ev-line"><span class="ev-num"></span><span class="ev-cmt"># plugin-bundled rules/kotlin.md</span></div>
       <div class="ev-line"><span class="ev-num"></span></div>
       <div class="ev-line"><span class="ev-num"></span><span class="ev-kw">## Null Safety</span></div>
       <div class="ev-line"><span class="ev-num"></span><span class="ev-str">DO:</span> Use <span class="ev-val">?.let {}</span>, Elvis <span class="ev-val">?:</span>, requireNotNull()</div>
@@ -480,7 +480,7 @@
 
   <div class="flow-visual reveal">
     <div class="flow-row">
-      <span class="fn green">/start</span>
+      <span class="fn green">/claude-workflows:start</span>
       <span class="fa">&rarr;</span>
       <span class="fn purple">GATHER</span>
       <span class="fa">&rarr;</span>
@@ -526,7 +526,7 @@
       <h4>New Feature</h4>
       <div class="desc">Complete feature lifecycle from requirements to merged PR</div>
       <div class="what"><strong>What it does:</strong> Gathers requirements (from Jira, Figma, or interactively), writes a formal spec, brainstorms implementation approaches with you, creates a phased plan ordered by architecture layers, builds it commit-by-commit with build checks, runs tests, then creates a PR after passing quality gates.</div>
-      <div class="cmd">/new-feature &lt;name&gt;</div>
+      <div class="cmd">/claude-workflows:new-feature &lt;name&gt;</div>
     </div>
 
     <div class="wf-item">
@@ -534,7 +534,7 @@
       <h4>Hotfix</h4>
       <div class="desc">Emergency production fix, optimized for speed</div>
       <div class="what"><strong>What it does:</strong> Diagnoses the crash from stack traces, Crashlytics, or log files. Pinpoints the root cause. Applies the absolute minimum fix (1-5 lines ideal, warns if >15). Writes a mandatory regression test that fails without the fix. Creates PR to production with cherry-pick plan for dev branch.</div>
-      <div class="cmd">/hotfix &lt;description&gt;</div>
+      <div class="cmd">/claude-workflows:hotfix &lt;description&gt;</div>
     </div>
 
     <div class="wf-item">
@@ -542,7 +542,7 @@
       <h4>Refactor</h4>
       <div class="desc">Restructure code with behavioral guarantees</div>
       <div class="what"><strong>What it does:</strong> Maps the full dependency graph (inbound + outbound). Documents a behavioral contract BEFORE touching code. Plans an incremental migration where every step compiles and passes tests. Uses parallel deprecation: new code alongside old, migrate consumers one by one, delete old only when zero references remain.</div>
-      <div class="cmd">/refactor &lt;target&gt;</div>
+      <div class="cmd">/claude-workflows:refactor &lt;target&gt;</div>
     </div>
 
     <div class="wf-item">
@@ -550,7 +550,7 @@
       <h4>Code Review</h4>
       <div class="desc">Systematic PR review with inline comments</div>
       <div class="what"><strong>What it does:</strong> Fetches the PR diff, categorizes files by architecture layer, reads each changed file in full (not just the diff). Checks against loaded checklists with 4 severity levels: error (blocks), warning, suggestion, nitpick. Generates inline comments with actionable fixes. Submits via GitHub API.</div>
-      <div class="cmd">/review &lt;pr-number&gt;</div>
+      <div class="cmd">/claude-workflows:review &lt;pr-number&gt;</div>
     </div>
 
     <div class="wf-item">
@@ -558,7 +558,7 @@
       <h4>Brainstorm</h4>
       <div class="desc">Interactive design exploration with structured techniques</div>
       <div class="what"><strong>What it does:</strong> Facilitates a collaborative conversation (never solo analysis). Uses techniques: Trade-off Matrix, Six Thinking Hats, SCAMPER, Reverse Brainstorm, Constraint Mapping. Three depth levels based on complexity. Scores options with weighted criteria. Surfaces relevant past decisions from the knowledge graph. You decide &mdash; Claude facilitates.</div>
-      <div class="cmd">/brainstorm --topic "..."</div>
+      <div class="cmd">/claude-workflows:brainstorm --topic "..."</div>
     </div>
 
     <div class="wf-item">
@@ -566,7 +566,7 @@
       <h4>Test Generation</h4>
       <div class="desc">Coverage analysis, branch mapping, categorized tests</div>
       <div class="what"><strong>What it does:</strong> Analyzes the target's public API, maps every code branch (happy, error, edge, state, concurrency). Plans tests tagged [HAPPY] [ERROR] [EDGE] [STATE] [INTEGRATION]. Writes them with Given/When/Then naming. Runs coverage checks against a configurable target (default 90%). Reports gaps with reasons.</div>
-      <div class="cmd">/test &lt;target&gt;</div>
+      <div class="cmd">/claude-workflows:test &lt;target&gt;</div>
     </div>
 
     <div class="wf-item">
@@ -574,7 +574,7 @@
       <h4>Extend Feature</h4>
       <div class="desc">Add capabilities without breaking existing behavior</div>
       <div class="what"><strong>What it does:</strong> Analyzes the existing feature's code, identifies extension points where new behavior attaches without modifying existing code. Prefers new files over modifications. Guarantees: no signature changes, no test assertion changes, no behavior alterations. Runs full compatibility verification.</div>
-      <div class="cmd">/extend-feature &lt;name&gt;</div>
+      <div class="cmd">/claude-workflows:extend-feature &lt;name&gt;</div>
     </div>
 
     <div class="wf-item">
@@ -582,7 +582,7 @@
       <h4>CI Fix</h4>
       <div class="desc">Auto-diagnose and fix failing CI/CD pipelines</div>
       <div class="what"><strong>What it does:</strong> Fetches CI failure logs via <code>gh</code> CLI. Classifies: compile error, test failure, lint violation, dependency issue, config error, timeout, or flaky test. Applies targeted fix per category. Pushes and monitors the retry. If it fails again, loops up to 3 times with new diagnosis each round.</div>
-      <div class="cmd">/ci-fix</div>
+      <div class="cmd">/claude-workflows:ci-fix</div>
     </div>
 
     <div class="wf-item">
@@ -590,7 +590,7 @@
       <h4>Migrate</h4>
       <div class="desc">Dependencies, APIs, architecture, databases</div>
       <div class="what"><strong>What it does:</strong> Documents current state before any changes. Evaluates migration strategies (big bang, incremental, parallel run, strangler fig). Creates a plan where every step independently compiles and passes tests. Type-specific guidance: dependency version bumps, API version swaps, architectural pattern migrations, database schema changes with reversible migrations.</div>
-      <div class="cmd">/migrate &lt;type&gt;</div>
+      <div class="cmd">/claude-workflows:migrate &lt;type&gt;</div>
     </div>
 
     <div class="wf-item">
@@ -598,23 +598,23 @@
       <h4>Release</h4>
       <div class="desc">Changelog, version bump, branch, PR, tag</div>
       <div class="what"><strong>What it does:</strong> Generates changelog from git history categorized by conventional commit type. Detects and bumps version in the right file (build.gradle, package.json, Cargo.toml, pyproject.toml, etc.). Creates release branch, PR to production with quality gate, and provides tagging commands for post-merge.</div>
-      <div class="cmd">/release &lt;version&gt;</div>
+      <div class="cmd">/claude-workflows:release &lt;version&gt;</div>
     </div>
 
     <div class="wf-item">
       <div class="emoji">&#127968;</div>
       <h4>New Project</h4>
       <div class="desc">Bootstrap a project with full Claude Code setup</div>
-      <div class="what"><strong>What it does:</strong> Scans for build system markers (Gradle, npm, Cargo, go.mod, etc.), detects architecture patterns, extracts git conventions from history. Generates workflows.yml config and CLAUDE.md with build commands, architecture summary, and code conventions. Sets up task tracking scaffolding.</div>
-      <div class="cmd">/new-project</div>
+      <div class="what"><strong>What it does:</strong> Scans for build system markers (Gradle, npm, Cargo, go.mod, etc.), detects architecture patterns, extracts git conventions from history. Generates .workflows/config.yml and CLAUDE.md with build commands, architecture summary, and code conventions. Sets up task tracking scaffolding.</div>
+      <div class="cmd">/claude-workflows:new-project</div>
     </div>
 
     <div class="wf-item">
       <div class="emoji">&#128195;</div>
       <h4>Templates</h4>
       <div class="desc">Reuse specs and plans from past workflows</div>
-      <div class="what"><strong>What it does:</strong> Save a completed workflow's spec + plan as a reusable template with parameter placeholders. Next time you build a similar feature, <code>/template use api-endpoint user-mgmt</code> pre-populates the spec and plan, skipping GATHER and SPEC entirely. Templates track usage count.</div>
-      <div class="cmd">/template save|list|use</div>
+      <div class="what"><strong>What it does:</strong> Save a completed workflow's spec + plan as a reusable template with parameter placeholders. Next time you build a similar feature, <code>/claude-workflows:template use api-endpoint user-mgmt</code> pre-populates the spec and plan, skipping GATHER and SPEC entirely. Templates track usage count.</div>
+      <div class="cmd">/claude-workflows:template save|list|use</div>
       <span class="wf-tag new">NEW</span>
     </div>
 
@@ -623,7 +623,7 @@
       <h4>Skill Composer</h4>
       <div class="desc">Build custom workflow skills interactively</div>
       <div class="what"><strong>What it does:</strong> Asks what the skill does, what phases it has, what each phase produces, whether it needs brainstorming or creates a PR. Generates a properly structured SKILL.md with YAML frontmatter, orchestration integration, phase output paths, and error handling. You fill in the phase-specific logic.</div>
-      <div class="cmd">/compose-skill &lt;name&gt;</div>
+      <div class="cmd">/claude-workflows:compose-skill &lt;name&gt;</div>
       <span class="wf-tag new">NEW</span>
     </div>
 
@@ -632,7 +632,7 @@
       <h4>Metrics</h4>
       <div class="desc">Track workflow velocity, bottlenecks, and trends</div>
       <div class="what"><strong>What it does:</strong> Reads telemetry data (JSON lines logged after every phase). Shows completion rates, average durations, bottleneck phases, and per-workflow breakdowns. <code>/metrics trends</code> compares your last 10 workflows vs previous 10 for velocity changes and REPLAN frequency.</div>
-      <div class="cmd">/metrics [trends]</div>
+      <div class="cmd">/claude-workflows:metrics [trends]</div>
       <span class="wf-tag new">NEW</span>
     </div>
 
@@ -641,7 +641,7 @@
       <h4>Git Flow</h4>
       <div class="desc">Branch, commit, PR, merge using your project's conventions</div>
       <div class="what"><strong>What it does:</strong> Creates branches from configured patterns (feature/{name}, hotfix/{name}). Validates commit messages against your format (conventional, angular, simple). Creates PRs with configured base branch, reviewers, labels, and draft mode. Merges with configured strategy (squash/merge/rebase). Warns on protected branches.</div>
-      <div class="cmd">/git-flow branch|commit|pr|merge</div>
+      <div class="cmd">/claude-workflows:git-flow branch|commit|pr|merge</div>
     </div>
 
     <div class="wf-item">
@@ -649,7 +649,7 @@
       <h4>Learn</h4>
       <div class="desc">Capture and reuse successful patterns</div>
       <div class="what"><strong>What it does:</strong> Extracts reusable patterns from completed workflows: architecture decisions, implementation patterns, testing strategies, problem resolutions. Stores as markdown with tags. Patterns used 2+ times are marked "proven" and surface automatically during future brainstorming sessions.</div>
-      <div class="cmd">/learn capture|list|apply</div>
+      <div class="cmd">/claude-workflows:learn capture|list|apply</div>
     </div>
 
     <div class="wf-item">
@@ -657,7 +657,7 @@
       <h4>Guards</h4>
       <div class="desc">Safety checks for credentials and dangerous operations</div>
       <div class="what"><strong>What it does:</strong> Scans staged files against configurable block/warn patterns from guards.yml. Detects hardcoded tokens (AKIA, sk-, ghp_, Bearer), protected path violations, and dangerous operations (rm -rf). BLOCK severity stops the operation. WARN prints but allows. Override logging for audit trails.</div>
-      <div class="cmd">/guards init|check|report</div>
+      <div class="cmd">/claude-workflows:guards init|check|report</div>
     </div>
   </div>
 </section>
@@ -673,7 +673,7 @@
   <div class="wf-showcase reveal">
     <div class="wf-item">
       <h4>&#128279; Workflow Chaining</h4>
-      <div class="what">Configure automatic workflow succession in YAML. After <code>/new-feature</code> completes, Claude suggests <code>/review --self</code>. After hotfix, suggests <code>/ci-fix</code>. Zero manual handoffs between related workflows.</div>
+      <div class="what">Configure automatic workflow succession in YAML. After <code>/claude-workflows:new-feature</code> completes, Claude suggests <code>/claude-workflows:review --self</code>. After hotfix, suggests <code>/claude-workflows:ci-fix</code>. Zero manual handoffs between related workflows.</div>
     </div>
     <div class="wf-item">
       <h4>&#128248; Context Snapshots</h4>
@@ -715,7 +715,7 @@
     <div class="gives-card">
       <div class="big" style="color:var(--accent);">&#128337;</div>
       <div class="big" style="color:var(--accent);font-size:1.5rem;">Continuity</div>
-      <div class="label">Close your laptop. Come back in 3 days. Type /resume. Claude knows exactly where you left off, what was decided, and what's next. Zero ramp-up time.</div>
+      <div class="label">Close your laptop. Come back in 3 days. Type /claude-workflows:resume. Claude knows exactly where you left off, what was decided, and what's next. Zero ramp-up time.</div>
     </div>
     <div class="gives-card">
       <div class="big" style="color:var(--accent4);">&#128170;</div>
@@ -748,17 +748,14 @@
   </div>
 
   <div class="explainer-visual reveal" style="max-width:700px;margin:0 auto;font-size:14px;">
-    <div class="ev-line"><span class="ev-cmt"># 1. Install into your project</span></div>
-    <div class="ev-line"><span class="ev-kw">$</span> npx <span class="ev-str">claude-dev-workflows</span> init <span class="ev-flag">--type</span> <span class="ev-val">android</span> <span class="ev-flag">--team</span> <span class="ev-val">android</span></div>
+    <div class="ev-line"><span class="ev-cmt"># 1. Install the plugin</span></div>
+    <div class="ev-line"><span class="ev-kw">$</span> claude plugin install <span class="ev-str">ragaa07/claude-workflows</span></div>
     <div class="ev-line">&nbsp;</div>
-    <div class="ev-line"><span class="ev-cmt"># 2. Customize for your project</span></div>
-    <div class="ev-line"><span class="ev-kw">$</span> <span class="ev-str">vim</span> .claude/workflows.yml</div>
+    <div class="ev-line"><span class="ev-cmt"># 2. Set up your project</span></div>
+    <div class="ev-line"><span class="ev-kw">/claude-workflows:setup</span></div>
     <div class="ev-line">&nbsp;</div>
     <div class="ev-line"><span class="ev-cmt"># 3. Start building</span></div>
-    <div class="ev-line"><span class="ev-kw">/start</span></div>
-    <div class="ev-line">&nbsp;</div>
-    <div class="ev-line"><span class="ev-cmt"># Types: android | react | python | swift | go | generic</span></div>
-    <div class="ev-line"><span class="ev-cmt"># Teams: android | ios | frontend | backend | custom</span></div>
+    <div class="ev-line"><span class="ev-kw">/claude-workflows:start</span></div>
   </div>
 </section>
 
@@ -773,7 +770,7 @@
       Works with any project that uses Claude Code.
     </p>
     <div class="hero-cmd" style="animation:none;margin-bottom:16px;">
-      <span class="dim">$</span> npx claude-dev-workflows init
+      <span class="dim">$</span> claude plugin install ragaa07/claude-workflows
     </div>
     <p style="font-size:12px;color:var(--text-dim);margin-top:16px;">
       <a href="https://github.com/ragaa07/claude-workflows" style="color:var(--accent);text-decoration:none;">GitHub</a>

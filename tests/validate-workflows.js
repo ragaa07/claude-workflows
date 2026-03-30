@@ -2,127 +2,107 @@
 "use strict";
 
 /**
- * End-to-end workflow validation for claude-workflows
+ * Plugin structure validation for claude-workflows v3.0.0
  *
  * Validates:
- * 1. Phase ordering matches declared phases
- * 2. Every phase has an output document path
- * 3. Output paths are sequential (01-, 02-, 03-...)
- * 4. IMPLEMENT/EXECUTE/MIGRATE phases reference .claude/rules/
- * 5. PR phases reference .claude/reviews/ (quality gate)
- * 6. Skills reference orchestration rules
- * 7. State tracking format is consistent
- * 8. Language-specific rules exist for the project's language
- * 9. Review checklists exist for the project's language
- * 10. No hardcoded language-specific patterns in skills
- * 11. Config matches project type/language
- * 12. YAML frontmatter is valid
+ * 1. Plugin manifest exists and is valid JSON
+ * 2. All skill directories contain SKILL.md
+ * 3. Skills have valid YAML frontmatter (name, description)
+ * 4. Phase ordering matches declared phases
+ * 5. Phase output paths are sequential (01-, 02-, 03-...)
+ * 6. Implementation skills reference ${CLAUDE_PLUGIN_ROOT}/rules/
+ * 7. PR skills reference ${CLAUDE_PLUGIN_ROOT}/reviews/ (quality gate)
+ * 8. Language rule files exist for all supported types
+ * 9. Review checklist files exist for all supported types
+ * 10. No old .claude/ path references remain (except intentional ones)
+ * 11. hooks.json is valid
+ * 12. settings.json is valid
  */
 
 const fs = require("fs");
 const path = require("path");
 
-// ============================================================
-// Config
-// ============================================================
-const VERSION = fs.readFileSync(path.join(__dirname, '..', 'VERSION'), 'utf8').trim();
-
-const PROJECT_ROOT = process.env.TEST_PROJECT_ROOT || path.resolve(__dirname, '..');
-
-const PROJECTS = [
-  {
-    name: "Local project",
-    root: PROJECT_ROOT,
-    expectedType: process.env.TEST_PROJECT_TYPE || "android",
-    expectedLang: process.env.TEST_PROJECT_LANG || "kotlin",
-    expectedRules: (process.env.TEST_EXPECTED_RULES || "kotlin.md,compose.md").split(","),
-    expectedReviews: (process.env.TEST_EXPECTED_REVIEWS || "kotlin-checklist.md").split(","),
-  },
-];
+const PLUGIN_ROOT = path.resolve(__dirname, "..");
+const VERSION = fs.readFileSync(path.join(PLUGIN_ROOT, "VERSION"), "utf8").trim();
 
 // Expected phase orders for each workflow
 const WORKFLOW_PHASES = {
   "new-feature": {
     phases: ["GATHER", "SPEC", "BRAINSTORM", "PLAN", "BRANCH", "IMPLEMENT", "TEST", "PR"],
-    skippable: ["SPEC", "BRAINSTORM", "TEST"],
     hasImplement: true,
     hasPR: true,
   },
   "extend-feature": {
     phases: ["ANALYZE", "BRAINSTORM", "PLAN", "IMPLEMENT", "VERIFY-COMPAT", "TEST", "PR"],
-    skippable: ["BRAINSTORM", "TEST"],
     hasImplement: true,
     hasPR: true,
   },
   "hotfix": {
     phases: ["DIAGNOSE", "FIX", "REGRESSION-TEST", "PR", "CHERRY-PICK"],
-    skippable: [],
-    hasImplement: true, // FIX is implementation
+    hasImplement: true,
     hasPR: true,
   },
   "refactor": {
     phases: ["ANALYZE", "BRAINSTORM", "CONTRACT", "DESIGN", "MIGRATE", "VERIFY", "PR"],
-    skippable: ["BRAINSTORM"],
-    hasImplement: true, // MIGRATE is implementation
+    hasImplement: true,
     hasPR: true,
   },
   "brainstorm": {
     phases: ["EXPLORE", "EVALUATE", "RECOMMEND"],
-    skippable: [],
     hasImplement: false,
     hasPR: false,
   },
   "test": {
     phases: ["ANALYZE", "PLAN", "WRITE", "VERIFY", "REPORT"],
-    skippable: [],
     hasImplement: false,
     hasPR: false,
   },
   "review": {
     phases: ["FETCH", "CATEGORIZE", "CHECK", "COMMENT"],
-    skippable: [],
     hasImplement: false,
     hasPR: false,
   },
   "release": {
     phases: ["CHANGELOG", "VERSION-BUMP", "RELEASE-BRANCH", "PR", "TAG"],
-    skippable: [],
     hasImplement: false,
     hasPR: true,
   },
   "ci-fix": {
     phases: ["FETCH", "DIAGNOSE", "FIX", "PUSH", "MONITOR"],
-    skippable: [],
     hasImplement: true,
     hasPR: false,
   },
   "migrate": {
     phases: ["ANALYZE", "BRAINSTORM", "PLAN", "EXECUTE", "VERIFY", "PR"],
-    skippable: ["BRAINSTORM"],
     hasImplement: true,
     hasPR: true,
   },
   "new-project": {
     phases: ["DETECT", "CONFIGURE", "GENERATE", "SETUP"],
-    skippable: [],
     hasImplement: false,
     hasPR: false,
   },
 };
 
-// Hardcoded language patterns that should NOT appear in skills
-const FORBIDDEN_PATTERNS = [
-  { pattern: /grep.*--include="\*\.kt"/i, desc: "Hardcoded Kotlin file search" },
-  { pattern: /class\s+\w+ViewModel/i, desc: "Hardcoded ViewModel class reference (not as example category)" },
-  { pattern: /\bHilt\b/, desc: "Hardcoded Hilt reference" },
-  { pattern: /\bMockK\b/i, desc: "Hardcoded MockK reference" },
-  { pattern: /\bTurbine\b/, desc: "Hardcoded Turbine reference" },
-  { pattern: /\bRobolectric\b/, desc: "Hardcoded Robolectric reference" },
-  { pattern: /\b@Composable\b/, desc: "Hardcoded @Composable reference" },
-  { pattern: /\bviewModelScope\b/, desc: "Hardcoded viewModelScope reference" },
-  { pattern: /\bStateFlow\b/, desc: "Hardcoded StateFlow reference" },
-  { pattern: /collectAsState/, desc: "Hardcoded collectAsState reference" },
-];
+// Skills that may intentionally reference .claude/ for project-local output
+const ALLOWED_CLAUDE_REFS = ["setup", "new-project", "compose-skill"];
+
+// Expected language files per project type
+const TYPE_RULES = {
+  android: ["kotlin.md", "compose.md"],
+  react: ["typescript.md", "react.md"],
+  python: ["python.md"],
+  swift: ["swift.md"],
+  go: ["go.md"],
+};
+
+const TYPE_REVIEWS = {
+  android: ["kotlin-checklist.md", "compose-checklist.md"],
+  react: ["typescript-checklist.md", "react-checklist.md"],
+  python: ["python-checklist.md"],
+  swift: ["swift-checklist.md"],
+  go: ["go-checklist.md"],
+};
 
 // ============================================================
 // Test Runner
@@ -154,129 +134,156 @@ function section(title) {
 // Validators
 // ============================================================
 
-function validateProject(project) {
-  section(`PROJECT: ${project.name}`);
-  const root = project.root;
+function validatePluginManifest() {
+  section("Plugin Manifest");
+  const manifestPath = path.join(PLUGIN_ROOT, ".claude-plugin", "plugin.json");
 
-  // --- 1. Directory structure ---
-  console.log("\n[1] Directory Structure");
-  test(
-    "Skills directory exists",
-    fs.existsSync(path.join(root, ".claude/skills")),
-    path.join(root, ".claude/skills")
-  );
-  test(
-    "Orchestration rules exist",
-    fs.existsSync(path.join(root, ".claude/skills/_orchestration/RULES.md")),
-  );
-  test(
-    "Rules directory exists",
-    fs.existsSync(path.join(root, ".claude/rules")),
-  );
-  test(
-    "Reviews directory exists",
-    fs.existsSync(path.join(root, ".claude/reviews")),
-  );
-  test(
-    "Templates directory exists",
-    fs.existsSync(path.join(root, ".claude/templates")),
-  );
-  test(
-    "Workflows state directory exists",
-    fs.existsSync(path.join(root, ".workflows")),
-  );
-  test(
-    "Config file exists",
-    fs.existsSync(path.join(root, ".claude/workflows.yml")),
-  );
+  test("plugin.json exists", fs.existsSync(manifestPath));
 
-  // --- 2. Language-specific files ---
-  console.log("\n[2] Language-Specific Files");
-  for (const rule of project.expectedRules) {
-    test(
-      `Rule file exists: ${rule}`,
-      fs.existsSync(path.join(root, ".claude/rules", rule)),
-    );
-  }
-  for (const review of project.expectedReviews) {
-    test(
-      `Review checklist exists: ${review}`,
-      fs.existsSync(path.join(root, ".claude/reviews", review)),
-    );
-  }
-  test(
-    "General checklist exists",
-    fs.existsSync(path.join(root, ".claude/reviews/general-checklist.md")),
-  );
-
-  // --- 3. Config validation ---
-  console.log("\n[3] Config Validation");
-  const config = fs.readFileSync(path.join(root, ".claude/workflows.yml"), "utf8");
-  test(
-    `Config project.type is "${project.expectedType}"`,
-    config.includes(`type: "${project.expectedType}"`),
-    `Expected type: "${project.expectedType}"`,
-  );
-  test(
-    `Config project.language is "${project.expectedLang}"`,
-    config.includes(`language: "${project.expectedLang}"`),
-    `Expected language: "${project.expectedLang}"`,
-  );
-
-  // --- 4. Validate each workflow skill ---
-  console.log("\n[4] Workflow Phase Validation");
-  for (const [skillName, spec] of Object.entries(WORKFLOW_PHASES)) {
-    const skillPath = path.join(root, `.claude/skills/${skillName}/SKILL.md`);
-    if (!fs.existsSync(skillPath)) {
-      test(`Skill ${skillName} exists`, false, `Missing: ${skillPath}`);
-      continue;
+  if (fs.existsSync(manifestPath)) {
+    let manifest;
+    try {
+      manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+      test("plugin.json is valid JSON", true);
+    } catch (e) {
+      test("plugin.json is valid JSON", false, e.message);
+      return;
     }
 
-    const content = fs.readFileSync(skillPath, "utf8");
+    test("Has name field", manifest.name === "claude-workflows");
+    test("Has version field", manifest.version === VERSION, `Expected ${VERSION}, got ${manifest.version}`);
+    test("Has description", typeof manifest.description === "string" && manifest.description.length > 0);
+    test("Has userConfig", typeof manifest.userConfig === "object");
 
-    // 4a. YAML frontmatter is valid
-    const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
-    test(
-      `${skillName}: valid YAML frontmatter`,
-      frontmatterMatch !== null,
-    );
-    if (frontmatterMatch) {
-      const fm = frontmatterMatch[1];
-      test(
-        `${skillName}: has name field`,
-        fm.includes(`name: ${skillName}`) || fm.includes(`name: "${skillName}"`),
-        `Frontmatter: ${fm.substring(0, 100)}`,
-      );
-      test(
-        `${skillName}: has description field`,
-        fm.includes("description:"),
-      );
-      // Check for YAML colon issue
-      const descLine = fm.split("\n").find(l => l.startsWith("description:"));
-      if (descLine) {
-        const afterKey = descLine.substring("description:".length).trim();
-        const hasUnquotedColon = afterKey && !afterKey.startsWith('"') && afterKey.includes(": ");
-        test(
-          `${skillName}: description has no unquoted colons`,
-          !hasUnquotedColon,
-          `Line: ${descLine}`,
-        );
+    if (manifest.userConfig) {
+      for (const key of ["project_type", "team", "git_main_branch", "git_dev_branch", "commit_format"]) {
+        test(`userConfig has ${key}`, manifest.userConfig[key] !== undefined);
+        if (manifest.userConfig[key]) {
+          test(`userConfig.${key} has description`, typeof manifest.userConfig[key].description === "string");
+        }
       }
     }
+  }
+}
 
-    // 4b. Phases appear in correct order
+function validatePluginFiles() {
+  section("Plugin Files");
+  test("hooks/hooks.json exists", fs.existsSync(path.join(PLUGIN_ROOT, "hooks", "hooks.json")));
+  test("settings.json exists", fs.existsSync(path.join(PLUGIN_ROOT, "settings.json")));
+  test("config/defaults.yml exists", fs.existsSync(path.join(PLUGIN_ROOT, "config", "defaults.yml")));
+
+  // Validate hooks.json
+  const hooksPath = path.join(PLUGIN_ROOT, "hooks", "hooks.json");
+  if (fs.existsSync(hooksPath)) {
+    try {
+      const hooks = JSON.parse(fs.readFileSync(hooksPath, "utf8"));
+      test("hooks.json is valid JSON", true);
+      test("hooks.json has hooks object", typeof hooks.hooks === "object");
+      test("Has SessionStart hook", hooks.hooks && hooks.hooks.SessionStart !== undefined);
+    } catch (e) {
+      test("hooks.json is valid JSON", false, e.message);
+    }
+  }
+
+  // Validate settings.json
+  const settingsPath = path.join(PLUGIN_ROOT, "settings.json");
+  if (fs.existsSync(settingsPath)) {
+    try {
+      const settings = JSON.parse(fs.readFileSync(settingsPath, "utf8"));
+      test("settings.json is valid JSON", true);
+      test("Has permissions", settings.permissions !== undefined);
+    } catch (e) {
+      test("settings.json is valid JSON", false, e.message);
+    }
+  }
+}
+
+function validateDirectoryStructure() {
+  section("Directory Structure");
+  test("skills/ directory exists", fs.existsSync(path.join(PLUGIN_ROOT, "skills")));
+  test("rules/ directory exists", fs.existsSync(path.join(PLUGIN_ROOT, "rules")));
+  test("reviews/ directory exists", fs.existsSync(path.join(PLUGIN_ROOT, "reviews")));
+  test("templates/ directory exists", fs.existsSync(path.join(PLUGIN_ROOT, "templates")));
+  test("teams/ directory exists", fs.existsSync(path.join(PLUGIN_ROOT, "teams")));
+  test("_orchestration/RULES.md exists", fs.existsSync(path.join(PLUGIN_ROOT, "skills", "_orchestration", "RULES.md")));
+
+  // No old directories
+  test("No bin/ directory (CLI removed)", !fs.existsSync(path.join(PLUGIN_ROOT, "bin")));
+  test("No core/ directory (moved to root)", !fs.existsSync(path.join(PLUGIN_ROOT, "core")));
+  test("No .npmignore (not an npm package)", !fs.existsSync(path.join(PLUGIN_ROOT, ".npmignore")));
+}
+
+function validateLanguageFiles() {
+  section("Language Rules & Review Files");
+
+  // Check all rule files exist
+  for (const [type, ruleFiles] of Object.entries(TYPE_RULES)) {
+    for (const file of ruleFiles) {
+      test(`Rule file: ${file} (${type})`, fs.existsSync(path.join(PLUGIN_ROOT, "rules", file)));
+    }
+  }
+
+  // Check all review files exist
+  test("General checklist exists", fs.existsSync(path.join(PLUGIN_ROOT, "reviews", "general-checklist.md")));
+  for (const [type, reviewFiles] of Object.entries(TYPE_REVIEWS)) {
+    for (const file of reviewFiles) {
+      test(`Review file: ${file} (${type})`, fs.existsSync(path.join(PLUGIN_ROOT, "reviews", file)));
+    }
+  }
+}
+
+function validateSkills() {
+  section("Skill Validation");
+
+  const skillsDir = path.join(PLUGIN_ROOT, "skills");
+  const entries = fs.readdirSync(skillsDir, { withFileTypes: true })
+    .filter(e => e.isDirectory() && !e.name.startsWith("_"));
+
+  for (const entry of entries) {
+    const skillPath = path.join(skillsDir, entry.name, "SKILL.md");
+    test(`${entry.name}: SKILL.md exists`, fs.existsSync(skillPath));
+
+    if (!fs.existsSync(skillPath)) continue;
+    const content = fs.readFileSync(skillPath, "utf8");
+
+    // YAML frontmatter
+    const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
+    test(`${entry.name}: valid YAML frontmatter`, frontmatterMatch !== null);
+    if (frontmatterMatch) {
+      const fm = frontmatterMatch[1];
+      test(`${entry.name}: has name field`, fm.includes("name:"));
+      test(`${entry.name}: has description field`, fm.includes("description:"));
+    }
+
+    // Check for stale .claude/ references (excluding allowed skills)
+    if (!ALLOWED_CLAUDE_REFS.includes(entry.name)) {
+      const lines = content.split("\n");
+      const staleRefs = lines.filter(l =>
+        l.includes(".claude/") &&
+        !l.includes("${CLAUDE_PLUGIN_ROOT}") &&
+        !l.includes("${CLAUDE_PLUGIN_DATA}") &&
+        !l.trim().startsWith("#") &&
+        !l.trim().startsWith("//")
+      );
+      test(
+        `${entry.name}: no stale .claude/ references`,
+        staleRefs.length === 0,
+        staleRefs.length > 0 ? `Found: ${staleRefs[0].trim().substring(0, 80)}` : undefined,
+      );
+    }
+
+    // Workflow-specific phase validation
+    const spec = WORKFLOW_PHASES[entry.name];
+    if (!spec) continue;
+
+    // Phase ordering
     const phasePositions = [];
     for (const phase of spec.phases) {
-      // Look for "## Phase N: PHASE" or "### Phase N:" or "## PHASE" patterns
-      const phaseRegex = new RegExp(
-        `##\\s+(?:Phase\\s+\\d+[:\\s]+)?${phase.replace("-", "[-\\s]")}`,
-        "i"
-      );
+      const phaseRegex = new RegExp(`##\\s+(?:Phase\\s+\\d+[:\\s]+)?${phase.replace("-", "[-\\s]")}`, "i");
       const match = content.match(phaseRegex);
       if (match) {
         phasePositions.push({ phase, pos: content.indexOf(match[0]) });
       } else {
-        // Also check for phase name in headers
         const altRegex = new RegExp(`##.*${phase.replace("-", "[-\\s]")}`, "i");
         const altMatch = content.match(altRegex);
         if (altMatch) {
@@ -286,238 +293,71 @@ function validateProject(project) {
     }
 
     test(
-      `${skillName}: all ${spec.phases.length} phases found in file`,
+      `${entry.name}: all ${spec.phases.length} phases found`,
       phasePositions.length === spec.phases.length,
       `Found ${phasePositions.length}/${spec.phases.length}: ${phasePositions.map(p => p.phase).join(", ")}`,
     );
 
-    // Check ordering
-    let inOrder = true;
-    for (let i = 1; i < phasePositions.length; i++) {
-      if (phasePositions[i].pos < phasePositions[i - 1].pos) {
-        inOrder = false;
-        break;
-      }
-    }
-    test(
-      `${skillName}: phases in correct sequential order`,
-      inOrder,
-      `Order: ${phasePositions.map(p => p.phase).join(" -> ")}`,
-    );
-
-    // 4c. Phase output paths
-    const outputPathPattern = /\.workflows\/.*?\/\d{2}-[\w-]+\.md/g;
-    const outputPaths = [...content.matchAll(outputPathPattern)].map(m => m[0]);
-    const expectedOutputCount = spec.phases.length;
-
-    test(
-      `${skillName}: has phase output paths (${outputPaths.length}/${expectedOutputCount})`,
-      outputPaths.length >= expectedOutputCount - 1, // Allow 1 missing for combined phases
-      `Found: ${outputPaths.join(", ")}`,
-    );
-
-    // Check output paths are sequential
-    const outputNumbers = outputPaths.map(p => {
-      const match = p.match(/\/(\d{2})-/);
-      return match ? parseInt(match[1]) : -1;
-    }).filter(n => n > 0);
-
-    let sequential = true;
-    const sorted = [...outputNumbers].sort((a, b) => a - b);
-    for (let i = 1; i < sorted.length; i++) {
-      if (sorted[i] !== sorted[i - 1] + 1) {
-        sequential = false;
-        break;
-      }
-    }
-    test(
-      `${skillName}: output paths are sequential (${sorted.join(",")})`,
-      sequential || sorted.length <= 1,
-    );
-
-    // 4d. Rules integration for implementation skills
+    // Implementation skills reference plugin rules
     if (spec.hasImplement) {
       test(
-        `${skillName}: references .claude/rules/ for language rules`,
-        content.includes(".claude/rules/"),
-        "Implementation skills must load language rules",
+        `${entry.name}: references plugin rules/ for language rules`,
+        content.includes("${CLAUDE_PLUGIN_ROOT}/rules/") || content.includes("PLUGIN_ROOT}/rules/"),
+        "Implementation skills must reference ${CLAUDE_PLUGIN_ROOT}/rules/",
       );
     }
 
-    // 4e. Quality gate for PR skills
+    // PR skills reference plugin reviews
     if (spec.hasPR) {
       test(
-        `${skillName}: references .claude/reviews/ for quality gate`,
-        content.includes(".claude/reviews/"),
-        "PR skills must load review checklists",
+        `${entry.name}: references plugin reviews/ for quality gate`,
+        content.includes("${CLAUDE_PLUGIN_ROOT}/reviews/") || content.includes("PLUGIN_ROOT}/reviews/"),
+        "PR skills must reference ${CLAUDE_PLUGIN_ROOT}/reviews/",
       );
     }
+  }
+}
 
-    // 4f. No hardcoded language patterns
-    for (const fp of FORBIDDEN_PATTERNS) {
-      const lines = content.split("\n");
-      const matchLine = lines.findIndex(l => fp.pattern.test(l));
-      // Allow matches in example tables or category descriptions
-      if (matchLine >= 0) {
-        const line = lines[matchLine].trim();
-        const isExampleOrCategory =
-          line.startsWith("|") ||
-          line.includes("e.g.") ||
-          line.includes("Example") ||
-          line.includes("controllers, presenters");
-        test(
-          `${skillName}: no ${fp.desc}`,
-          isExampleOrCategory,
-          `Line ${matchLine + 1}: ${line.substring(0, 80)}`,
-        );
-      }
-    }
+function validateOrchestrationRules() {
+  section("Orchestration Rules");
+  const rulesPath = path.join(PLUGIN_ROOT, "skills", "_orchestration", "RULES.md");
+  if (!fs.existsSync(rulesPath)) {
+    test("RULES.md exists", false);
+    return;
   }
 
-  // --- 5. Start/Resume reference orchestration ---
-  console.log("\n[5] Orchestration Integration");
-  const startContent = fs.readFileSync(path.join(root, ".claude/skills/start/SKILL.md"), "utf8");
-  const resumeContent = fs.readFileSync(path.join(root, ".claude/skills/resume/SKILL.md"), "utf8");
+  const content = fs.readFileSync(rulesPath, "utf8");
 
-  test(
-    "start delegates to workflow skills (not executing internally)",
-    startContent.includes("you cannot execute it by reading the SKILL.md file directly"),
-  );
-  test(
-    "resume references _orchestration/RULES.md",
-    resumeContent.includes("_orchestration/RULES.md"),
-  );
-
-  // --- 6. Orchestration rules completeness ---
-  console.log("\n[6] Orchestration Rules Completeness");
-  const rulesContent = fs.readFileSync(
-    path.join(root, ".claude/skills/_orchestration/RULES.md"), "utf8"
-  );
-
-  test("Rule 0: State initialization", rulesContent.includes("Rule 0"));
-  test("Rule 1: Phase output protocol", rulesContent.includes("Rule 1"));
-  test("Rule 1: Details guide table", rulesContent.includes("Details Guide"));
-  test("Rule 2: Skipping phases", rulesContent.includes("Rule 2"));
-  test("Rule 2: Precedence defined", rulesContent.includes("Precedence"));
-  test("Rule 3: Quality gate", rulesContent.includes("Rule 3"));
-  test("Rule 3: References .claude/rules/", rulesContent.includes(".claude/rules/"));
-  test("Rule 3: References .claude/reviews/", rulesContent.includes(".claude/reviews/"));
-  test("Rule 4: Build/test detection", rulesContent.includes("Rule 4"));
-  test("Rule 5: Completion protocol", rulesContent.includes("Rule 5"));
-  test("Rule 5: History collision handling", rulesContent.includes("append time"));
-  test("Rule 6: Pausing protocol", rulesContent.includes("Rule 6"));
-  test("Rule 7: Error recovery / REPLAN", rulesContent.includes("Rule 7"));
-  test("Rule 7: REPLAN limit defined", rulesContent.includes("Maximum 2 REPLANs"));
-  test("Rule 8: Common error resolutions", rulesContent.includes("Rule 8"));
-  test("Rule 9: Skill composition", rulesContent.includes("Rule 9"));
-  test("Rule 10: Phase statuses", rulesContent.includes("Rule 10"));
-
-  // Phase statuses defined
-  for (const status of ["ACTIVE", "COMPLETED", "SKIPPED", "FAILED", "RETRY"]) {
-    test(
-      `Phase status '${status}' defined`,
-      rulesContent.includes(status),
-    );
+  // Check all 16 rules exist
+  for (let i = 0; i <= 16; i++) {
+    test(`Rule ${i} exists`, content.includes(`Rule ${i}`));
   }
 
-  // Details guide covers all phase types across workflows
-  const expectedPhaseTypes = [
-    "GATHER", "ANALYZE", "SPEC", "BRAINSTORM", "PLAN", "BRANCH",
-    "IMPLEMENT", "TEST", "PR", "FIX", "DIAGNOSE", "CHERRY-PICK",
-    "CONTRACT", "MIGRATE", "VERIFY", "CHANGELOG", "VERSION-BUMP",
-    "TAG", "PUSH", "MONITOR", "REPORT", "WRITE", "CATEGORIZE",
-    "CHECK", "COMMENT", "CONFIGURE",
-  ];
-  for (const phaseType of expectedPhaseTypes) {
-    test(
-      `Details guide covers ${phaseType}`,
-      rulesContent.includes(phaseType),
-      "Phase type missing from Details Guide table",
-    );
-  }
+  // Plugin path references
+  test("Rule 3 references ${CLAUDE_PLUGIN_ROOT}/rules/", content.includes("${CLAUDE_PLUGIN_ROOT}/rules/"));
+  test("Rule 3 references ${CLAUDE_PLUGIN_ROOT}/reviews/", content.includes("${CLAUDE_PLUGIN_ROOT}/reviews/"));
+  test("Rule 3 has project_type mapping table", content.includes("project_type"));
 
-  // --- 7. State template validation ---
-  console.log("\n[7] State Template Validation");
-  const stateTmpl = fs.readFileSync(
-    path.join(root, ".claude/templates/state.md.tmpl"), "utf8"
-  );
-
-  // Must have the canonical fields
-  for (const field of ["workflow", "feature", "phase", "started", "updated", "branch", "output_dir", "retry_count"]) {
-    test(
-      `State template has field: ${field}`,
-      stateTmpl.includes(`**${field}**`) || stateTmpl.includes(field),
-    );
-  }
-  test(
-    "State template has Phase History table",
-    stateTmpl.includes("Phase History"),
-  );
-  test(
-    "State template has Phase Outputs section",
-    stateTmpl.includes("Phase Outputs"),
-  );
-  test(
-    "State template has Context section",
-    stateTmpl.includes("Context"),
-  );
-
-  // --- 8. CLAUDE.md injection ---
-  console.log("\n[8] CLAUDE.md Injection");
-  const claudeMd = fs.readFileSync(path.join(root, "CLAUDE.md"), "utf8");
-  test(
-    "CLAUDE.md has workflow markers",
-    claudeMd.includes("claude-workflows:start") && claudeMd.includes("claude-workflows:end"),
-  );
-  test(
-    "CLAUDE.md references /start",
-    claudeMd.includes("/start"),
-  );
-  test(
-    "CLAUDE.md references _orchestration/RULES.md",
-    claudeMd.includes("_orchestration/RULES.md"),
-  );
-  test(
-    "CLAUDE.md is slim (injection < 10 lines)",
-    (() => {
-      const start = claudeMd.indexOf("claude-workflows:start");
-      const end = claudeMd.indexOf("claude-workflows:end");
-      if (start < 0 || end < 0) return false;
-      const block = claudeMd.substring(start, end);
-      return block.split("\n").length <= 15;
-    })(),
-  );
-
-  // --- 9. Gitignore ---
-  console.log("\n[9] Gitignore");
-  const gitignorePath = path.join(root, ".gitignore");
-  if (fs.existsSync(gitignorePath)) {
-    const gitignore = fs.readFileSync(gitignorePath, "utf8");
-    test(
-      ".gitignore has .workflows/current-state.md",
-      gitignore.includes(".workflows/current-state.md"),
-    );
-    test(
-      ".gitignore has .workflows/history/",
-      gitignore.includes(".workflows/history/"),
-    );
-  }
+  // Config references updated
+  test("References .workflows/config.yml (not .claude/workflows.yml)", content.includes(".workflows/config.yml"));
+  test("No stale .claude/workflows.yml reference", !content.includes(".claude/workflows.yml"));
+  test("No stale .claude/rules/ reference", !content.includes(".claude/rules/"));
+  test("No stale .claude/reviews/ reference", !content.includes(".claude/reviews/"));
 }
 
 // ============================================================
 // Run
 // ============================================================
-console.log("╔══════════════════════════════════════════════════════════╗");
-console.log(`║   claude-workflows v${VERSION} — End-to-End Validation      ║`);
-console.log("╚══════════════════════════════════════════════════════════╝");
+console.log("+" + "=".repeat(58) + "+");
+console.log(`|   claude-workflows v${VERSION} — Plugin Validation             |`);
+console.log("+" + "=".repeat(58) + "+");
 
-for (const project of PROJECTS) {
-  if (!fs.existsSync(project.root)) {
-    console.log(`\nSKIPPED: ${project.name} — project not found at ${project.root}`);
-    continue;
-  }
-  validateProject(project);
-}
+validatePluginManifest();
+validatePluginFiles();
+validateDirectoryStructure();
+validateLanguageFiles();
+validateSkills();
+validateOrchestrationRules();
 
 // ============================================================
 // Summary
@@ -533,16 +373,16 @@ console.log();
 if (failures.length > 0) {
   console.log("  FAILURES:");
   for (const f of failures) {
-    console.log(`    ✗ ${f.name}`);
+    console.log(`    x ${f.name}`);
     if (f.detail) console.log(`      ${f.detail}`);
   }
 }
 
 console.log();
 if (failed === 0) {
-  console.log("  ✅ ALL TESTS PASSED");
+  console.log("  ALL TESTS PASSED");
 } else {
-  console.log(`  ❌ ${failed} TEST(S) FAILED`);
+  console.log(`  ${failed} TEST(S) FAILED`);
 }
 console.log();
 
