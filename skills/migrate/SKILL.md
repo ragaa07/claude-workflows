@@ -10,15 +10,11 @@ rules: [0, 1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 16, 17]
 
 Where `<type>` is one of: `dependency`, `api-version`, `architecture`, `database`
 
-> **EXECUTION PROTOCOL — MANDATORY**
-> 1. **BEFORE Phase 1**: Create `.workflows/<type>/` dir and `.workflows/current-state.md` with YAML frontmatter (workflow, feature, phase, phases list, started, updated, branch, output_dir, replan_count) + Phase History table + Context section
-> 2. **Execute phases IN ORDER** — never skip ahead
-> 3. **After EACH phase** — do ALL before moving on:
->    - Write output file (path at end of each phase section)
->    - Update `.workflows/current-state.md`: advance `phase`, mark completed, add new ACTIVE row, append decisions to Context
->    - Print progress: `✓ANALYZE ▶BRAINSTORM ·PLAN ·EXECUTE ·VERIFY ·PR`
-> 4. Read `.workflows/config.yml` for project settings and skip flags
-> **NEVER skip phases unless explicitly allowed. NEVER proceed without writing output AND updating state.**
+## Step 0: Initialize Workflow (DO THIS FIRST)
+
+Create `.workflows/<type>/` directory and `.workflows/current-state.md` following the execution protocol — YAML frontmatter with workflow name, feature, first phase ACTIVE, all phases list, timestamps, replan_count=0. Add `## Phase History` table and `## Context` section. Read `.workflows/config.yml` for project settings. **Verify the state file exists before Phase 1.**
+
+**After EVERY phase**: write output file + update `.workflows/current-state.md` (advance phase, mark COMPLETED, add ACTIVE row). Print progress. **NEVER skip phases unless config allows. NEVER stop after execution — continue ALL remaining phases.**
 
 ---
 
@@ -62,6 +58,8 @@ Write plan to `.workflows/<type>/plan.md` (this standalone file is the executabl
 Per step: apply changes → compile → test → fix if needed (max 3, then STOP) → commit → report. Read `<plugin-root>/rules/` before starting.
 
 **>> Phase complete** — write output to `.workflows/<type>/04-execute.md`
+
+**>> CONTINUE** — execution is NOT the end. Proceed to VERIFY, then PR. Update state and continue.
 
 ## Phase 5: VERIFY
 

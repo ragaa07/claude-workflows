@@ -20,15 +20,13 @@ rules: [0, 1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 15, 16, 17]
 
 **Config**: Read `.workflows/config.yml` for `project.language`, `project.type`, `git.branches.*`, and `workflows.new-feature.*`. Fall back to user plugin settings, then `<plugin-root>/config/defaults.yml`.
 
-> **EXECUTION PROTOCOL — MANDATORY**
-> 1. **BEFORE Phase 1**: Create `.workflows/<name>/` dir and `.workflows/current-state.md` with YAML frontmatter (workflow, feature, phase, phases list, started, updated, branch, output_dir, replan_count) + Phase History table + Context section + Constraints section
-> 2. **Execute phases IN ORDER** — never skip ahead to implementation
-> 3. **After EACH phase** — do ALL before moving on:
->    - Write output file (path at end of each phase section)
->    - Update `.workflows/current-state.md`: advance `phase`, mark completed, add new ACTIVE row, append decisions to Context
->    - Print progress: `✓GATHER ▶SPEC ·BRAINSTORM ·PLAN ·BRANCH ·IMPLEMENT ·TEST ·PR`
-> 4. Read `.workflows/config.yml` for project settings and skip flags
-> **NEVER skip phases unless explicitly allowed. NEVER proceed without writing output AND updating state.**
+---
+
+## Step 0: Initialize Workflow (DO THIS FIRST)
+
+Create `.workflows/<name>/` directory and `.workflows/current-state.md` following the execution protocol — YAML frontmatter with workflow name, feature, first phase ACTIVE, all phases list, timestamps, replan_count=0. Add `## Phase History` table and `## Context` section. Read `.workflows/config.yml` for project settings. **Verify the state file exists before Phase 1.**
+
+**After EVERY phase**: write output file + update `.workflows/current-state.md` (advance phase, mark COMPLETED, add ACTIVE row). Print progress. **NEVER skip phases unless config allows. NEVER stop after implementation — continue ALL remaining phases.**
 
 ---
 
@@ -228,6 +226,8 @@ For each phase in the plan:
 
 **>> Phase complete** — write output to `.workflows/<name>/06-implement.md` (files changed, commits, issues encountered)
 
+**>> CONTINUE** — implementation is NOT the end. Proceed to TEST, then PR. Update state and continue.
+
 ---
 
 ## Phase 7: TEST
@@ -248,6 +248,8 @@ For each phase in the plan:
    - No regressions
 
 **>> Phase complete** — write output to `.workflows/<name>/07-test.md`
+
+**>> CONTINUE** — testing is NOT the end. Proceed to PR phase. Update state and continue.
 
 ---
 

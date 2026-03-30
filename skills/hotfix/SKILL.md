@@ -16,15 +16,11 @@ Emergency fix for production issues. Optimized for **SPEED**. No brainstorming. 
 
 **Prerequisites**: Clean git tree. Production branch: `--branch` flag > `workflows.hotfix.base_branch` in config > `git.branches.main`.
 
-> **EXECUTION PROTOCOL — MANDATORY**
-> 1. **BEFORE Phase 1**: Create `.workflows/<description>/` dir and `.workflows/current-state.md` with YAML frontmatter (workflow, feature, phase, phases list, started, updated, branch, output_dir, replan_count) + Phase History table + Context section + Constraints section
-> 2. **Execute phases IN ORDER** — never skip ahead
-> 3. **After EACH phase** — do ALL before moving on:
->    - Write output file (path at end of each phase section)
->    - Update `.workflows/current-state.md`: advance `phase`, mark completed, add new ACTIVE row, append decisions to Context
->    - Print progress: `✓DIAGNOSE ▶FIX ·REGRESSION-TEST ·PR ·CHERRY-PICK`
-> 4. Read `.workflows/config.yml` for project settings
-> **NEVER skip phases unless explicitly allowed. NEVER proceed without writing output AND updating state.**
+## Step 0: Initialize Workflow (DO THIS FIRST)
+
+Create `.workflows/<description>/` directory and `.workflows/current-state.md` following the execution protocol — YAML frontmatter with workflow name, feature, first phase ACTIVE, all phases list, timestamps, replan_count=0. Add `## Phase History` table and `## Context` section. Read `.workflows/config.yml` for project settings. **Verify the state file exists before Phase 1.**
+
+**After EVERY phase**: write output file + update `.workflows/current-state.md` (advance phase, mark COMPLETED, add ACTIVE row). Print progress. **NEVER skip phases unless config allows. NEVER stop after fix — continue ALL remaining phases.**
 
 ---
 
@@ -83,6 +79,8 @@ Read `<plugin-root>/rules/` for project-specific conventions. Apply them.
 
 **>> Phase complete** — write output to `.workflows/<description>/02-fix.md`
 
+**>> CONTINUE** — the fix is NOT the end. Proceed to REGRESSION-TEST, then PR. Update state and continue.
+
 ---
 
 ## Phase 3: REGRESSION-TEST
@@ -94,6 +92,8 @@ Read `<plugin-root>/rules/` for project-specific conventions. Apply them.
 3. **Commit**: `test: add regression test for <crash description>`
 
 **>> Phase complete** — write output to `.workflows/<description>/03-regression-test.md`
+
+**>> CONTINUE** — testing is NOT the end. Proceed to PR phase. Update state and continue.
 
 ---
 

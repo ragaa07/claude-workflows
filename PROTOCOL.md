@@ -85,6 +85,7 @@ When skipping: mark `SKIPPED` in state, no output file, proceed to next phase.
 ## Mandatory Rules
 
 - **NEVER jump to implementation** — execute phases in declared order
+- **NEVER stop after implementation** — IMPLEMENT/FIX/EXECUTE is NOT the last phase. After writing code, you MUST continue to the remaining phases (TEST, VERIFY, PR, etc.). The workflow is only complete when ALL phases are done.
 - **NEVER proceed** until output file AND state update are both written
 - **NEVER skip phases** unless config/flags explicitly allow it
 - If build fails 3+ times in one phase: STOP, document failure, ask user to approve adjusted plan

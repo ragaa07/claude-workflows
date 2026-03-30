@@ -16,15 +16,11 @@ Systematic bug investigation. Not a fix workflow — this FINDS the root cause a
 
 **Phases**: REPRODUCE → HYPOTHESIZE → NARROW → ROOT-CAUSE
 
-> **EXECUTION PROTOCOL — MANDATORY**
-> 1. **BEFORE Phase 1**: Create `.workflows/<symptom>/` dir and `.workflows/current-state.md` with YAML frontmatter (workflow, feature, phase, phases list, started, updated, branch, output_dir, replan_count) + Phase History table + Context section
-> 2. **Execute phases IN ORDER** — never skip ahead
-> 3. **After EACH phase** — do ALL before moving on:
->    - Write output file (path at end of each phase section)
->    - Update `.workflows/current-state.md`: advance `phase`, mark completed, add new ACTIVE row, append decisions to Context
->    - Print progress: `✓REPRODUCE ▶HYPOTHESIZE ·NARROW ·ROOT-CAUSE`
-> 4. Read `.workflows/config.yml` for project settings
-> **NEVER skip phases. NEVER proceed without writing output AND updating state.**
+## Step 0: Initialize Workflow (DO THIS FIRST)
+
+Create `.workflows/<symptom>/` directory and `.workflows/current-state.md` following the execution protocol — YAML frontmatter with workflow name, feature, first phase ACTIVE, all phases list, timestamps, replan_count=0. Add `## Phase History` table and `## Context` section. Read `.workflows/config.yml` for project settings. **Verify the state file exists before Phase 1.**
+
+**After EVERY phase**: write output file + update `.workflows/current-state.md` (advance phase, mark COMPLETED, add ACTIVE row). Print progress. **NEVER skip phases.**
 
 ---
 

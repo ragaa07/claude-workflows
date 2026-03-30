@@ -22,15 +22,13 @@ Add new capabilities to an existing feature while strictly preserving backward c
 4. Add new test files — do not modify existing test assertions
 5. If you must modify an existing file, change the fewest lines possible
 
-> **EXECUTION PROTOCOL — MANDATORY**
-> 1. **BEFORE Phase 1**: Create `.workflows/<feature>/` dir and `.workflows/current-state.md` with YAML frontmatter (workflow, feature, phase, phases list, started, updated, branch, output_dir, replan_count) + Phase History table + Context section + Constraints section
-> 2. **Execute phases IN ORDER** — never skip ahead to implementation
-> 3. **After EACH phase** — do ALL before moving on:
->    - Write output file (path at end of each phase section)
->    - Update `.workflows/current-state.md`: advance `phase`, mark completed, add new ACTIVE row, append decisions to Context
->    - Print progress: `✓ANALYZE ▶BRAINSTORM ·PLAN ·IMPLEMENT ·VERIFY-COMPAT ·TEST ·PR`
-> 4. Read `.workflows/config.yml` for project settings and skip flags
-> **NEVER skip phases unless explicitly allowed. NEVER proceed without writing output AND updating state.**
+---
+
+## Step 0: Initialize Workflow (DO THIS FIRST)
+
+Create `.workflows/<feature>/` directory and `.workflows/current-state.md` following the execution protocol — YAML frontmatter with workflow name, feature, first phase ACTIVE, all phases list, timestamps, replan_count=0. Add `## Phase History` table and `## Context` section. Read `.workflows/config.yml` for project settings. **Verify the state file exists before Phase 1.**
+
+**After EVERY phase**: write output file + update `.workflows/current-state.md` (advance phase, mark COMPLETED, add ACTIVE row). Print progress. **NEVER skip phases unless config allows. NEVER stop after implementation — continue ALL remaining phases.**
 
 ---
 
@@ -72,6 +70,8 @@ Per phase: read plan → implement (new files first, modifications last) → bui
 
 **>> Phase complete** — write output to `.workflows/<feature>/04-implement.md`
 
+**>> CONTINUE** — implementation is NOT the end. Proceed to VERIFY-COMPAT, then TEST, then PR. Update state and continue.
+
 ---
 
 ## Phase 5: VERIFY-COMPAT
@@ -93,6 +93,8 @@ If any test fails: fix the NEW code (not the existing test).
 Create NEW test files (do not modify existing) covering: new functions/logic, integration with existing feature, edge cases. Target: `workflows.test.default_coverage` from config (default 90%) for new code.
 
 **>> Phase complete** — write output to `.workflows/<feature>/06-test.md`
+
+**>> CONTINUE** — testing is NOT the end. Proceed to PR phase. Update state and continue.
 
 ---
 

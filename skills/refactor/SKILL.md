@@ -14,15 +14,11 @@ Restructure existing code while preserving all external behavior. **Phases**: AN
 
 **Core principle**: Identical outputs for identical inputs. Every step must compile and pass tests. Breaks behavior → roll back.
 
-> **EXECUTION PROTOCOL — MANDATORY**
-> 1. **BEFORE Phase 1**: Create `.workflows/<target>/` dir and `.workflows/current-state.md` with YAML frontmatter (workflow, feature, phase, phases list, started, updated, branch, output_dir, replan_count) + Phase History table + Context section
-> 2. **Execute phases IN ORDER** — never skip ahead
-> 3. **After EACH phase** — do ALL before moving on:
->    - Write output file (path at end of each phase section)
->    - Update `.workflows/current-state.md`: advance `phase`, mark completed, add new ACTIVE row, append decisions to Context
->    - Print progress: `✓ANALYZE ▶BRAINSTORM ·CONTRACT ·DESIGN ·MIGRATE ·VERIFY ·PR`
-> 4. Read `.workflows/config.yml` for project settings and skip flags
-> **NEVER skip phases unless explicitly allowed. NEVER proceed without writing output AND updating state.**
+## Step 0: Initialize Workflow (DO THIS FIRST)
+
+Create `.workflows/<target>/` directory and `.workflows/current-state.md` following the execution protocol — YAML frontmatter with workflow name, feature, first phase ACTIVE, all phases list, timestamps, replan_count=0. Add `## Phase History` table and `## Context` section. Read `.workflows/config.yml` for project settings. **Verify the state file exists before Phase 1.**
+
+**After EVERY phase**: write output file + update `.workflows/current-state.md` (advance phase, mark COMPLETED, add ACTIVE row). Print progress. **NEVER skip phases unless config allows. NEVER stop after migration — continue ALL remaining phases.**
 
 ---
 
@@ -89,6 +85,8 @@ Per step: Read → Implement (this step ONLY) → Compile (fail → revert, max 
 **Parallel deprecation**: Create new alongside old → mark old deprecated → migrate consumers → delete old → verify no references.
 
 **>> Phase complete** — write output to `.workflows/<target>/05-migrate.md`
+
+**>> CONTINUE** — migration is NOT the end. Proceed to VERIFY, then PR. Update state and continue.
 
 ---
 
