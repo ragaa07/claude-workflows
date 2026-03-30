@@ -1,7 +1,7 @@
 {
   "name": "claude-dev-workflows",
-  "version": "2.0.2",
-  "description": "Portable, spec-driven development workflows for Claude Code AI agents",
+  "version": "3.0.0",
+  "description": "Structured development workflows for Claude Code — 20 skills, quality gates, multi-session state, team extensibility",
   "bin": {
     "claude-dev-workflows": "./bin/cli.js"
   },
@@ -10,6 +10,11 @@
     "core/",
     "config/",
     "teams/",
+    "skills",
+    "hooks/",
+    "settings.json",
+    ".claude-plugin/",
+    "docs/",
     "VERSION"
   ],
   "keywords": [
@@ -25,7 +30,7 @@
     "type": "git",
     "url": "https://github.com/ragaa07/claude-workflows.git"
   },
-  "homepage": "https://github.com/ragaa07/claude-workflows",
+  "homepage": "https://ragaa07.github.io/claude-workflows/",
   "bugs": {
     "url": "https://github.com/ragaa07/claude-workflows/issues"
   },
