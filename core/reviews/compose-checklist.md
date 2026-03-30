@@ -6,7 +6,7 @@
 | State hoisting | High | State belongs in the ViewModel or nearest common ancestor. Composables should not own business state. |
 | Recomposition safety | High | No side effects in composable body. Use `LaunchedEffect`, `SideEffect`, or `DisposableEffect`. |
 | remember usage | High | Expensive computations wrapped in `remember`. Keys updated when dependencies change. |
-| Stable parameters | Medium | Composable parameters should be stable/immutable to avoid unnecessary recompositions. Use `@Stable` or `@Immutable` when needed. |
+| Stable parameters | Medium | Composable parameters should be stable/immutable to avoid unnecessary recompositions. Use `@Stable` or `@Immutable` when needed. (i.e., prefer `data class`, `sealed class`, primitive types, or annotate with `@Stable`/`@Immutable`) |
 | Modifier parameter | Medium | All composables accept a `modifier: Modifier = Modifier` parameter as the first optional param. |
 | Modifier chaining order | Medium | `Modifier` chain order matters (e.g., `padding` before `background` vs after). Verify visual correctness. |
 | Preview annotations | Low | Composables have `@Preview` with representative data. Multi-preview for dark/light themes. |

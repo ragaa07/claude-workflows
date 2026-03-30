@@ -2,7 +2,7 @@
 
 | Check | Severity | What to Look For |
 |-------|----------|------------------|
-| No force-unwrap (`!!`) | High | Every `!!` is a potential NPE. Require `guard`-style null checks or safe calls. |
+| No force-unwrap (`!!`) | High | Every `!!` is a potential NPE. Require early-return null checks (`?: return`, `?.let { }`, safe calls). |
 | Nullable types justified | Medium | Nullable params/returns should have a reason. Prefer non-null defaults. |
 | Coroutine scope ownership | High | No `GlobalScope`. ViewModels use `viewModelScope`, lifecycle owners use `lifecycleScope`. |
 | Dispatcher correctness | High | I/O on `Dispatchers.IO`, CPU on `Default`, UI on `Main`. No blocking on Main. |

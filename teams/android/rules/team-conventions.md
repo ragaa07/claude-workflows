@@ -21,3 +21,10 @@
 
 - DO use Hilt for dependency injection
 - DON'T introduce new dependencies without team discussion
+
+## Android-Specific Conventions
+
+- DO use Hilt for dependency injection — avoid manual DI or Koin
+- DO use StateFlow for UI state in ViewModels, not LiveData for new code
+- DON'T use Fragment constructors with parameters — use factory methods or Hilt
+- DO use Compose Navigation for new screens — minimize Fragment usage

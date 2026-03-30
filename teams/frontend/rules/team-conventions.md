@@ -21,3 +21,10 @@
 
 - DO use React Query or SWR for data fetching
 - DON'T introduce new dependencies without team discussion
+
+## React-Specific Conventions
+
+- DO use TanStack Query (React Query) for server state management
+- DO use CSS Modules or Tailwind for styling — avoid CSS-in-JS runtime libraries
+- DON'T use `any` type — prefer `unknown` with type narrowing
+- DO use barrel exports (index.ts) for public module APIs

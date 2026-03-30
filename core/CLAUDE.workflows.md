@@ -1,25 +1,13 @@
 # Claude Workflows
 
-Structured workflow system for feature development, refactoring, hotfixes, and releases.
-
-## Session Start
-
-1. Check `.workflows/current-state.md` — if exists, report active workflow and offer to resume
-2. Check `.workflows/paused-*.md` — mention any paused workflows
-3. Read `tasks/todo.md` — check for in-progress items
-4. Read `tasks/lessons.md` — apply relevant lessons
+Structured workflow system. On session start, check `.workflows/current-state.md` for active workflows and `.workflows/paused-*.md` for paused ones.
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `/start` | **Entry point** — shows all workflows, manages state, launches selected one |
+| Command | What it does |
+|---------|--------------|
+| `/start` | Entry point — lists workflows, manages state, launches selection |
 | `/resume` | Resume a paused or interrupted workflow |
-
-## Available Workflows
-
-| Skill | Description |
-|-------|-------------|
 | `/new-feature` | Full feature: spec, brainstorm, plan, implement, test, PR |
 | `/extend-feature` | Extend existing feature with backward compatibility |
 | `/hotfix` | Emergency production fix |
@@ -31,6 +19,11 @@ Structured workflow system for feature development, refactoring, hotfixes, and r
 | `/ci-fix` | Fix failing CI/CD pipeline |
 | `/migrate` | Migrate dependencies, APIs, patterns |
 | `/new-project` | Bootstrap a new project |
+| `/git-flow` | Git branching and merge workflow |
+| `/learn` | Learn from codebase or documentation |
+| `/dry-run` | Simulate a workflow without making changes |
+| `/metrics` | Collect and report workflow metrics |
+| `/guards` | Run safety and quality guard checks |
 
 ## File Locations
 
@@ -41,24 +34,18 @@ Structured workflow system for feature development, refactoring, hotfixes, and r
 | Orchestration rules | `.claude/skills/_orchestration/RULES.md` |
 | Language rules | `.claude/rules/` |
 | Review checklists | `.claude/reviews/` |
-| Active workflow state | `.workflows/current-state.md` |
+| Active state | `.workflows/current-state.md` |
 | Paused workflows | `.workflows/paused-<name>.md` |
-| Phase output documents | `.workflows/<feature>/01-phase.md, 02-phase.md, ...` |
-| Workflow history | `.workflows/history/` |
+| Phase outputs | `.workflows/<feature>/01-phase.md, 02-phase.md, ...` |
 
 ## Orchestration
 
-When executing any workflow, read and follow `.claude/skills/_orchestration/RULES.md`. This covers:
-- Phase output documents (Rule 1)
-- State updates (Rule 2)
-- Phase skipping (Rule 3)
-- Quality gate with rules and reviews (Rule 4)
-- Build/test command detection (Rule 5)
-- Workflow chaining (Rule 6)
-- Completion, pausing, error recovery (Rules 7-9)
+Read and follow `.claude/skills/_orchestration/RULES.md` during any workflow:
 
-## Lessons & Corrections
-
-After ANY correction from the user:
-1. Append to `tasks/lessons.md` with what went wrong and the correct pattern
-2. Review lessons at session start
+- **Rule 0** State Initialization | **Rule 1** Phase Output Protocol
+- **Rule 2** Skipping Phases | **Rule 3** Quality Gate
+- **Rule 4** Build/Test Detection | **Rule 5** Completion
+- **Rule 6** Pausing | **Rule 7** Error Recovery & REPLAN
+- **Rule 8** Common Errors | **Rule 9** Skill Composition
+- **Rule 10** Phase Statuses | **Rule 11** Mid-Phase Checkpoints
+- **Rule 12** Telemetry | **Rule 13** Focused Quality Gate | **Rule 14** Dry Run

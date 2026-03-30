@@ -1,149 +1,96 @@
 ---
 name: start
-description: Entry point — shows available workflows, creates state file, then tells user to invoke the selected workflow skill.
+description: Entry point — shows available workflows, gathers arguments, then executes the selected workflow directly.
+rules: [0]
 ---
 
 # Start a Workflow
 
-## Step 1: Setup
+## Step 1: Check Active Workflows
 
-Run this command:
+Run: `mkdir -p .workflows/history`
 
-```bash
-mkdir -p .workflows/history
-```
-
-Read `.claude/workflows.yml` for configuration.
-
-## Step 2: Check for Active Workflows
-
-Read the file `.workflows/current-state.md`. If it exists:
+Read `.workflows/current-state.md`. If it exists:
 
 ```
 Active workflow detected:
    <workflow> — <feature> (at <phase>, updated <date>)
 
 Options:
-  1. Resume this workflow (run /resume)
+  1. Resume this workflow
   2. Pause it and start something new
   3. Abandon it and start fresh
 ```
 
-- Resume → tell user to run `/resume`.
-- Pause → rename to `.workflows/paused-<feature>.md`, continue to Step 3.
-- Abandon → move to `.workflows/history/<feature>-<date>.md`, continue to Step 3.
+- **Resume** → Read and execute `core/skills/resume/SKILL.md`. Stop here.
+- **Pause** → Rename to `.workflows/paused-<feature>.md`, continue to Step 2.
+- **Abandon** → Move to `.workflows/history/<feature>-<date>.md`, continue to Step 2.
 
-Also list any `.workflows/paused-*.md` files as paused workflows.
+Also list any `.workflows/paused-*.md` files as paused workflows the user can resume.
 
-## Step 3: Show Workflow Menu
+## Step 2: Show Menu
 
 ```
 What would you like to do?
 
 ── Build ──────────────────────────────
-  1. New Feature      — spec, brainstorm, plan, implement, test, PR
-  2. Extend Feature   — add capabilities to an existing feature
-  3. New Project      — bootstrap a new project
+  1. New Feature      — spec, plan, implement, test, PR
+  2. Extend Feature   — add to an existing feature
+  3. New Project      — scaffold a new project
 
 ── Fix ────────────────────────────────
-  4. Hotfix           — emergency production fix
-  5. CI Fix           — fix failing CI/CD pipeline
+  4. Hotfix           — urgent production fix
+  5. CI Fix           — fix failing CI/CD
 
 ── Improve ────────────────────────────
   6. Refactor         — restructure code safely
-  7. Migrate          — migrate dependencies, APIs, patterns
+  7. Migrate          — upgrade deps, APIs, patterns
 
 ── Ship ───────────────────────────────
-  8. Release          — version bump, changelog, tag
-  9. Review           — systematic PR code review
+  8. Release          — version, changelog, tag
+  9. Review           — PR code review
 
 ── Think ──────────────────────────────
-  10. Brainstorm      — explore approaches
-  11. Test            — generate tests
+  10. Brainstorm      — explore ideas and approaches
+  11. Test            — generate or improve tests
 
 Pick a number (1-11):
 ```
 
-## Step 4: Gather Arguments
+## Step 3: Gather Arguments
 
-Ask for required input based on selection:
-- **New Feature**: feature name + optional: ticket ID, design URL, spec path
-- **Extend Feature**: which feature + what to add
-- **Hotfix**: describe the issue
-- **Refactor**: target + goal
-- **Migrate**: what to migrate + from/to
-- **Release**: version number
-- **Review**: PR number or branch
-- **CI Fix**: which CI job or PR
-- **Brainstorm**: topic
-- **Test**: target to test
-- **New Project**: project path
+Ask for the required input based on selection:
 
-## Step 5: Create State File — ACTION REQUIRED
+| Selection | Required input |
+|-----------|---------------|
+| New Feature | Feature name. Optional: ticket ID, design URL, spec path |
+| Extend Feature | Which feature + what to add |
+| New Project | Project name/path + stack preferences |
+| Hotfix | Description of the issue |
+| CI Fix | Which CI job or PR |
+| Refactor | Target + goal |
+| Migrate | What to migrate + from/to |
+| Release | Version number |
+| Review | PR number or branch |
+| Brainstorm | Topic to explore |
+| Test | Target to test |
 
-**5a.** Run this command to create the workflow directory:
+## Step 4: Execute
 
-```bash
-mkdir -p .workflows/<feature>
-```
+Map the selection to a skill directory:
 
-**5b.** Use your **Write tool** to create the file `.workflows/current-state.md` with this exact content (fill in the actual values):
+| # | Skill path |
+|---|-----------|
+| 1 | `core/skills/new-feature/SKILL.md` |
+| 2 | `core/skills/extend-feature/SKILL.md` |
+| 3 | `core/skills/new-project/SKILL.md` |
+| 4 | `core/skills/hotfix/SKILL.md` |
+| 5 | `core/skills/ci-fix/SKILL.md` |
+| 6 | `core/skills/refactor/SKILL.md` |
+| 7 | `core/skills/migrate/SKILL.md` |
+| 8 | `core/skills/release/SKILL.md` |
+| 9 | `core/skills/review/SKILL.md` |
+| 10 | `core/skills/brainstorm/SKILL.md` |
+| 11 | `core/skills/test/SKILL.md` |
 
-```
-# Workflow State
-
-- **workflow**: <selected-workflow>
-- **feature**: <feature>
-- **phase**: <first-phase-of-the-selected-workflow>
-- **started**: <current ISO-8601 timestamp>
-- **updated**: <current ISO-8601 timestamp>
-- **branch**:
-- **output_dir**: .workflows/<feature>/
-- **retry_count**: 0
-
-## Phase History
-
-| Phase | Status | Timestamp | Output | Notes |
-|-------|--------|-----------|--------|-------|
-| <first-phase> | ACTIVE | <timestamp> | | Starting workflow |
-
-## Phase Outputs
-
-_Documents produced by each phase:_
-
-## Context
-
-_Key decisions and resume context:_
-```
-
-**Verify**: Read back `.workflows/current-state.md` to confirm it was created. Do NOT proceed until this file exists.
-
-## Step 6: Launch the Workflow
-
-Tell the user which skill command to run next. Map the selection:
-
-| Selection | Command |
-|-----------|---------|
-| 1. New Feature | `/new-feature <name>` |
-| 2. Extend Feature | `/extend-feature <feature> <description>` |
-| 3. New Project | `/new-project` |
-| 4. Hotfix | `/hotfix <description>` |
-| 5. CI Fix | `/ci-fix` |
-| 6. Refactor | `/refactor <target>` |
-| 7. Migrate | `/migrate <type>` |
-| 8. Release | `/release <version>` |
-| 9. Review | `/review <pr-number>` |
-| 10. Brainstorm | `/brainstorm --topic "<topic>"` |
-| 11. Test | `/test <target>` |
-
-Tell the user:
-
-```
-State file created at .workflows/current-state.md
-Workflow directory created at .workflows/<feature>/
-
-To start the workflow, run:
-  <command with their arguments>
-```
-
-**Do NOT attempt to read and execute the workflow skill yourself.** The user must invoke it as a slash command so Claude Code loads it as the active skill.
+Now read and execute the selected skill's `SKILL.md` starting from Phase 1, passing the gathered arguments as context. State initialization is handled by orchestration Rule 0 — do not create state files here.

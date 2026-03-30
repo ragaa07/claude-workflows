@@ -9,83 +9,7 @@ description: Automate versioned releases with changelog, version bump, release b
 
 `/release <version>`
 
-## BEFORE YOU START — Initialize State
-
-Check if `.workflows/current-state.md` exists (it may have been created by `/start`).
-
-**If it does NOT exist**, create it now. Run these commands and create the file:
-
-```bash
-mkdir -p .workflows/<version>
-```
-
-Then use your **Write tool** to create `.workflows/current-state.md`:
-
-```
-# Workflow State
-
-- **workflow**: release
-- **feature**: <version>
-- **phase**: CHANGELOG
-- **started**: <current ISO-8601 timestamp>
-- **updated**: <current ISO-8601 timestamp>
-- **branch**:
-- **output_dir**: .workflows/<version>/
-- **retry_count**: 0
-
-## Phase History
-
-| Phase | Status | Timestamp | Output | Notes |
-|-------|--------|-----------|--------|-------|
-| CHANGELOG | ACTIVE | <timestamp> | | Starting workflow |
-
-## Phase Outputs
-
-_Documents produced by each phase:_
-
-## Context
-
-_Key decisions and resume context:_
-```
-
-**If it already exists**, read it and continue from the current active phase.
-
-**Verify**: Read `.workflows/current-state.md` to confirm it exists before proceeding.
-
----
-
-## AFTER EVERY PHASE — You MUST Create Files
-
-After completing each phase below, do these TWO things using your tools before moving on:
-
-**Action 1 — Create the phase output file.** Use your **Write tool** to create the file at the path shown at the end of each phase (the `>> Write output to` line). Use this format:
-
-```
-# <Phase Name> — <Feature>
-
-**Date**: <ISO-8601>
-**Status**: Complete
-
-## Summary
-<1-3 sentences>
-
-## Details
-<Phase-specific content>
-
-## Decisions
-<Key decisions>
-
-## Next Phase Input
-<What next phase needs>
-```
-
-**Action 2 — Rewrite the state file.** Use your **Write tool** to REWRITE the entire `.workflows/current-state.md` file. Read the current content first, then write the full file back with these updates:
-- Update `phase` and `updated` in the header
-- In Phase History table: change the completed phase status to `COMPLETED`, add output filename, add new row for next phase as `ACTIVE`
-- Under `## Phase Outputs`: add a link to the new output file
-- Under `## Context`: add key decisions from this phase
-
-**You must REWRITE the whole file — do not try to edit individual lines. Do NOT proceed to the next phase until both files are written.**
+> Follow orchestration Rules 0-1 for state and output.
 
 ---
 
@@ -105,7 +29,7 @@ Generate changelog from git history since last tag.
 5. Prepend entry to CHANGELOG.md (create if missing)
 6. Present to user for review before proceeding
 
-**>> Write output to**: `.workflows/<version>/01-changelog.md` — then update `.workflows/current-state.md` (see State Tracking above).
+**>> Write output to**: `.workflows/<version>/01-changelog.md`
 
 ### Phase 2: VERSION-BUMP
 
@@ -126,7 +50,7 @@ Bump version in the project's version file.
 4. Show diff and confirm with user
 5. Commit: `chore(version): bump to {version}`
 
-**>> Write output to**: `.workflows/<version>/02-version-bump.md` — then update `.workflows/current-state.md`. (Old version, new version, files changed)
+**>> Write output to**: `.workflows/<version>/02-version-bump.md` (old version, new version, files changed)
 
 ### Phase 3: RELEASE-BRANCH
 
@@ -139,7 +63,7 @@ Create release branch from development branch.
 5. Cherry-pick/merge version bump and changelog commits if not present
 6. Push release branch to remote
 
-**>> Write output to**: `.workflows/<version>/03-release-branch.md` — then update `.workflows/current-state.md`.
+**>> Write output to**: `.workflows/<version>/03-release-branch.md`
 
 ### Phase 4: PR
 
@@ -153,24 +77,17 @@ Create pull request from release branch to production.
 4. Create via `gh pr create`
 5. Output PR URL
 
-**>> Write output to**: `.workflows/<version>/04-pr.md` — then update `.workflows/current-state.md`. (URL, summary)
+**>> Write output to**: `.workflows/<version>/04-pr.md` (URL, summary)
 
 ### Phase 5: TAG
 
 After PR is merged, provide tagging commands.
 
 1. Remind user to merge PR first
-2. Provide tag command:
-   ```
-   git tag -a v{version} -m "Release v{version}"
-   git push origin v{version}
-   ```
-3. Optionally create GitHub release:
-   ```
-   gh release create v{version} --title "v{version}" --notes "See CHANGELOG.md"
-   ```
+2. Tag: `git tag -a v{version} -m "Release v{version}" && git push origin v{version}`
+3. Optional: `gh release create v{version} --title "v{version}" --notes "See CHANGELOG.md"`
 
-**>> Write output to**: `.workflows/<version>/05-tag.md` — then update `.workflows/current-state.md`.
+**>> Write output to**: `.workflows/<version>/05-tag.md`
 
 **After this final phase**: Move `.workflows/current-state.md` to `.workflows/history/<version>-<YYYY-MM-DD>.md`. Report completion.
 
@@ -181,10 +98,3 @@ After PR is merged, provide tagging commands.
 | `git.branches.development` | `develop` | Branch to create release from |
 | `git.branches.main` | `main` | Target branch for release PR |
 | `git.branches.release` | `release/v{version}` | Release branch pattern |
-
-## Notes
-
-- Each phase is a checkpoint. User can pause and resume.
-- Never force-push or delete branches without explicit user approval.
-- If CHANGELOG.md exists, prepend new entry; do not overwrite.
-- Version format follows semver: `MAJOR.MINOR.PATCH`.

@@ -2,7 +2,7 @@
 
 ## Type Hints
 - DO add type hints to all function signatures: `def fetch(url: str) -> Response:`
-- DO use `from __future__ import annotations` for forward references
+- DO use `from __future__ import annotations` for forward references (Python 3.7+)
 - DO use `typing` module types: `Optional`, `Union`, `list[str]` (3.9+), `dict[str, int]`
 - DO use `TypeAlias` for complex types: `UserId: TypeAlias = int`
 - DO use `Protocol` for structural subtyping instead of ABC when possible
@@ -29,11 +29,6 @@
 - DON'T use string concatenation for paths
 - DO use `Path.exists()`, `Path.read_text()`, `Path.mkdir(parents=True, exist_ok=True)`
 
-## String Formatting
-- DO use f-strings: `f"Hello, {name}!"`
-- DON'T use `%` formatting or `.format()` for new code
-- DO use `textwrap.dedent()` for multi-line strings in code
-
 ## Collections
 - DO use list comprehensions for simple transforms: `[x.id for x in users]`
 - DO use generator expressions for large datasets: `sum(x.price for x in items)`
@@ -54,21 +49,8 @@
 - DO name tests descriptively: `test_user_creation_fails_with_duplicate_email`
 - DO use `pytest.raises(ExactException)` to assert exceptions
 
-## Virtual Environments
-- DO use `venv` or `uv` for project isolation
-- DO pin dependencies in `requirements.txt` or `pyproject.toml`
-- DON'T install packages globally
-
-## Naming (PEP 8)
-- Classes: `PascalCase`
-- Functions/variables: `snake_case`
-- Constants: `SCREAMING_SNAKE_CASE`
-- Private: prefix with `_` (single underscore)
-- DON'T use `__` (double underscore) unless you need name mangling
-
 ## General
 - DO use `logging` module over `print()` for production code
-- DO use `Enum` for fixed sets: `class Status(Enum): ACTIVE = "active"`
 - DO use `functools.lru_cache` or `@cache` for expensive pure functions
 - DON'T use mutable default arguments: `def f(items=None):` then `items = items or []`
-- DO use `if __name__ == "__main__":` guard for scripts
+- DO pin dependencies in `requirements.txt` or `pyproject.toml`

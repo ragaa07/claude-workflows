@@ -38,19 +38,7 @@ Prevents dangerous operations and credential leaks by enforcing rules from `.cla
 - Content matches against `block_patterns` and `warn_patterns`
 - Hardcoded tokens (`AKIA`, `sk-`, `ghp_`, `Bearer `, API key formats)
 
-**Step 4 -- Report**:
-
-```
-Guards Check Results:
-  [BLOCK]   .env.local — protected path, must not be committed
-  [BLOCK]   src/api.js:14 — hardcoded token detected (sk-...)
-  [WARN]    deploy.sh:8 — matches warn pattern: "rm -rf"
-  [PASS]    42 files passed all checks
-
-  Result: BLOCKED (2 blocking violations found)
-```
-
-**Severities**: `BLOCK` stops the operation. `WARN` prints but does not block (unless `guards.strict: true`). `PASS` means clean.
+**Step 4 -- Report**: Print `[BLOCK]`, `[WARN]`, `[PASS]` per file with violation details. `BLOCK` stops the operation; `WARN` is advisory (unless `guards.strict: true`).
 
 If `--force` passed, log override to `.workflows/history/guard-overrides.log` and allow the operation.
 
@@ -58,17 +46,4 @@ If `--force` passed, log override to `.workflows/history/guard-overrides.log` an
 
 ## `/guards report`
 
-```
-Guards Status:
-  Config:           .claude/guards.yml (loaded)
-  Block patterns:   <N> rules
-  Warn patterns:    <N> rules
-  Protected paths:  <N> paths
-  No-commit globs:  <N> patterns
-
-Recent overrides:
-  <timestamp> — <file> — <reason>
-  (none)
-```
-
-**Error handling**: No config found -- run `init` automatically. Invalid YAML -- print parse error with line number.
+Print config summary (block/warn pattern counts, protected paths, no-commit globs) and recent overrides from `.workflows/history/guard-overrides.log`. If no config found, run `init` automatically.

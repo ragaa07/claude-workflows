@@ -55,25 +55,14 @@ Commit staged changes using the configured commit format.
 Create a pull request with configured settings.
 
 1. Read `git.pr` from `.claude/workflows.yml`
-2. Determine base branch: use `--base` if provided, else `git.pr.base_branch` (default: `develop`)
-3. **Protected branch check**: Warn if PR target is `main`/`master` and source is not `release/` or `hotfix/`
-4. Read `.claude/reviews/` directory if it exists — include quality verification findings in PR body
-5. Push current branch: `git push -u origin <current-branch>`
-6. Generate PR title from branch name (e.g., `feature/add-login` -> `feat: add login`)
-7. Generate PR body from commit log: `git log <base-branch>..HEAD --oneline --no-merges`
-8. Use `git.pr.template` from config if configured
-9. Create the PR:
-   ```bash
-   gh pr create \
-     --base <base-branch> \
-     --title "<generated-title>" \
-     --body "<generated-body>" \
-     --draft <git.pr.draft> \
-     --reviewer <git.pr.reviewers> \
-     --label <git.pr.labels>
-   ```
-   Omit `--reviewer` and `--label` if their config arrays are empty.
-10. Print the PR URL
+2. Base branch: `--base` flag > `git.pr.base_branch` > `develop`
+3. **Protected branch check**: Warn if target is `main`/`master` and source is not `release/` or `hotfix/`
+4. Read `.claude/reviews/` if it exists -- include findings in PR body
+5. Push: `git push -u origin <current-branch>`
+6. Generate title from branch name (e.g., `feature/add-login` -> `feat: add login`)
+7. Generate body from `git log <base>..HEAD --oneline --no-merges`; use `git.pr.template` if configured
+8. Create via `gh pr create` with `--base`, `--title`, `--body`, `--draft`, `--reviewer`, `--label` (omit empty arrays)
+9. Print PR URL
 
 ---
 
@@ -96,25 +85,7 @@ Merge a branch using the configured strategy.
 
 ---
 
-## Configuration Reference
-
-All settings read from `.claude/workflows.yml` under the `git` key:
-
-| Key | Default | Purpose |
-|-----|---------|---------|
-| `git.branches.<type>` | See patterns above | Branch naming patterns |
-| `git.commits.format` | `conventional` | Commit message format |
-| `git.commits.types` | `[feat, fix, ...]` | Allowed commit types |
-| `git.pr.base_branch` | `develop` | Default PR target |
-| `git.pr.draft` | `false` | Create PRs as draft |
-| `git.pr.reviewers` | `[]` | Auto-assign reviewers |
-| `git.pr.labels` | `[]` | Auto-apply labels |
-| `git.merge.strategy` | `squash` | Merge method |
-| `git.merge.delete_branch` | `true` | Delete branch after merge |
-| `git.protected` | `[main, master, develop]` | Branches that block direct commits |
-
 ## Notes
 
+- All settings read from `.claude/workflows.yml` under the `git` key. If missing, use defaults: `conventional` commits, `develop` PR base, `squash` merge, protected = `[main, master, develop]`.
 - Never force-push to protected branches.
-- All subcommands read config fresh each invocation — changes take effect immediately.
-- If `.claude/workflows.yml` is missing, use the defaults shown above.

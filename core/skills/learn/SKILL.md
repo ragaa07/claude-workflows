@@ -1,6 +1,6 @@
 ---
 name: learn
-description: Captures successful workflow patterns, stores them with confidence scores, and surfaces relevant patterns in future brainstorming.
+description: "Extract and store successful workflow patterns for reuse. Surfaces relevant patterns during brainstorming to accelerate decisions. Use when discussing patterns, lessons learned, or reusable approaches."
 ---
 
 # Pattern Learning
@@ -11,10 +11,9 @@ description: Captures successful workflow patterns, stores them with confidence 
 /learn apply <topic>
 ```
 
-Extracts reusable patterns from completed workflows, stores as markdown in `.workflows/learned/`. Patterns gain confidence through reuse.
+Extracts reusable patterns from completed workflows, stores as markdown in `.workflows/learned/`. Patterns with 2+ reuses are marked **proven**.
 
 **Prerequisite**: `learning.enabled` must be `true` in `.claude/workflows.yml`. If disabled, inform user and exit.
-**Config**: `learning.min_confidence` (default 0.5), `learning.storage` (default `.workflows/learned`).
 
 ---
 
@@ -27,8 +26,7 @@ Extracts reusable patterns from completed workflows, stores as markdown in `.wor
 ```markdown
 # Pattern: <name>
 Category: <architecture|implementation|testing|resolution>
-Confidence: 0.5
-Reused: 0 times
+Reused: 0
 Tags: <tag1>, <tag2>
 
 ## Description
@@ -44,14 +42,15 @@ Print: `Captured <N> patterns from <workflow-name>.`
 
 ## `/learn list` — Show All Patterns
 
-Read all `.md` files in `.workflows/learned/`. Sort by confidence descending:
+Read all `.md` files in `.workflows/learned/`. Sort by reuse count descending:
 
 ```
 Learned Patterns (<N> total):
-  [0.90] * event-driven-state — Use event-driven state for complex forms
-         Category: architecture | Reused: 4 | Tags: state, forms
-  [0.50]   snapshot-testing — Compose snapshot tests for UI regression
-  * = high confidence (>= 0.8). Below min_confidence shown dimmed.
+  ★ event-driven-state — Use event-driven state for complex forms
+    Category: architecture | Reused: 4 | Tags: state, forms
+    snapshot-testing — Compose snapshot tests for UI regression
+    Category: testing | Reused: 0 | Tags: ui, testing
+  ★ = proven (2+ reuses)
 ```
 
 ---
@@ -59,13 +58,13 @@ Learned Patterns (<N> total):
 ## `/learn apply <topic>` — Find Relevant Patterns
 
 1. Load patterns from `.workflows/learned/`. Match by tag, name/description keywords, category.
-2. Present top 5 by relevance then confidence:
+2. Present top 5 by relevance then reuse count:
 
 ```
 Patterns relevant to "<topic>":
-  1. [0.90] event-driven-state — Use event-driven state for complex forms
-  2. [0.65] retry-with-backoff — Exponential backoff for flaky API calls
+  1. ★ event-driven-state — Use event-driven state for complex forms (4 reuses)
+  2.   retry-with-backoff — Exponential backoff for flaky API calls (1 reuse)
 Apply a pattern? (pick number or skip)
 ```
 
-3. If selected, increment `Reused` in the file, update confidence: `min(1.0, base + 0.1 * times_reused)`.
+3. If selected, increment `Reused` count in the pattern file.

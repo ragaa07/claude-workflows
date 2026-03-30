@@ -2,6 +2,8 @@
 
 Language-agnostic checks applicable to all pull requests.
 
+**Severity scale**: Critical = blocks merge, likely causes bugs/security issues. High = should fix before merge. Medium = recommended improvement. Low = nice-to-have, can address later.
+
 | Check | Severity | What to Look For |
 |-------|----------|------------------|
 | **Architecture** | | |

@@ -1,8 +1,7 @@
 # React Rules
 
 ## Components
-- DO use functional components exclusively — no class components
-- DO keep components under ~100 lines — extract subcomponents
+- DO keep components focused — prefer under 200 lines; split at ~100 if logic is complex
 - DO use a single default export per component file
 - DON'T mix UI and business logic — extract hooks for logic
 
@@ -11,7 +10,6 @@
 - DON'T lie about dependencies — if ESLint warns, fix the logic, don't suppress
 - DON'T call hooks conditionally or inside loops
 - DO use `useRef` for values that persist across renders without triggering re-render
-- DO use `useId()` for generating stable unique IDs for accessibility
 - DO clean up effects: return a cleanup function from `useEffect`
 
 ## Memoization
@@ -61,16 +59,8 @@
 - DO use `userEvent` over `fireEvent` for realistic interactions
 - DO use `waitFor` for async assertions
 
-## Naming
-- Components: `PascalCase` — `UserProfile.tsx`
-- Hooks: `camelCase` with `use` prefix — `useAuth`, `useFetchUsers`
-- Event handlers: `handle` prefix — `handleClick`, `handleSubmit`
-- Boolean props: `is`/`has` prefix — `isOpen`, `hasError`
-
 ## General
 - DO use `key` prop on list items — use stable IDs, not array index
 - DON'T use `dangerouslySetInnerHTML` unless content is sanitized
-- DO use fragments `<>...</>` to avoid unnecessary DOM nodes
 - DO colocate styles, tests, and types with the component
 - DON'T mutate state directly — always create new objects/arrays
-- DO use `StrictMode` in development to catch common mistakes

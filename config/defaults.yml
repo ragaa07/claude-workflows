@@ -2,7 +2,7 @@
 # Edit this file to configure workflows for your project.
 # Documentation: https://github.com/ragaa07/claude-workflows
 
-version: "1.0"  # Config schema version (not package version)
+version: "2.0"  # Config schema version (not package version)
 
 # ============================================================
 # Project Identity
@@ -71,6 +71,8 @@ workflows:
     require_spec: true                 # Must create spec before planning
     require_tests: true                # Must write tests before PR
     require_brainstorm: true           # Run brainstorm phase
+    max_plan_phases: 10                # Maximum phases in implementation plan
+    adaptive: true                     # Auto-detect complexity and skip phases for trivial changes
 
   extend-feature:
     require_brainstorm: true
@@ -79,10 +81,12 @@ workflows:
   hotfix:
     base_branch: ""                    # Empty = use git.branches.main
     require_tests: true                # Always true for hotfixes — regression test is mandatory
+    max_lines: 15                      # Warn if fix exceeds this many lines
 
   refactor:
     require_brainstorm: true
     require_tests: true
+    max_dependents: 50                 # Warn if target has more dependents than this
 
   release:
     changelog: true                    # Generate changelog entries
@@ -92,6 +96,10 @@ workflows:
     standards: []                      # Custom review checklist items
     checklist: "auto"                  # auto (detect from project.language) | none | path
     auto_self_review: false            # Chain self-review before PR
+    size_thresholds:
+      small: 10                        # files — review inline
+      medium: 30                       # files — review by category
+      large: 50                        # files — warn PR should be split
 
   migrate:
     require_brainstorm: true
@@ -130,15 +138,14 @@ skills:
     ship: "release"                    # /ship → /release
 
 # ============================================================
-# Workflow Composition (Chaining)
+# Workflow Chaining
 # ============================================================
 chains:
-  new-feature:
-    TEST: "/test"                      # Chain test workflow during TEST phase
-  extend-feature:
-    TEST: "/test"
-  refactor:
-    VERIFY: "/test --full-suite"
+  # Auto-suggest next workflow after completion
+  # Format: <completed-workflow>: <next-command>
+  # new-feature: "review --self"       # Auto-review after feature
+  # hotfix: "ci-fix --pr latest"       # Check CI after hotfix push
+  # review: "release --auto patch"     # Release after approval
 
 # ============================================================
 # Safety Guards
@@ -154,12 +161,21 @@ learning:
   enabled: true                        # Auto-capture patterns from completed workflows
   min_confidence: 0.5                  # Minimum confidence to surface in brainstorming
   storage: ".workflows/learned"        # Where learned patterns are stored
+  knowledge_graph: true                # Extract decisions to knowledge.jsonl for cross-workflow learning
 
 # ============================================================
 # Quality Gate
 # ============================================================
 quality:
   self_review: true                    # Run review checklists before PR creation
+  focused_gate: true                   # Only check rules relevant to changed files (Rule 13)
   review_checklists:                   # Loaded in order; all applicable checks run
     - "general-checklist.md"           # Always loaded
     # Language-specific checklist auto-detected from project.language
+
+# ============================================================
+# Telemetry (Optional)
+# ============================================================
+telemetry:
+  enabled: true                        # Enable JSON-line logging per phase
+  file: ".workflows/telemetry.jsonl"   # Telemetry output file

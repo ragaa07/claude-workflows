@@ -20,14 +20,12 @@
 - DON'T make protocols overly broad — keep them focused (ISP)
 
 ## Value Types vs Reference Types
-- DO use `struct` by default — use `class` only when identity or inheritance is needed
 - DO use `enum` for finite state machines and associated values
 - DON'T mutate structs from closures without `mutating` keyword
-- DO use `let` over `var` — immutability by default
 
 ## Async / Await
 - DO use `async`/`await` over completion handlers for new code
-- DO use `Task { }` to bridge sync → async contexts
+- DO use `Task { }` to bridge sync -> async contexts
 - DO use `async let` for concurrent independent work
 - DO use `TaskGroup` for dynamic numbers of concurrent tasks
 - DO handle cancellation with `Task.checkCancellation()` or `Task.isCancelled`
@@ -59,14 +57,10 @@
 - DO watch for retain cycles in delegates — declare delegate properties as `weak`
 
 ## Naming
-- Types/protocols: `PascalCase`
-- Functions/properties/variables: `camelCase`
-- DON'T prefix protocols with `I` or types with `T`
-- DO name booleans as questions: `isLoading`, `hasPermission`, `canSubmit`
+- DON'T prefix protocols with `I` — prefer Swift's idiomatic naming (e.g., `UserRepository` not `IUserRepository`)
 - DO use descriptive parameter labels: `func move(from source: Int, to destination: Int)`
 
 ## General
-- DO use `Result<Success, Failure>` for operations that can fail
 - DO use `typealias` for complex generic types
 - DO prefer `compactMap` over `map` + `filter` for optional unwrapping
 - DO use `@discardableResult` when return values are intentionally ignorable

@@ -55,6 +55,15 @@ function parseArgs(argv) {
     i++;
   }
 
+  // Validate --type early
+  const validTypes = ["android", "react", "python", "swift", "go", "generic", "all"];
+  if (!validTypes.includes(args.type)) {
+    console.error(
+      `ERROR: Unknown type '${args.type}'. Valid: ${validTypes.join(", ")}`
+    );
+    process.exit(1);
+  }
+
   return args;
 }
 
@@ -73,6 +82,10 @@ function detectProjectRoot() {
 }
 
 function copyDirRecursive(src, dest) {
+  if (!fs.existsSync(src)) {
+    console.error(`ERROR: Source directory does not exist: ${src}`);
+    return;
+  }
   fs.mkdirSync(dest, { recursive: true });
   for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
     const srcPath = path.join(src, entry.name);
@@ -107,17 +120,17 @@ function getRuleFiles(type) {
   return map[type];
 }
 
-function getReviewLabel(type) {
+function getReviewLabels(type) {
   const map = {
-    android: "kotlin-checklist",
-    react: "typescript-checklist",
-    python: "python-checklist",
-    swift: "swift-checklist",
-    go: "go-checklist",
-    generic: "general-checklist",
+    android: ["kotlin-checklist", "compose-checklist"],
+    react: ["typescript-checklist", "react-checklist"],
+    python: ["python-checklist"],
+    swift: ["swift-checklist"],
+    go: ["go-checklist"],
+    generic: [],
     all: "all",
   };
-  return map[type] || "";
+  return map[type] || [];
 }
 
 function addToGitignore(gitignorePath, entry) {
@@ -170,6 +183,17 @@ function cmdInit(args) {
       listTeamsQuiet();
       process.exit(1);
     }
+    // Check team type compatibility
+    const teamManifest = path.join(teamDir, "manifest.yml");
+    if (fs.existsSync(teamManifest)) {
+      const manifestContent = fs.readFileSync(teamManifest, "utf8");
+      const reqMatch = manifestContent.match(/^requires_type:\s*(\S+)\s*$/m);
+      if (reqMatch && reqMatch[1] !== type) {
+        console.log(
+          `WARNING: Team '${team}' expects --type ${reqMatch[1]}, but got --type ${type}. Team-specific rules may not apply correctly.`
+        );
+      }
+    }
   }
 
   // 1. Create directory structure
@@ -213,6 +237,9 @@ function cmdInit(args) {
       let teamCount = 0;
       for (const entry of fs.readdirSync(teamSkills, { withFileTypes: true })) {
         if (!entry.isDirectory()) continue;
+        if (coreSkillNames.includes(entry.name)) {
+          console.log(`  WARNING: Team skill '${entry.name}' overrides core skill with same name`);
+        }
         copyDirRecursive(
           path.join(teamSkills, entry.name),
           path.join(root, ".claude/skills", entry.name)
@@ -274,7 +301,7 @@ function cmdInit(args) {
 
   // 6. Copy review checklists
   console.log("Installing review checklists...");
-  const reviewLabel = getReviewLabel(type);
+  const reviewLabels = getReviewLabels(type);
   const reviewsSrc = path.join(PKG_ROOT, "core", "reviews");
   if (fs.existsSync(reviewsSrc)) {
     // Always copy general checklist (quality gate requires it)
@@ -283,8 +310,8 @@ function cmdInit(args) {
       fs.copyFileSync(generalSrc, path.join(root, ".claude/reviews", "general-checklist.md"));
       console.log("  Copied review checklist: general-checklist.md");
     }
-    // Copy language-specific checklist
-    if (reviewLabel === "all") {
+    // Copy language-specific checklists
+    if (reviewLabels === "all") {
       for (const f of fs.readdirSync(reviewsSrc).filter((f) => f.endsWith(".md"))) {
         fs.copyFileSync(
           path.join(reviewsSrc, f),
@@ -292,11 +319,13 @@ function cmdInit(args) {
         );
       }
       console.log("  Copied all review checklists");
-    } else if (reviewLabel) {
-      const src = path.join(reviewsSrc, `${reviewLabel}.md`);
-      if (fs.existsSync(src)) {
-        fs.copyFileSync(src, path.join(root, ".claude/reviews", `${reviewLabel}.md`));
-        console.log(`  Copied review checklist: ${reviewLabel}.md`);
+    } else if (Array.isArray(reviewLabels)) {
+      for (const label of reviewLabels) {
+        const src = path.join(reviewsSrc, `${label}.md`);
+        if (fs.existsSync(src)) {
+          fs.copyFileSync(src, path.join(root, ".claude/reviews", `${label}.md`));
+          console.log(`  Copied review checklist: ${label}.md`);
+        }
       }
     }
   }
@@ -362,6 +391,7 @@ function cmdInit(args) {
   addToGitignore(gitignore, ".workflows/current-state.md");
   addToGitignore(gitignore, ".workflows/history/");
   addToGitignore(gitignore, ".workflows/learned/");
+  addToGitignore(gitignore, ".workflows/telemetry.jsonl");
 
   // Done
   console.log();
@@ -436,7 +466,7 @@ function escapeRegex(str) {
 // ============================================================
 function cmdUpgrade(args) {
   const root = detectProjectRoot();
-  const { type, team, withGuards } = args;
+  let { type, team, withGuards } = args;
 
   const versionFile = path.join(root, ".claude/.workflows-version");
   if (!fs.existsSync(versionFile)) {
@@ -449,6 +479,28 @@ function cmdUpgrade(args) {
 
   const currentVersion = fs.readFileSync(versionFile, "utf8").trim();
 
+  // Auto-detect type and team from existing config if not provided
+  const workflowsYml = path.join(root, ".claude/workflows.yml");
+  if (fs.existsSync(workflowsYml)) {
+    const configContent = fs.readFileSync(workflowsYml, "utf8");
+    if (!type || type === "all") {
+      const typeMatch = configContent.match(/^\s+type:\s*"?(\w+)"?\s*$/m);
+      if (typeMatch && typeMatch[1] !== "generic") {
+        type = typeMatch[1];
+        args.type = type;
+        console.log(`Auto-detected project type: ${type} (from workflows.yml)`);
+      }
+    }
+    if (!team) {
+      const teamMatch = configContent.match(/^\s+team:\s*"(\w+)"\s*$/m);
+      if (teamMatch && teamMatch[1]) {
+        team = teamMatch[1];
+        args.team = team;
+        console.log(`Auto-detected team: ${team} (from workflows.yml)`);
+      }
+    }
+  }
+
   // Validate team
   if (team) {
     const teamDir = path.join(PKG_ROOT, "teams", team);
@@ -457,6 +509,17 @@ function cmdUpgrade(args) {
       console.log("Available teams:");
       listTeamsQuiet();
       process.exit(1);
+    }
+    // Check team type compatibility
+    const teamManifest = path.join(teamDir, "manifest.yml");
+    if (fs.existsSync(teamManifest)) {
+      const manifestContent = fs.readFileSync(teamManifest, "utf8");
+      const reqMatch = manifestContent.match(/^requires_type:\s*(\S+)\s*$/m);
+      if (reqMatch && reqMatch[1] !== type) {
+        console.log(
+          `WARNING: Team '${team}' expects --type ${reqMatch[1]}, but got --type ${type}. Team-specific rules may not apply correctly.`
+        );
+      }
     }
   }
 
@@ -580,10 +643,10 @@ function cmdUpgrade(args) {
   if (type) {
     console.log("Upgrading review checklists...");
     fs.mkdirSync(path.join(root, ".claude/reviews"), { recursive: true });
-    const reviewLabel = getReviewLabel(type);
+    const reviewLabels = getReviewLabels(type);
     const reviewsSrc = path.join(PKG_ROOT, "core", "reviews");
-    if (reviewLabel && fs.existsSync(reviewsSrc)) {
-      if (reviewLabel === "all") {
+    if (fs.existsSync(reviewsSrc)) {
+      if (reviewLabels === "all") {
         for (const f of fs.readdirSync(reviewsSrc).filter((f) => f.endsWith(".md"))) {
           fs.copyFileSync(
             path.join(reviewsSrc, f),
@@ -591,11 +654,13 @@ function cmdUpgrade(args) {
           );
         }
         console.log("  Updated all review checklists");
-      } else {
-        const src = path.join(reviewsSrc, `${reviewLabel}.md`);
-        if (fs.existsSync(src)) {
-          fs.copyFileSync(src, path.join(root, ".claude/reviews", `${reviewLabel}.md`));
-          console.log(`  Updated review checklist: ${reviewLabel}.md`);
+      } else if (Array.isArray(reviewLabels)) {
+        for (const label of reviewLabels) {
+          const src = path.join(reviewsSrc, `${label}.md`);
+          if (fs.existsSync(src)) {
+            fs.copyFileSync(src, path.join(root, ".claude/reviews", `${label}.md`));
+            console.log(`  Updated review checklist: ${label}.md`);
+          }
         }
       }
     }
@@ -639,6 +704,7 @@ function cmdUpgrade(args) {
   addToGitignore(gitignore, ".workflows/current-state.md");
   addToGitignore(gitignore, ".workflows/history/");
   addToGitignore(gitignore, ".workflows/learned/");
+  addToGitignore(gitignore, ".workflows/telemetry.jsonl");
 
   console.log();
   console.log("=== Upgrade complete! ===");

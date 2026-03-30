@@ -14,83 +14,7 @@ description: Review a GitHub pull request by fetching changes, categorizing by a
 
 Four phases: **FETCH -> CATEGORIZE -> CHECK -> COMMENT**
 
-## BEFORE YOU START — Initialize State
-
-Check if `.workflows/current-state.md` exists (it may have been created by `/start`).
-
-**If it does NOT exist**, create it now. Run these commands and create the file:
-
-```bash
-mkdir -p .workflows/<pr-name>
-```
-
-Then use your **Write tool** to create `.workflows/current-state.md`:
-
-```
-# Workflow State
-
-- **workflow**: review
-- **feature**: <pr-name>
-- **phase**: FETCH
-- **started**: <current ISO-8601 timestamp>
-- **updated**: <current ISO-8601 timestamp>
-- **branch**:
-- **output_dir**: .workflows/<pr-name>/
-- **retry_count**: 0
-
-## Phase History
-
-| Phase | Status | Timestamp | Output | Notes |
-|-------|--------|-----------|--------|-------|
-| FETCH | ACTIVE | <timestamp> | | Starting workflow |
-
-## Phase Outputs
-
-_Documents produced by each phase:_
-
-## Context
-
-_Key decisions and resume context:_
-```
-
-**If it already exists**, read it and continue from the current active phase.
-
-**Verify**: Read `.workflows/current-state.md` to confirm it exists before proceeding.
-
----
-
-## AFTER EVERY PHASE — You MUST Create Files
-
-After completing each phase below, do these TWO things using your tools before moving on:
-
-**Action 1 — Create the phase output file.** Use your **Write tool** to create the file at the path shown at the end of each phase (the `>> Write output to` line). Use this format:
-
-```
-# <Phase Name> — <Feature>
-
-**Date**: <ISO-8601>
-**Status**: Complete
-
-## Summary
-<1-3 sentences>
-
-## Details
-<Phase-specific content>
-
-## Decisions
-<Key decisions>
-
-## Next Phase Input
-<What next phase needs>
-```
-
-**Action 2 — Rewrite the state file.** Use your **Write tool** to REWRITE the entire `.workflows/current-state.md` file. Read the current content first, then write the full file back with these updates:
-- Update `phase` and `updated` in the header
-- In Phase History table: change the completed phase status to `COMPLETED`, add output filename, add new row for next phase as `ACTIVE`
-- Under `## Phase Outputs`: add a link to the new output file
-- Under `## Context`: add key decisions from this phase
-
-**You must REWRITE the whole file — do not try to edit individual lines. Do NOT proceed to the next phase until both files are written.**
+> Follow orchestration Rules 0-1 for state and output.
 
 ---
 
@@ -100,31 +24,17 @@ After completing each phase below, do these TWO things using your tools before m
 
 Detect repository: `gh repo view --json owner,name -q '.owner.login + "/" + .name'`
 
-**1.1** Fetch PR metadata:
-```bash
-gh pr view <pr-number> --json title,body,author,baseRefName,headRefName,additions,deletions,changedFiles,labels,state,reviewDecision
-```
+**Steps 1.1–1.4 are independent — execute in parallel.**
 
-**1.2** Fetch diff: `gh pr diff <pr-number>`
+Fetch via `gh`: PR metadata (`gh pr view --json`), diff (`gh pr diff`), changed files, CI checks (flag failures), existing comments (to avoid duplicates). Read each changed file in FULL (not just diff) for context.
 
-**1.3** Fetch changed files: `gh pr view <pr-number> --json files --jq '.files[].path'`
+**Size Decision** (thresholds configurable via `review.size_thresholds` in `.claude/workflows.yml`):
+- **Small** (below `small` threshold, default 10 files): Review inline
+- **Medium** (up to `medium` threshold, default 30 files): Review by category
+- **Large** (above medium threshold): Search per category, warn PR should be split
+- **Extra-large** (>50 files or >1000 lines): Recommend user split PR before review
 
-**1.4** Fetch CI checks: `gh pr checks <pr-number>` — flag failures.
-
-**1.5** Fetch existing comments (avoid duplicating feedback):
-```bash
-gh api repos/{owner}/{repo}/pulls/<pr-number>/comments
-gh api repos/{owner}/{repo}/issues/<pr-number>/comments
-```
-
-**1.6** Read each changed file in FULL using the Read tool (not just the diff) to understand context.
-
-**Size Decision**:
-- **Small** (< 10 files, < 200 lines): Review inline
-- **Medium** (10-30 files, 200-500 lines): Review by category
-- **Large** (> 30 files, > 500 lines): Sub-agents per category, warn PR should be split
-
-**>> Write output to**: `.workflows/<pr-name>/01-fetch.md` — then update `.workflows/current-state.md` (see State Tracking above).
+**>> Write output to**: `.workflows/<pr-name>/01-fetch.md`.
 
 ---
 
@@ -151,7 +61,7 @@ Adapt to the project's actual architecture (e.g., Rails: Models/Views/Controller
 
 **2.3 — Summarize** file counts per category with additions/deletions.
 
-**>> Write output to**: `.workflows/<pr-name>/02-categorize.md` — then update `.workflows/current-state.md`.
+**>> Write output to**: `.workflows/<pr-name>/02-categorize.md`.
 
 ---
 
@@ -159,35 +69,15 @@ Adapt to the project's actual architecture (e.g., Rails: Models/Views/Controller
 
 **Goal**: Review each file against dynamically loaded quality checklists.
 
-### Step 3.1 — Load Checklists
+**Load checklists**: Always `.claude/reviews/general-checklist.md` + language-specific (from `project.language` config). No checklists found -> warn, use fallback checks.
 
-1. **Always load**: `.claude/reviews/general-checklist.md`
-2. **Detect language**: Read `project.language` from `.claude/workflows.yml`
-3. **Load language-specific**: `.claude/reviews/<language>-checklist.md` if it exists (e.g., `kotlin-checklist.md`, `typescript-checklist.md`, `python-checklist.md`)
-4. **If no checklists found**: Warn user, use fallback checks below
+**Apply focus**: If `--focus` provided, weight matching violations higher. Still run all checks.
 
-### Step 3.2 — Apply Focus
+**Fallback checks** (no checklist files): Architecture (layer boundaries, deps), Code Quality (naming, function size, duplication, error handling), Security (no secrets, input validation), Performance (no blocking/N+1, caching), Test Coverage (new APIs tested, edge cases), Consistency (matches codebase patterns).
 
-If `--focus <area>` provided, prioritize matching checklist items. Still run all checks but weight focused violations higher.
+**Execute**: For each changed file, check ALL loaded items. Record violations with: severity (error/warning/suggestion/nitpick), file+line, issue description, actionable suggestion.
 
-### Step 3.3 — Fallback Checks (no checklist files)
-
-- **Architecture**: Layer boundaries respected? Dependencies correct? Code in right location?
-- **Code Quality**: Clear naming? Functions < 50 lines? No duplication/dead code/magic values? Errors handled?
-- **Security**: No hardcoded secrets? Input validated? Sensitive data safe? HTTPS enforced?
-- **Performance**: No blocking on critical paths? No N+1 queries? Caching/pagination where needed?
-- **Test Coverage**: New public APIs tested? Happy/error/edge cases? Tests deterministic?
-- **Consistency**: Matches codebase patterns? Similar problems solved same way?
-
-### Step 3.4 — Execute
-
-For each changed file, run through ALL loaded checklist items. For each violation record:
-- **Severity**: error / warning / suggestion / nitpick
-- **File + Line**: exact path and line number
-- **Issue**: clear description
-- **Suggestion**: actionable fix or code example
-
-**>> Write output to**: `.workflows/<pr-name>/03-check.md` — then update `.workflows/current-state.md`.
+**>> Write output to**: `.workflows/<pr-name>/03-check.md`.
 
 ---
 
@@ -204,44 +94,19 @@ For each changed file, run through ALL loaded checklist items. For each violatio
 | **suggestion** | Improvement idea, alternative approach | No |
 | **nitpick** | Style, naming, minor formatting | No |
 
-### Step 4.1 — Compile Comments
+**4.1 Compile**: Format as `[SEVERITY] file:line — Title` with description and suggestion.
 
-Format each finding as: `[SEVERITY] file:line — Title` followed by description and suggestion.
+**4.2 Summary**: Verdict, stats, key findings, positive observations, action items.
 
-### Step 4.2 — Generate Summary
+**Verdict**: error -> REQUEST_CHANGES | warnings only -> COMMENT (or APPROVE if minor) | none -> APPROVE | `--strict`: warnings also REQUEST_CHANGES.
 
-Include: verdict, stats (files/errors/warnings/suggestions/nitpicks), key findings, positive observations, action items checklist.
+**4.3 User Approval**: "(1) submit as-is, (2) remove comments, (3) adjust severities, (4) cancel."
 
-**Verdict logic**:
-- Any **error** -> REQUEST_CHANGES
-- Only warnings/suggestions/nitpicks -> COMMENT (or APPROVE if minor)
-- No findings -> APPROVE
-- `--strict`: warnings also trigger REQUEST_CHANGES
+**4.4 Submit**: `gh pr review` for verdict + `gh api` for inline comments.
 
-### Step 4.3 — User Approval
+**4.5 Report**: Print verdict, counts by severity, PR URL.
 
-Present full review and ask: "(1) submit as-is, (2) remove comments, (3) adjust severities, (4) cancel."
-
-### Step 4.4 — Submit
-
-```bash
-gh pr review <pr-number> --<approve|request-changes|comment> --body "<summary>"
-```
-
-Inline comments via API:
-```bash
-gh api repos/{owner}/{repo}/pulls/<pr-number>/reviews \
-  --method POST \
-  --field event="<APPROVE|REQUEST_CHANGES|COMMENT>" \
-  --field body="<summary>" \
-  --field comments='[{"path": "<file>", "line": <N>, "body": "[<SEVERITY>] <comment>"}]'
-```
-
-### Step 4.5 — Report
-
-Print verdict, comment counts by severity, and PR URL.
-
-**>> Write output to**: `.workflows/<pr-name>/04-comment.md` — then update `.workflows/current-state.md`.
+**>> Write output to**: `.workflows/<pr-name>/04-comment.md`.
 
 **After this final phase**: Move `.workflows/current-state.md` to `.workflows/history/<pr-name>-<YYYY-MM-DD>.md`. Report completion.
 
@@ -255,17 +120,11 @@ Print verdict, comment counts by severity, and PR URL.
 | gh CLI not authenticated | Guide user through `gh auth login` |
 | PR already merged | Report status, skip review |
 | PR is draft | Review anyway, note draft status |
-| Diff too large | Sub-agents per category, warn about PR size |
+| Diff too large | Search per category, warn about PR size |
 | Cannot determine file context | Read full file from head branch |
 | API rate limit hit | Wait and retry, or batch comments |
 | No checklist files found | Warn user, proceed with fallback checks |
 
 ## Review Principles
 
-1. **Be constructive**: Every criticism includes a suggestion
-2. **Be specific**: Exact lines, code examples
-3. **Be proportional**: Don't block PRs for nitpicks
-4. **Acknowledge good work**: Call out well-written code
-5. **Focus on behavior**: Correctness over style
-6. **Consider context**: Hotfix vs. feature PR standards differ
-7. **One comment per issue**: Don't combine concerns
+Be constructive (include suggestions), specific (exact lines), proportional (don't block for nitpicks). Acknowledge good work. Focus on behavior over style. Consider context (hotfix vs feature). One comment per issue.

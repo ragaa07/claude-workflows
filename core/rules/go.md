@@ -34,14 +34,11 @@
 - DO use table-driven tests with `[]struct{ name string; ... }` slices
 - DO use `t.Run(tc.name, ...)` for subtests
 - DO use `t.Helper()` in test helper functions
-- DO use `testify/assert` or standard `if got != want` patterns consistently
 - DO use `t.Parallel()` for independent tests
-- DO use `_test.go` suffix — tests in same package for white-box, `_test` package for black-box
 
 ## Package Design
 - DO keep packages focused — one concept per package
 - DON'T use `util`, `common`, `helpers` packages — name by what it does
-- DO use lowercase, single-word package names: `http`, `user`, `auth`
 - DON'T use `internal/` unless you need to enforce visibility boundaries
 - DO put `main` packages in `cmd/<name>/`
 
@@ -51,17 +48,13 @@
 - DO use `Option` pattern for optional configuration: `func WithTimeout(d time.Duration) Option`
 
 ## Naming
-- Exported: `PascalCase` — unexported: `camelCase`
 - Receivers: short (1-2 letters): `func (s *Service) Do()`
-- Acronyms: all caps — `HTTPClient`, `userID`
 - DON'T use getters — `user.Name()` not `user.GetName()`
-- DO use `New` prefix for constructors: `NewClient()`, `NewServer()`
 
 ## General
 - DO use `defer` for cleanup — but beware of loop `defer` accumulation
 - DO use `sync.Once` for one-time initialization
-- DON'T use `init()` functions — they make testing and reasoning harder
+- DON'T use `init()` functions for application logic — they hurt testability. Exception: driver/plugin registration patterns that require `init()` by convention.
 - DO use `make` for slices/maps with known capacity: `make([]int, 0, 100)`
 - DO use struct embedding for composition, not inheritance
 - DO run `go vet` and `golangci-lint` before committing
-- DO use `go mod tidy` to keep dependencies clean

@@ -13,83 +13,7 @@ Emergency fix for production issues. Optimized for **SPEED**. No brainstorming. 
 
 **Prerequisites**: Clean git tree. Production branch identifiable from `.claude/workflows.yml` or `--branch`.
 
-## BEFORE YOU START — Initialize State
-
-Check if `.workflows/current-state.md` exists (it may have been created by `/start`).
-
-**If it does NOT exist**, create it now. Run these commands and create the file:
-
-```bash
-mkdir -p .workflows/<description>
-```
-
-Then use your **Write tool** to create `.workflows/current-state.md`:
-
-```
-# Workflow State
-
-- **workflow**: hotfix
-- **feature**: <description>
-- **phase**: DIAGNOSE
-- **started**: <current ISO-8601 timestamp>
-- **updated**: <current ISO-8601 timestamp>
-- **branch**:
-- **output_dir**: .workflows/<description>/
-- **retry_count**: 0
-
-## Phase History
-
-| Phase | Status | Timestamp | Output | Notes |
-|-------|--------|-----------|--------|-------|
-| DIAGNOSE | ACTIVE | <timestamp> | | Starting workflow |
-
-## Phase Outputs
-
-_Documents produced by each phase:_
-
-## Context
-
-_Key decisions and resume context:_
-```
-
-**If it already exists**, read it and continue from the current active phase.
-
-**Verify**: Read `.workflows/current-state.md` to confirm it exists before proceeding.
-
----
-
-## AFTER EVERY PHASE — You MUST Create Files
-
-After completing each phase below, do these TWO things using your tools before moving on:
-
-**Action 1 — Create the phase output file.** Use your **Write tool** to create the file at the path shown at the end of each phase (the `>> Write output to` line). Use this format:
-
-```
-# <Phase Name> — <Feature>
-
-**Date**: <ISO-8601>
-**Status**: Complete
-
-## Summary
-<1-3 sentences>
-
-## Details
-<Phase-specific content>
-
-## Decisions
-<Key decisions>
-
-## Next Phase Input
-<What next phase needs>
-```
-
-**Action 2 — Rewrite the state file.** Use your **Write tool** to REWRITE the entire `.workflows/current-state.md` file. Read the current content first, then write the full file back with these updates:
-- Update `phase` and `updated` in the header
-- In Phase History table: change the completed phase status to `COMPLETED`, add output filename, add new row for next phase as `ACTIVE`
-- Under `## Phase Outputs`: add a link to the new output file
-- Under `## Context`: add key decisions from this phase
-
-**You must REWRITE the whole file — do not try to edit individual lines. Do NOT proceed to the next phase until both files are written.**
+> Follow orchestration Rules 0-1 for state and output.
 
 ---
 
@@ -97,12 +21,9 @@ After completing each phase below, do these TWO things using your tools before m
 
 Identify the exact crash cause in minimum time.
 
-1. **Gather crash data**:
-   - Crashlytics (`--crashlytics`): call `mcp__firebase__crashlytics_get_issue` and `mcp__firebase__crashlytics_list_events`. Extract exception type, stack trace, file/line, frequency, version.
-   - Log file (`--log`): search for exception lines, stack traces, fatal markers.
-   - Description: parse error type, repro steps, affected feature.
-2. **Locate crash site**: from the stack trace, find exact file and line. Read the method.
-3. **Identify root cause** using this table:
+1. **Gather crash data**: Crashlytics (`--crashlytics`): use `mcp__firebase__crashlytics_get_issue` / `_list_events` to extract exception type, stack trace, file/line, frequency. Log file (`--log`): search for exceptions, stack traces, fatal markers. Description: parse error type, repro steps, affected feature.
+2. **Locate crash site**: from stack trace, find exact file and line.
+3. **Identify root cause**:
 
 | Crash Type | What to Look For |
 |---|---|
@@ -118,7 +39,7 @@ Identify the exact crash cause in minimum time.
 
 Document: `"Root cause: <X> is null/invalid when <Y> because <Z>"`
 
-**>> Write output to**: `.workflows/<description>/01-diagnose.md` — then update `.workflows/current-state.md` (see State Tracking above). (Root cause, crash site, blast radius)
+**>> Write output to**: `.workflows/<description>/01-diagnose.md` (Root cause, crash site, blast radius)
 
 ---
 
@@ -126,13 +47,9 @@ Document: `"Root cause: <X> is null/invalid when <Y> because <Z>"`
 
 Apply the absolute minimum change.
 
-**Branch**: `git checkout $PROD_BRANCH && git pull && git checkout -b hotfix/<short-description>`
+**Branch**: `git checkout <production-branch> && git pull && git checkout -b hotfix/<short-description>` (read from `git.branches.main` in config or `--branch`).
 
-**Rules**:
-1. ONE change only — fix the crash, nothing else
-2. No refactoring, no features, no dependency updates
-3. Match existing style — do not reformat
-4. Lines changed: ideally 1-5, **maximum 15**
+**Rules**: ONE change only (no refactoring/features/deps). Match existing style. Lines changed: ideally 1-5, max from `workflows.hotfix.max_lines` (default 15) — warn if exceeded.
 
 | Crash Type | Fix Pattern |
 |---|---|
@@ -151,7 +68,7 @@ Check `.claude/rules/` for project-specific conventions. Apply them.
 
 **Commit**: `fix: <short description>` with root cause and crash location in body.
 
-**>> Write output to**: `.workflows/<description>/02-fix.md` — then update `.workflows/current-state.md`. (Changes made, diff summary)
+**>> Write output to**: `.workflows/<description>/02-fix.md` (Changes made, diff summary)
 
 ---
 
@@ -172,7 +89,7 @@ Check `.claude/rules/` for project-specific conventions. Apply them.
 
 3. **Commit**: `test: add regression test for <crash description>`
 
-**>> Write output to**: `.workflows/<description>/03-regression-test.md` — then update `.workflows/current-state.md`. (Test results)
+**>> Write output to**: `.workflows/<description>/03-regression-test.md` (Test results)
 
 ---
 
@@ -197,15 +114,17 @@ PR body includes: severity, root cause, fix description, files changed, regressi
 
 **Quality Gate**: all items (except manual verification) must be checked. If not, STOP and fix first.
 
-Check `.claude/reviews/` for project-specific review criteria. Print PR URL and summary.
+**Pre-PR quality gate**: Load `.claude/reviews/general-checklist.md` + language-specific checklist. Self-check all High/Critical items. Fix violations before creating PR.
 
-**>> Write output to**: `.workflows/<description>/04-pr.md` — then update `.workflows/current-state.md`. (PR URL, summary)
+Print PR URL and summary.
+
+**>> Write output to**: `.workflows/<description>/04-pr.md` (PR URL, summary)
 
 ---
 
 ### Phase 5: CHERRY-PICK
 
-Do NOT auto-cherry-pick. Present the plan:
+Present the cherry-pick plan to the user. **Do NOT execute until user confirms.**
 
 ```
 After hotfix PR merges to <production-branch>:
@@ -220,7 +139,7 @@ Preview conflicts: `git log <prod>..<dev> -- <changed-files>`. Warn if diverged.
 
 Ask: "Cherry-pick now, or handle after merge?"
 
-**>> Write output to**: `.workflows/<description>/05-cherry-pick.md` — then update `.workflows/current-state.md`. (Cherry-pick plan)
+**>> Write output to**: `.workflows/<description>/05-cherry-pick.md` (Cherry-pick plan)
 
 **After this final phase**: Move `.workflows/current-state.md` to `.workflows/history/<description>-<YYYY-MM-DD>.md`. Report completion.
 
@@ -245,16 +164,10 @@ Hotfix complete.
 |---|---|
 | Cannot identify crash | Ask for stack trace or crash report ID |
 | Crash in dependency | Document workaround; cannot hotfix third-party code |
-| Fix >15 lines | Reassess: hotfix or proper fix? Discuss with user |
 | Prod branch unknown | Ask user for branch name |
 | Cherry-pick conflicts | Present conflicts, let user resolve |
 | Multiple crashes, same cause | Same file: one hotfix. Different files: separate hotfixes |
 
 ## Anti-Patterns
 
-- Do NOT refactor while hotfixing
-- Do NOT add features while hotfixing
-- Do NOT update dependencies while hotfixing
-- Do NOT fix code style while hotfixing
-- Do NOT branch from development for a hotfix
-- Do NOT skip the regression test
+While hotfixing, do NOT: refactor, add features, update dependencies, fix code style, branch from development, or skip the regression test.

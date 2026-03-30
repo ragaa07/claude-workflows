@@ -2,7 +2,7 @@
 "use strict";
 
 /**
- * End-to-end workflow validation for claude-workflows v2.0.0
+ * End-to-end workflow validation for claude-workflows
  *
  * Validates:
  * 1. Phase ordering matches declared phases
@@ -25,22 +25,18 @@ const path = require("path");
 // ============================================================
 // Config
 // ============================================================
+const VERSION = fs.readFileSync(path.join(__dirname, '..', 'VERSION'), 'utf8').trim();
+
+const PROJECT_ROOT = process.env.TEST_PROJECT_ROOT || path.resolve(__dirname, '..');
+
 const PROJECTS = [
   {
-    name: "Flosy (Android/Kotlin)",
-    root: "/Users/ragaaaboelezz/AndroidStudioProjects/Flosy",
-    expectedType: "android",
-    expectedLang: "kotlin",
-    expectedRules: ["kotlin.md", "compose.md"],
-    expectedReviews: ["kotlin-checklist.md"],
-  },
-  {
-    name: "TestClaudeWorkflows (iOS/Swift)",
-    root: "/Users/ragaaaboelezz/Desktop/TestClaudeWorkflows",
-    expectedType: "swift",
-    expectedLang: "swift",
-    expectedRules: ["swift.md"],
-    expectedReviews: ["swift-checklist.md"],
+    name: "Local project",
+    root: PROJECT_ROOT,
+    expectedType: process.env.TEST_PROJECT_TYPE || "android",
+    expectedLang: process.env.TEST_PROJECT_LANG || "kotlin",
+    expectedRules: (process.env.TEST_EXPECTED_RULES || "kotlin.md,compose.md").split(","),
+    expectedReviews: (process.env.TEST_EXPECTED_REVIEWS || "kotlin-checklist.md").split(","),
   },
 ];
 
@@ -385,7 +381,7 @@ function validateProject(project) {
 
   test(
     "start delegates to workflow skills (not executing internally)",
-    startContent.includes("Do NOT attempt to read and execute"),
+    startContent.includes("you cannot execute it by reading the SKILL.md file directly"),
   );
   test(
     "resume references _orchestration/RULES.md",
@@ -398,23 +394,23 @@ function validateProject(project) {
     path.join(root, ".claude/skills/_orchestration/RULES.md"), "utf8"
   );
 
-  test("Rule 1: Phase output document format", rulesContent.includes("Rule 1"));
+  test("Rule 0: State initialization", rulesContent.includes("Rule 0"));
+  test("Rule 1: Phase output protocol", rulesContent.includes("Rule 1"));
   test("Rule 1: Details guide table", rulesContent.includes("Details Guide"));
-  test("Rule 2: State update protocol", rulesContent.includes("Rule 2"));
-  test("Rule 2: State evolution example", rulesContent.includes("Example state after"));
-  test("Rule 2: Phase History table in example", rulesContent.includes("| ANALYZE | COMPLETED"));
-  test("Rule 2: Phase Outputs section in example", rulesContent.includes("## Phase Outputs"));
-  test("Rule 2: Context section in example", rulesContent.includes("## Context"));
-  test("Rule 3: Skipping phases", rulesContent.includes("Rule 3"));
-  test("Rule 4: Quality gate", rulesContent.includes("Rule 4"));
-  test("Rule 4: References .claude/rules/", rulesContent.includes(".claude/rules/"));
-  test("Rule 4: References .claude/reviews/", rulesContent.includes(".claude/reviews/"));
-  test("Rule 5: Build/test detection", rulesContent.includes("Rule 5"));
-  test("Rule 6: Workflow chaining", rulesContent.includes("Rule 6"));
-  test("Rule 7: Completion protocol", rulesContent.includes("Rule 7"));
-  test("Rule 8: Pausing protocol", rulesContent.includes("Rule 8"));
-  test("Rule 9: Error recovery / REPLAN", rulesContent.includes("Rule 9"));
-  test("Rule 9: REPLAN defined", rulesContent.includes("REPLAN"));
+  test("Rule 2: Skipping phases", rulesContent.includes("Rule 2"));
+  test("Rule 2: Precedence defined", rulesContent.includes("Precedence"));
+  test("Rule 3: Quality gate", rulesContent.includes("Rule 3"));
+  test("Rule 3: References .claude/rules/", rulesContent.includes(".claude/rules/"));
+  test("Rule 3: References .claude/reviews/", rulesContent.includes(".claude/reviews/"));
+  test("Rule 4: Build/test detection", rulesContent.includes("Rule 4"));
+  test("Rule 5: Completion protocol", rulesContent.includes("Rule 5"));
+  test("Rule 5: History collision handling", rulesContent.includes("append time"));
+  test("Rule 6: Pausing protocol", rulesContent.includes("Rule 6"));
+  test("Rule 7: Error recovery / REPLAN", rulesContent.includes("Rule 7"));
+  test("Rule 7: REPLAN limit defined", rulesContent.includes("Maximum 2 REPLANs"));
+  test("Rule 8: Common error resolutions", rulesContent.includes("Rule 8"));
+  test("Rule 9: Skill composition", rulesContent.includes("Rule 9"));
+  test("Rule 10: Phase statuses", rulesContent.includes("Rule 10"));
 
   // Phase statuses defined
   for (const status of ["ACTIVE", "COMPLETED", "SKIPPED", "FAILED", "RETRY"]) {
@@ -512,7 +508,7 @@ function validateProject(project) {
 // Run
 // ============================================================
 console.log("╔══════════════════════════════════════════════════════════╗");
-console.log("║   claude-workflows v2.0.0 — End-to-End Validation      ║");
+console.log(`║   claude-workflows v${VERSION} — End-to-End Validation      ║`);
 console.log("╚══════════════════════════════════════════════════════════╝");
 
 for (const project of PROJECTS) {

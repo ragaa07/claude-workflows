@@ -1,182 +1,212 @@
 # Orchestration Rules
 
-> These rules apply to EVERY workflow execution. Follow them at ALL times.
+> These rules apply to EVERY workflow execution.
+>
+> **Selective loading**: If the active skill's frontmatter includes a `rules` list (e.g., `rules: [0, 1, 2, 5, 6]`), only follow those numbered rules. Otherwise, follow all rules.
 
-## Rule 1: Phase Output Documents
+## Rule 0: State Initialization
 
-After completing each phase, write a markdown file:
+Before starting any workflow, check if `.workflows/current-state.md` exists.
 
+**If it does NOT exist**, create it:
+1. `mkdir -p .workflows/<feature-name>`
+2. Use your **Write tool** to create `.workflows/current-state.md` with YAML frontmatter + markdown body:
 ```
-Path: .workflows/<feature>/<NN>-<phase-name>.md
-Example: .workflows/payment-flow/01-analyze.md
-```
-
-**Format:**
-
-```markdown
-# <Phase Name> — <Feature>
-
-**Date**: <ISO-8601 timestamp>
-**Status**: Complete
-
-## Summary
-<1-3 sentences>
-
-## Details
-<Phase-specific content — see Details Guide below>
-
-## Decisions
-<Key decisions and rationale>
-
-## Next Phase Input
-<What the next phase needs from this one>
-```
-
-**Details Guide** — what to write in `## Details` for each phase type:
-
-| Phase | Details Content |
-|-------|----------------|
-| GATHER / DETECT | Requirements collected, sources consulted, gaps identified |
-| ANALYZE | Architecture map, file inventory, dependency graph, current behavior |
-| SPEC | Full feature specification (user stories, acceptance criteria, scope, technical requirements) |
-| BRAINSTORM / EXPLORE | Options generated, techniques applied, constraints identified |
-| EVALUATE | Trade-off matrix scores, criteria analysis, strengths/weaknesses per option |
-| RECOMMEND | Final recommendation with rationale, accepted trade-offs, risks + mitigations |
-| CONTRACT | Behavioral invariants, public API surface, performance/threading contracts |
-| PLAN / DESIGN | Implementation phases with files, commands, and commit messages |
-| BRANCH | Branch name, base branch, git commands used |
-| IMPLEMENT / EXECUTE / MIGRATE | Files changed, commits made, issues encountered, compile/test results per step |
-| TEST / VERIFY / VERIFY-COMPAT / REGRESSION-TEST | Test results, coverage metrics, pass/fail counts, behavioral verification |
-| WRITE | Test code written, file paths, framework setup |
-| REPORT | Coverage summary, gap analysis, quality observations |
-| FIX | Applied fix details, files changed, diff summary, lines changed count |
-| PR | PR URL, title, summary, reviewers assigned |
-| CHERRY-PICK | Cherry-pick plan, target branch, potential conflicts |
-| PUSH | Commit hash, branch pushed, PR reference |
-| MONITOR | CI run status, pass/fail result, retry count |
-| DIAGNOSE | Failure category, root cause, affected files/lines |
-| CHANGELOG | Categorized commit history, generated changelog entry |
-| VERSION-BUMP | Old version, new version, files changed |
-| RELEASE-BRANCH | Release branch name, base branch, commits included |
-| TAG | Tag name, release URL |
-| CONFIGURE | Detection results, user confirmations, config generated |
-| CATEGORIZE | File classification, review order, scope summary |
-| CHECK | Review findings by category, severity ratings |
-| COMMENT | Final review verdict, submitted comments count |
-
-## Rule 2: Update State After Every Phase
-
-Update `.workflows/current-state.md`:
-
-1. Mark completed phase as `COMPLETED` with a note
-2. Add output document path to `Output` column
-3. Add next phase as `ACTIVE`
-4. Update `phase` and `updated` fields
-5. Add link under `## Phase Outputs`
-6. Update `## Context` with key decisions
-7. If a git branch was created, update `branch` field
-
-**Phase statuses**: `ACTIVE`, `COMPLETED`, `SKIPPED`, `FAILED`, `RETRY`
-- Use `FAILED` when a phase fails and cannot continue
-- Use `RETRY` when a phase is being re-attempted (e.g., CI-fix MONITOR loop)
-
-**Example state after 3 phases:**
-
-```markdown
-# Workflow State
-
-- **workflow**: extend-feature
-- **feature**: booking-cancellation
-- **phase**: PLAN
-- **started**: 2026-03-25T10:00:00Z
-- **updated**: 2026-03-25T11:45:00Z
-- **branch**:
-- **output_dir**: .workflows/booking-cancellation/
-- **retry_count**: 0
-
+---
+workflow: <workflow-name>
+feature: <feature-name>
+phase: <first-phase>
+started: <ISO-8601>
+updated: <ISO-8601>
+branch:
+output_dir: .workflows/<feature-name>/
+retry_count: 0
+---
 ## Phase History
-
-| Phase | Status | Timestamp | Output | Notes |
-|-------|--------|-----------|--------|-------|
-| ANALYZE | COMPLETED | 2026-03-25T10:00:00Z | 01-analyze.md | Mapped feature architecture |
-| BRAINSTORM | COMPLETED | 2026-03-25T11:00:00Z | 02-brainstorm.md | Chose event-driven approach |
-| PLAN | ACTIVE | 2026-03-25T11:45:00Z | | Creating implementation plan |
-
-## Phase Outputs
-
-- [01-analyze.md](.workflows/booking-cancellation/01-analyze.md) — Feature architecture analysis
-- [02-brainstorm.md](.workflows/booking-cancellation/02-brainstorm.md) — SCAMPER analysis, chose Approach B
+| Phase | Status | Output | Notes |
+|-------|--------|--------|-------|
+| <first-phase> | ACTIVE | | Starting workflow |
 
 ## Context
-
-- Feature uses layered architecture
-- Chose event-driven approach (Approach B) over direct API call
-- Cancellation requires reason selection (mandatory) + optional comment
+_Key decisions and resume context:_
 ```
 
-## Rule 3: Skipping Phases
+**If it already exists**, read it and continue from the current active phase.
+**Verify**: Read `.workflows/current-state.md` to confirm it exists before proceeding.
 
-Read `.claude/workflows.yml` → `workflows.<skill>`:
-- `require_brainstorm: false` OR `--skip-brainstorm` → skip BRAINSTORM
-- `require_tests: false` → skip TEST
-- `require_spec: false` → skip SPEC
+## Rule 1: Phase Output Protocol
 
-When skipping: mark as `SKIPPED` in state, no output document, proceed to next phase.
+After completing each phase, do TWO things before moving on:
 
-## Rule 4: Quality Gate — Rules & Reviews
+**Action 1 -- Write the phase output file** at the path shown in each phase's `>> Write output to` line:
+```
+# <Phase Name> -- <Feature>
+**Date**: <ISO-8601> | **Status**: Complete
+## Summary
+<1-3 sentences>
+## Details
+<Phase-specific content -- the individual skill defines what each phase produces>
+## Decisions
+<Key decisions>
+## Next Phase Input
+<What next phase needs>
+```
+
+**Action 2 -- Update the state file.** Read `.workflows/current-state.md`, then rewrite:
+- **Frontmatter**: set `phase` to next phase, set `updated` to current timestamp
+- **Phase History table**: mark completed phase `COMPLETED`, fill Output column, add new `ACTIVE` row
+- **Context section**: append key decisions as bullet points
+- **branch field**: update if a git branch was created
+
+**Do NOT proceed to the next phase until both files are written.**
+
+**Action 3 — Append context snapshot.** Append to `.workflows/<feature>/CONTEXT.md`:
+```
+## After <PHASE-NAME>
+- <3-5 bullet points: key decisions, constraints, risks from this phase>
+```
+Before starting a phase, read `CONTEXT.md` to reload prior decisions (critical for long workflows that span context compressions).
+
+## Rule 2: Skipping Phases
+
+Read `.claude/workflows.yml` -> `workflows.<skill>`:
+- `require_brainstorm: false` OR `--skip-brainstorm` -> skip BRAINSTORM
+- `require_tests: false` -> skip TEST
+- `require_spec: false` -> skip SPEC
+
+**Precedence**: Command-line flags override config. When skipping: mark `SKIPPED` in state, no output document, proceed to next phase.
+
+## Rule 3: Quality Gate -- Rules & Reviews
 
 **Before writing code** in any implementation phase:
 1. Read `.claude/rules/` files matching `project.language` from `.claude/workflows.yml`
 2. Follow every DO/DON'T while implementing
 
 **Before creating a PR** (every workflow that ends with PR):
-1. Load `.claude/reviews/general-checklist.md`
-2. Load the language-specific checklist from `.claude/reviews/` (e.g., `kotlin-checklist.md`)
-3. If a team review checklist exists, load it too
-4. Self-check all changes against High/Critical items
-5. Fix any violations before creating the PR
+1. Load `.claude/reviews/general-checklist.md` + language-specific checklist + team checklist (if exists)
+2. Self-check all changes against High/Critical items
+3. Fix any violations before creating the PR
 
-## Rule 5: Build/Test Command Detection
+## Rule 4: Build/Test Command Detection
 
-Before the first implementation phase, detect the project's build system:
+Before the first implementation phase, detect build system from marker files:
 
-| Marker | Build | Test |
-|--------|-------|------|
-| `build.gradle.kts` / `build.gradle` | `./gradlew build` | `./gradlew test` |
-| `package.json` | `npm run build` | `npm test` |
-| `Cargo.toml` | `cargo build` | `cargo test` |
-| `go.mod` | `go build ./...` | `go test ./...` |
-| `pyproject.toml` / `setup.py` | `python -m build` | `python -m pytest` |
-| `Package.swift` | `swift build` | `swift test` |
-| `CMakeLists.txt` | `cmake --build .` | `ctest` |
+| Marker | System | Marker | System |
+|--------|--------|--------|--------|
+| `build.gradle(.kts)` | Gradle | `go.mod` | go |
+| `package.json` | npm | `pyproject.toml`/`setup.py` | python |
+| `Cargo.toml` | cargo | `Package.swift` | swift |
+| `CMakeLists.txt` | cmake | | |
 
-Store detected commands. Use them wherever `<build-command>` or `<test-command>` appear.
+Store detected commands for use wherever `<build-command>` or `<test-command>` appear.
 
-## Rule 6: Workflow Chaining
+## Rule 5: Workflow Completion
 
-Read `chains` from `.claude/workflows.yml`. If a chain is defined for the current workflow + phase, invoke that skill after the phase completes.
+1. Write final phase output, mark as `COMPLETED`
+2. Move `.workflows/current-state.md` to `.workflows/history/<feature>-<YYYY-MM-DD>.md` (append `-<HHMM>` if exists)
+3. Preserve `.workflows/<feature>/` directory as archive
+4. Report completion summary to user
 
-Example config: `chains.new-feature.TEST: "/test"` means after the TEST phase of new-feature, run the test skill.
-
-## Rule 7: Workflow Completion
-
-1. Write the final phase output document
-2. Mark final phase as `COMPLETED`
-3. Move `.workflows/current-state.md` to `.workflows/history/<feature>-<YYYY-MM-DD>.md`
-4. The `.workflows/<feature>/` directory is preserved as archive
-5. Report completion summary to user
-
-## Rule 8: Pausing
+## Rule 6: Pausing
 
 If user says "pause" or needs to stop:
 1. Write in-progress work to current phase output (partial is fine)
 2. Update state with current progress
 3. Rename `.workflows/current-state.md` to `.workflows/paused-<feature>.md`
 
-## Rule 9: Error Recovery
+## Rule 7: Error Recovery & REPLAN
 
-- Compilation fails 3+ times in a phase → trigger REPLAN
-- Plan step is impossible → STOP, document, REPLAN
-- User requests change mid-implementation → STOP, REPLAN
+| Trigger | Action |
+|---------|--------|
+| Compilation fails 3+ times in a phase | REPLAN |
+| Plan step is impossible | STOP, document, REPLAN |
+| User requests change mid-implementation | STOP, REPLAN |
 
-**REPLAN**: Stop implementation, document what went wrong, re-analyze remaining phases, generate updated plan, get user approval, resume.
+**REPLAN protocol**: Stop, document failure under "## Replan Notes" in plan file, re-analyze remaining phases, get user approval, resume.
+
+**REPLAN limit**: Max 2 per workflow (tracked via `retry_count`). After 2, STOP and present options: (a) continue with manual guidance, (b) abandon workflow, (c) split into smaller scope. Each REPLAN resets the 3-failure counter.
+
+## Rule 8: Common Error Resolutions
+
+| Error | Resolution |
+|-------|------------|
+| `gh` CLI not authenticated | Tell user: `gh auth login` |
+| Dirty working tree | Tell user: stash or commit first |
+| Branch already exists | Ask user: switch, rename, or delete |
+| Config file missing | Guide user: `/new-project` or `npx claude-dev-workflows init` |
+
+## Rule 9: Skill Composition
+
+When a workflow phase requires another skill's logic:
+1. **Execute inline**: Read the target skill and execute its steps as sub-steps within the current phase
+2. **Output routing**: Write to the CURRENT workflow's output directory
+3. **State**: Do NOT create a separate state file -- track as part of current phase
+4. **Completion**: Continue with parent workflow's next phase
+
+## Rule 10: Phase Statuses
+
+| Status | Meaning |
+|--------|---------|
+| `ACTIVE` | Currently in progress |
+| `COMPLETED` | Finished successfully |
+| `SKIPPED` | Skipped per config or flag |
+| `FAILED` | Failed, cannot continue |
+| `RETRY` | Being re-attempted |
+
+## Rule 11: Mid-Phase Checkpoints
+
+For multi-step phases (IMPLEMENT, MIGRATE, EXECUTE), append after each step:
+```
+### Checkpoint: Step N complete
+- Files changed: [list]
+- Commit: [hash]
+- Status: pass/fail
+```
+If resuming mid-phase, read the last checkpoint and continue from the next step.
+
+## Rule 12: Telemetry (Optional)
+
+If `telemetry.enabled` is `true` in `.claude/workflows.yml`, append to `.workflows/telemetry.jsonl` after each phase:
+```json
+{"ts":"<ISO-8601>","workflow":"<name>","feature":"<feature>","phase":"<phase>","status":"COMPLETED","duration_ms":<ms-since-phase-start>,"files_changed":<count>,"replan":false}
+```
+Never block workflow execution on telemetry failures.
+
+## Rule 13: Focused Quality Gate
+
+When running the pre-PR quality gate (Rule 3), focus on changed files:
+1. `git diff --name-only <base>..HEAD` to identify changed files
+2. Categorize and prioritize checklist items by file type:
+   - Security (auth, crypto, env) -> all security checks at Critical priority
+   - Data (models, DB) -> data integrity, injection checks
+   - UI -> XSS, accessibility, performance
+   - Test -> test quality checks only
+3. **Always run**: architecture, naming, complexity checks. **Skip** categories with zero changed files.
+
+## Rule 14: Dry Run
+
+If `--dry-run` flag is present on any workflow command:
+1. Preview the execution plan: phases, branch name, output files, config flags
+2. No state files created, no git commands (except read-only), no file writes
+3. Display the plan summary, then **STOP**
+
+## Rule 15: Workflow Chaining
+
+After completing a workflow (Rule 5), check `.claude/workflows.yml` → `chains`:
+1. If a chain matches the completed workflow, ask: "Chain detected: run `<next-command>` next? (y/n)"
+2. On yes: preserve the `.workflows/<feature>/` context directory and launch the chained workflow
+3. On no: complete normally
+4. Chain config format: `<trigger-workflow>: <next-command>`
+
+## Rule 16: Knowledge Extraction
+
+After completing a workflow (Rule 5), if the workflow included a BRAINSTORM or PLAN phase, extract decisions to `.workflows/knowledge.jsonl`:
+
+```json
+{"date":"<ISO-8601>","workflow":"<type>","feature":"<name>","approach":"<chosen-approach>","constraints":["<constraint>"],"outcome":"success","files_touched":0,"duration_phases":0}
+```
+
+During future BRAINSTORM phases, read `.workflows/knowledge.jsonl` and surface relevant past decisions:
+- Match by similar constraints or approach keywords
+- Present as: "Similar past decision: <feature> used <approach> for <constraints> -- succeeded/failed"
+- Maximum 3 suggestions to avoid overwhelming the user

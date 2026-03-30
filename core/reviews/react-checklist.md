@@ -15,7 +15,7 @@
 | Controlled components | Medium | Form inputs are controlled (value + onChange) or explicitly uncontrolled with refs. No mixed patterns. |
 | Event handler naming | Low | Event handlers named `handleX` or `onX`. Callbacks passed as props use `onX` convention. |
 | Conditional rendering | Low | Avoid `&&` with numbers/falsy values (use ternary or Boolean cast). No deeply nested ternaries. |
-| Data fetching patterns | Medium | Data fetching uses React Query, SWR, or equivalent. No raw `useEffect` + `fetch` for API calls. |
+| Data fetching patterns | Medium | Data fetching uses a caching/state library (TanStack Query, SWR, RTK Query, etc.) rather than raw `useEffect` + `useState`. |
 | Re-render prevention | Medium | Components receiving callbacks use `useCallback`. Objects/arrays created in render are memoized. |
 | Accessibility | Medium | Interactive elements use semantic HTML. ARIA attributes for custom widgets. Keyboard navigation works. |
 | Test coverage | Medium | Components tested with React Testing Library. User interactions and async states covered. |

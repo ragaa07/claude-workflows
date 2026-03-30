@@ -25,83 +25,7 @@ Add new capabilities to an existing feature while strictly preserving backward c
 
 ---
 
-## BEFORE YOU START — Initialize State
-
-Check if `.workflows/current-state.md` exists (it may have been created by `/start`).
-
-**If it does NOT exist**, create it now. Run these commands and create the file:
-
-```bash
-mkdir -p .workflows/<feature-name>
-```
-
-Then use your **Write tool** to create `.workflows/current-state.md`:
-
-```
-# Workflow State
-
-- **workflow**: extend-feature
-- **feature**: <feature-name>
-- **phase**: ANALYZE
-- **started**: <current ISO-8601 timestamp>
-- **updated**: <current ISO-8601 timestamp>
-- **branch**:
-- **output_dir**: .workflows/<feature-name>/
-- **retry_count**: 0
-
-## Phase History
-
-| Phase | Status | Timestamp | Output | Notes |
-|-------|--------|-----------|--------|-------|
-| ANALYZE | ACTIVE | <timestamp> | | Starting workflow |
-
-## Phase Outputs
-
-_Documents produced by each phase:_
-
-## Context
-
-_Key decisions and resume context:_
-```
-
-**If it already exists**, read it and continue from the current active phase.
-
-**Verify**: Read `.workflows/current-state.md` to confirm it exists before proceeding.
-
----
-
-## AFTER EVERY PHASE — You MUST Create Files
-
-After completing each phase below, do these TWO things using your tools before moving on:
-
-**Action 1 — Create the phase output file.** Use your **Write tool** to create the file at the path shown at the end of each phase (the `>> Write output to` line). Use this format:
-
-```
-# <Phase Name> — <Feature>
-
-**Date**: <ISO-8601>
-**Status**: Complete
-
-## Summary
-<1-3 sentences>
-
-## Details
-<Phase-specific content>
-
-## Decisions
-<Key decisions>
-
-## Next Phase Input
-<What next phase needs>
-```
-
-**Action 2 — Rewrite the state file.** Use your **Write tool** to REWRITE the entire `.workflows/current-state.md` file. Read the current content first, then write the full file back with these updates:
-- Update `phase` and `updated` in the header
-- In Phase History table: change the completed phase status to `COMPLETED`, add output filename, add new row for next phase as `ACTIVE`
-- Under `## Phase Outputs`: add a link to the new output file
-- Under `## Context`: add key decisions from this phase
-
-**You must REWRITE the whole file — do not try to edit individual lines. Do NOT proceed to the next phase until both files are written.**
+> Follow orchestration Rules 0-1 for state and output.
 
 ---
 
@@ -109,13 +33,13 @@ After completing each phase below, do these TWO things using your tools before m
 
 **Goal**: Fully understand the existing feature before touching anything.
 
-Search for the feature using project-appropriate patterns (classes, modules, components, routes, services). Use a sub-agent to map: entry points, business logic, data layer, configuration/wiring, and existing tests.
+Map the feature: entry points, business logic, data layer, configuration/wiring, existing tests.
 
-Identify extension points where new behavior attaches without modifying existing code: new subtypes/variants on existing abstractions, new fields with defaults on state objects, public functions the extension can call, registration mechanisms for new entry points.
+Identify extension points (attach without modifying existing code): new subtypes/variants, new fields with defaults, callable public functions, registration mechanisms.
 
-Document current behavior: what the user sees/does, data flows, edge cases.
+Document current behavior: user-facing flows, data flows, edge cases.
 
-**>> Write output to**: `.workflows/<feature>/01-analyze.md` — then update `.workflows/current-state.md` (see State Tracking above).
+**>> Write output to**: `.workflows/<feature>/01-analyze.md`.
 
 ---
 
@@ -125,16 +49,15 @@ Document current behavior: what the user sees/does, data flows, edge cases.
 
 **Skip condition**: `--skip-brainstorm` passed OR `workflows.extend-feature.require_brainstorm` is `false`. If skipping, mark as `SKIPPED` in state and proceed to Phase 3.
 
-Delegate to the brainstorm skill:
-- **Input**: Feature analysis from Phase 1 + extension description
-- **Technique preference**: SCAMPER (best fit for extending existing features)
-- **Evaluation focus**: Score approaches on modified-files count and changed-signatures count
+### Execute (inline brainstorm — see Rule 9)
 
-Always prefer fewer modified files and zero changed signatures.
+Run brainstorm within this workflow context:
+1. **Constraint Mapping**: Ask user for constraints. Add implicit constraint: minimal impact (fewer modified files, zero changed signatures).
+2. **Generate Options**: Seed with 1 approach from the analysis. Build alternatives with user. Apply SCAMPER technique (best fit for extensions).
+3. **Trade-off Matrix**: Score on modified-files count, changed-signatures count, plus standard criteria.
+4. **Recommend**: Present top 2 approaches. Ask: "Which approach? (A/B or suggest alternative)"
 
-Present top 2 approaches. Ask: "Which approach? (A/B or suggest alternative)"
-
-**>> Write output to**: `.workflows/<feature>/02-brainstorm.md` — then update `.workflows/current-state.md`.
+**>> Write output to**: `.workflows/<feature>/02-brainstorm.md`.
 
 ---
 
@@ -142,13 +65,13 @@ Present top 2 approaches. Ask: "Which approach? (A/B or suggest alternative)"
 
 **Goal**: Create implementation plan with explicit compatibility guarantees.
 
-Write the implementation plan to `.workflows/<feature-name>/plan.md` containing: architecture summary, chosen approach, compatibility guarantees (no signatures changed, no variants removed, no test assertions modified, no behavior altered), new files (preferred) and modified files (minimal), implementation phases based on project architecture with build/test commands and commit messages, rollback strategy.
+Write plan to `.workflows/<feature-name>/plan.md`: architecture summary, chosen approach, compatibility guarantees (no signatures/variants/assertions/behavior changed), new files (preferred) vs modified files (minimal), implementation phases with build/test commands and commit messages, rollback strategy.
 
-**Verify**: Modified files must not exceed new files. No signature changes allowed. Load `.claude/rules/` and apply project-specific rules.
+**Verify**: Modified files <= new files. No signature changes. Apply `.claude/rules/`.
 
 Present plan. Ask: "Approve plan or request changes?"
 
-**>> Write output to**: `.workflows/<feature>/03-plan.md` — then update `.workflows/current-state.md`.
+**>> Write output to**: `.workflows/<feature>/03-plan.md`.
 
 ---
 
@@ -156,23 +79,13 @@ Present plan. Ask: "Approve plan or request changes?"
 
 **Goal**: Execute plan phase by phase.
 
-### Rules
+**Rules**: Re-read before modifying existing files. Run tests after each modification. Signature change -> STOP and REPLAN. Atomic commits per phase. Apply `.claude/rules/`.
 
-1. **Before modifying any existing file**: Re-read it to confirm current state
-2. **After modifying any existing file**: Run the test suite
-3. **If a phase requires changing an existing signature**: STOP and REPLAN
-4. **Commit after each phase**: Small, atomic, revertable commits
-5. **Load `.claude/rules/`**: Apply project-specific coding rules to all changes
+**Per-phase**: read plan -> implement (new files first, modifications last) -> build -> test -> commit.
 
-### Per-Phase Loop
+**REPLAN trigger**: More changes than planned, signature must change, or abstraction needs restructuring -> STOP, document, get user approval.
 
-For each phase: read plan details, implement (new files first, modifications last), run build check, run feature tests, commit.
-
-### REPLAN Trigger
-
-If an existing file needs more changes than planned, a signature must change, or an abstraction needs restructuring: STOP, document the discovery, re-evaluate with user approval.
-
-**>> Write output to**: `.workflows/<feature>/04-implement.md` — then update `.workflows/current-state.md`.
+**>> Write output to**: `.workflows/<feature>/04-implement.md`.
 
 ---
 
@@ -186,7 +99,7 @@ If an existing file needs more changes than planned, a signature must change, or
 
 If any test fails: fix the new code (not the existing test) to restore compatibility.
 
-**>> Write output to**: `.workflows/<feature>/05-verify-compat.md` — then update `.workflows/current-state.md`.
+**>> Write output to**: `.workflows/<feature>/05-verify-compat.md`.
 
 ---
 
@@ -200,7 +113,7 @@ Detect the project's test framework and conventions. Create NEW test files (do n
 
 Target: 80%+ coverage for new code.
 
-**>> Write output to**: `.workflows/<feature>/06-test.md` — then update `.workflows/current-state.md`.
+**>> Write output to**: `.workflows/<feature>/06-test.md`.
 
 ---
 
@@ -208,20 +121,11 @@ Target: 80%+ coverage for new code.
 
 **Goal**: Create PR with clear extension documentation.
 
-**Pre-PR quality gate**: Load `.claude/reviews/general-checklist.md` and the language-specific checklist from `.claude/reviews/`. Self-check all High/Critical items. Fix violations before proceeding.
+**Pre-PR quality gate**: Load `.claude/reviews/general-checklist.md` + language-specific checklist. Self-check High/Critical items. Fix violations.
 
-Push branch and create PR. Body must include: summary, changes (new files vs modified), compatibility verification results, and test results.
+Push and create PR with: summary, changes (new vs modified files), compatibility results, test results. Report PR URL.
 
-```bash
-git push -u origin <branch>
-gh pr create --base <dev_branch> \
-  --title "feat(<scope>): extend <feature> with <extension>" \
-  --body "<generated-body>"
-```
-
-Report PR URL to user.
-
-**>> Write output to**: `.workflows/<feature>/07-pr.md` — then update `.workflows/current-state.md`.
+**>> Write output to**: `.workflows/<feature>/07-pr.md`.
 
 **After this final phase**: Move `.workflows/current-state.md` to `.workflows/history/<feature>-<YYYY-MM-DD>.md`. Report completion.
 
@@ -232,7 +136,7 @@ Report PR URL to user.
 | Error | Resolution |
 |---|---|
 | Feature not found | Ask user for correct name or path |
-| Feature too complex | Use sub-agent per layer |
+| Feature too complex (>20 files or >5 extension points) | Search per layer; consider splitting into multiple extensions |
 | Extension requires breaking changes | Present alternatives; document migration if unavoidable |
 | Existing tests fail | Fix new code, not existing tests |
 | Plan exceeds minimal impact | Re-brainstorm with stricter constraints |

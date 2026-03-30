@@ -2,8 +2,7 @@
 .idea/
 .claude/
 docs/
-install.sh
-upgrade.sh
+tests/
 .gitignore
 .DS_Store
 *.swp

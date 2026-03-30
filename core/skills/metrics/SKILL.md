@@ -1,6 +1,7 @@
 ---
 name: metrics
-description: Tracks and reports workflow execution metrics — completion rates, durations, failure points, and per-workflow stats.
+description: Workflow execution metrics from telemetry data — completion rates, durations, bottlenecks, and trends.
+rules: []
 ---
 
 # Workflow Metrics
@@ -8,57 +9,71 @@ description: Tracks and reports workflow execution metrics — completion rates,
 ```
 /metrics
 /metrics <workflow-name>
+/metrics trends
 ```
 
-Analyzes workflow history files in `.workflows/history/` to produce execution metrics.
+**Data source**: `.workflows/telemetry.jsonl` (primary). Falls back to `.workflows/history/` if telemetry is empty.
 
 ---
 
 ## `/metrics` — Summary Dashboard
 
-Read all files in `.workflows/history/`. Extract workflow type, feature, timestamps, phase history, and outcome. Display:
+Read `.workflows/telemetry.jsonl`. Parse each JSON line. Aggregate:
 
 ```
-Workflow Metrics Dashboard
-===================================
+Workflow Metrics
+═══════════════════════════════════════
   Total workflows:     <N>
   Completion rate:     <N>% (<completed>/<total>)
-  Average duration:    <N>h <N>m
-  Most used workflow:  <name> (<N> runs)
-  Common failure at:   <phase> (<N> times)
+  Avg duration:        <N>h <N>m
+  Most used:           <name> (<N> runs)
+  Bottleneck phase:    <phase> (avg <N>m, <N>% of total time)
   This week: <N>  |  This month: <N>
 
-  By Workflow Type:
-  ----------------------------------
-  new-feature     ========..  8 runs  (75% success)
-  hotfix          ====......  4 runs  (100% success)
-  refactor        ==........  2 runs  (50% success)
+  By Workflow:
+  ──────────────────────────────────────
+  new-feature     ████████░░  8 runs  75% success  avg 2.1h
+  hotfix          ████░░░░░░  4 runs  100% success avg 0.3h
+  refactor        ██░░░░░░░░  2 runs  50% success  avg 3.5h
 ```
-
----
 
 ## `/metrics <workflow-name>` — Per-Workflow Detail
 
-Filter history to matching workflow type:
+Filter telemetry to matching workflow:
 
 ```
-Metrics: <workflow-name>
-===================================
-  Runs: <N>  |  Completed: <N>  |  Failed: <N>  |  Abandoned: <N>
-  Avg duration: <N>h <N>m  |  Fastest: <N>h <N>m  |  Slowest: <N>h <N>m
+Metrics: new-feature
+═══════════════════════════════════════
+  Runs: <N>  |  Completed: <N>  |  Failed: <N>
+  Avg: <N>h  |  Fastest: <N>h  |  Slowest: <N>h
 
   Phase Breakdown:
-  ----------------------------------
-  ANALYZE       avg <N>m   <N>/<N> completed
-  BRAINSTORM    avg <N>m   <N>/<N> completed  (skipped: <N>)
-  PLAN          avg <N>m   <N>/<N> completed
-  IMPLEMENT     avg <N>m   <N>/<N> completed  <- most failures
-  TEST          avg <N>m   <N>/<N> completed
-
-  Recent Runs:
-  ----------------------------------
-  <date>  <feature>   COMPLETED  <duration>
-  <date>  <feature>   FAILED     <duration>  (failed at IMPLEMENT)
+  ──────────────────────────────────────
+  GATHER      avg 5m    ████░░  8/8
+  SPEC        avg 12m   ████░░  8/8
+  BRAINSTORM  avg 8m    ███░░░  6/8  (skipped: 2)
+  PLAN        avg 15m   ████░░  8/8
+  IMPLEMENT   avg 45m   ██████  8/8  ← slowest
+  TEST        avg 10m   ████░░  7/8
+  PR          avg 3m    ██░░░░  7/8
 ```
 
-If no history files exist, print: `No workflow history found. Complete a workflow to start tracking metrics.` Skip corrupt files with a warning.
+## `/metrics trends` — Trend Analysis
+
+Compare last 10 workflows vs previous 10:
+
+```
+Trends (last 10 vs previous 10):
+  Duration:     ↓ 15% faster (avg 1.8h vs 2.1h)
+  Success rate: ↑ 10% (90% vs 80%)
+  REPLANs:      ↓ 40% fewer (3 vs 5)
+  Skipped phases: BRAINSTORM skipped 60% — consider disabling
+```
+
+If fewer than 5 workflows in history: "Not enough data for trends. Complete more workflows."
+
+## Fallback
+
+If `telemetry.jsonl` is empty or missing, read `.workflows/history/*.md` files. Parse frontmatter for workflow type, timestamps, and phase history. Note reduced accuracy in output.
+
+If no data at all: "No workflow history found. Complete a workflow to start tracking."

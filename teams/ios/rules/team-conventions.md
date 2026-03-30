@@ -21,3 +21,10 @@
 
 - DO use Combine or async/await for asynchronous operations
 - DON'T introduce new dependencies without team discussion
+
+## iOS-Specific Conventions
+
+- DO use SwiftUI for new views — avoid UIKit for new screens
+- DO use async/await over Combine for new async code
+- DON'T force-unwrap optionals in production code
+- DO use SwiftData or Core Data with repository pattern

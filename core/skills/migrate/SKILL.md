@@ -11,83 +11,7 @@ description: Plan and execute incremental migrations for dependencies, APIs, arc
 
 Where `<type>` is one of: `dependency`, `api-version`, `architecture`, `database`
 
-## BEFORE YOU START — Initialize State
-
-Check if `.workflows/current-state.md` exists (it may have been created by `/start`).
-
-**If it does NOT exist**, create it now. Run these commands and create the file:
-
-```bash
-mkdir -p .workflows/<type>
-```
-
-Then use your **Write tool** to create `.workflows/current-state.md`:
-
-```
-# Workflow State
-
-- **workflow**: migrate
-- **feature**: <type>
-- **phase**: ANALYZE
-- **started**: <current ISO-8601 timestamp>
-- **updated**: <current ISO-8601 timestamp>
-- **branch**:
-- **output_dir**: .workflows/<type>/
-- **retry_count**: 0
-
-## Phase History
-
-| Phase | Status | Timestamp | Output | Notes |
-|-------|--------|-----------|--------|-------|
-| ANALYZE | ACTIVE | <timestamp> | | Starting workflow |
-
-## Phase Outputs
-
-_Documents produced by each phase:_
-
-## Context
-
-_Key decisions and resume context:_
-```
-
-**If it already exists**, read it and continue from the current active phase.
-
-**Verify**: Read `.workflows/current-state.md` to confirm it exists before proceeding.
-
----
-
-## AFTER EVERY PHASE — You MUST Create Files
-
-After completing each phase below, do these TWO things using your tools before moving on:
-
-**Action 1 — Create the phase output file.** Use your **Write tool** to create the file at the path shown at the end of each phase (the `>> Write output to` line). Use this format:
-
-```
-# <Phase Name> — <Feature>
-
-**Date**: <ISO-8601>
-**Status**: Complete
-
-## Summary
-<1-3 sentences>
-
-## Details
-<Phase-specific content>
-
-## Decisions
-<Key decisions>
-
-## Next Phase Input
-<What next phase needs>
-```
-
-**Action 2 — Rewrite the state file.** Use your **Write tool** to REWRITE the entire `.workflows/current-state.md` file. Read the current content first, then write the full file back with these updates:
-- Update `phase` and `updated` in the header
-- In Phase History table: change the completed phase status to `COMPLETED`, add output filename, add new row for next phase as `ACTIVE`
-- Under `## Phase Outputs`: add a link to the new output file
-- Under `## Context`: add key decisions from this phase
-
-**You must REWRITE the whole file — do not try to edit individual lines. Do NOT proceed to the next phase until both files are written.**
+> Follow orchestration Rules 0-1 for state and output.
 
 ---
 
@@ -110,20 +34,15 @@ Document current state before any changes.
 | `architecture` | Current pattern (files, classes, data flow), target pattern, boundary identification |
 | `database` | Current schema (tables, columns, indices, constraints), target schema, data volume estimates |
 
-**>> Write output to**: `.workflows/<type>/01-analyze.md` — then update `.workflows/current-state.md` (see State Tracking above).
+**>> Write output to**: `.workflows/<type>/01-analyze.md`
 
 ### Phase 2: BRAINSTORM
 
 **Skip condition**: Skip if `--skip-brainstorm` passed OR `workflows.migrate.require_brainstorm` is `false`. If skipping, mark as `SKIPPED` in state and proceed to Phase 3.
 
-Delegate to the **brainstorm skill** for structured strategy evaluation. Provide it:
-- Migration context from Phase 1 analysis
-- Key strategies to evaluate: big bang, incremental, parallel run, strangler fig
-- Risk prompt: "How could this migration fail?" (data loss, backward compat breaks, performance regressions, partial migration states)
+Inline brainstorm (Rule 9): Ask constraints (compat, data safety, rollback). Evaluate strategies (big bang, incremental, parallel run, strangler fig). Score risks (data loss, compat breaks, perf regressions). Recommend with rationale.
 
-Present recommended strategy with rationale to user.
-
-**>> Write output to**: `.workflows/<type>/02-brainstorm.md` — then update `.workflows/current-state.md`.
+**>> Write output to**: `.workflows/<type>/02-brainstorm.md`
 
 ### Phase 3: PLAN
 
@@ -145,7 +64,7 @@ Step N: [Description] — Risk: Low/Med/High
 
 Write the plan to `.workflows/<type>/plan.md`.
 
-**>> Write output to**: `.workflows/<type>/03-plan.md` — then update `.workflows/current-state.md`.
+**>> Write output to**: `.workflows/<type>/03-plan.md`
 
 ### Phase 4: EXECUTE
 
@@ -161,7 +80,7 @@ For each step:
 
 If any step fails unexpectedly: STOP, report what failed and why, re-evaluate plan.
 
-**>> Write output to**: `.workflows/<type>/04-execute.md` — then update `.workflows/current-state.md`. (Steps completed, commits)
+**>> Write output to**: `.workflows/<type>/04-execute.md` (steps completed, commits)
 
 ### Phase 5: VERIFY
 
@@ -173,7 +92,7 @@ Full verification after all steps complete.
 4. Check for leftover TODOs, deprecated references, dead code from migration
 5. Run linters and static analysis
 
-**>> Write output to**: `.workflows/<type>/05-verify.md` — then update `.workflows/current-state.md`.
+**>> Write output to**: `.workflows/<type>/05-verify.md`
 
 ### Phase 6: PR
 
@@ -181,32 +100,9 @@ Create detailed pull request.
 
 **Quality gate**: Load `.claude/reviews/general-checklist.md` and the language-specific checklist from `.claude/reviews/`. Verify all High/Critical items pass. Confirm full test suite and build are green.
 
-**PR body structure:**
-```markdown
-## Summary
-<what was migrated and why>
+**PR body sections:** Summary, Migration Details (before/after table), Steps Applied (with commit hashes), Rollback Plan, Testing checklist, Breaking Changes.
 
-## Migration Details
-| Aspect | Before | After |
-|--------|--------|-------|
-| Version/Pattern | {old} | {new} |
-
-## Steps Applied
-1. {step description} — {commit hash}
-
-## Rollback Plan
-{how to revert if issues found in production}
-
-## Testing
-- [ ] Full test suite passes
-- [ ] Build succeeds for all variants
-- [ ] Manual verification of {critical paths}
-
-## Breaking Changes
-{list or "None"}
-```
-
-**>> Write output to**: `.workflows/<type>/06-pr.md` — then update `.workflows/current-state.md`.
+**>> Write output to**: `.workflows/<type>/06-pr.md`
 
 **After this final phase**: Move `.workflows/current-state.md` to `.workflows/history/<type>-<YYYY-MM-DD>.md`. Report completion.
 
@@ -238,8 +134,3 @@ Create detailed pull request.
 - Test with realistic data volumes; consider online schema change tools
 - Back up before destructive migrations
 
-## Notes
-
-- Migrations are high-risk. Always get user confirmation before Phase 4.
-- If scope is larger than expected, re-plan rather than push through.
-- Document lessons learned in `tasks/lessons.md` after completion.

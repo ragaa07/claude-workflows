@@ -16,15 +16,10 @@
 - DO prefer `Flow.catch { }` over try/catch around `collect`
 - DO use `flatMapLatest` when only the latest emission matters
 
-## Sealed Classes & Enums
+## Sealed Classes & Data Classes
 - DO use `sealed class` for state machines and restricted hierarchies
 - DO use `when` exhaustively — never add an `else` branch on sealed types
-- DO use `enum class` for fixed sets with no associated data
-
-## Data Classes
-- DO use `data class` for DTOs and value objects
 - DON'T put mutable properties (`var`) in data classes
-- DO use `copy()` for immutable updates: `state.copy(loading = true)`
 
 ## Extension Functions
 - DO use extensions to add behavior without subclassing
@@ -51,15 +46,7 @@
 - DO use `@Provides` only when you can't use `@Binds` or need factory logic
 - DO use `@AssistedInject` + `@AssistedFactory` when runtime params are needed at construction
 
-## Naming
-- Classes/interfaces: `PascalCase`
-- Functions/properties: `camelCase`
-- Constants: `SCREAMING_SNAKE_CASE` in companion objects
-- Packages: lowercase, no underscores
-- Boolean properties: prefix with `is`, `has`, `should` — e.g., `isLoading`
-
 ## General
-- DO prefer `listOf`, `mapOf`, `setOf` over mutable collections unless mutation is needed
 - DO use `value class` for type-safe wrappers: `value class UserId(val id: String)`
 - DON'T use raw `Thread` — use coroutines
 - DO use `buildList`, `buildMap` for constructing collections conditionally

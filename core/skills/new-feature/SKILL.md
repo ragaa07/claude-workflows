@@ -1,6 +1,6 @@
 ---
 name: new-feature
-description: "End-to-end feature workflow from requirements through PR. Eight phases: GATHER -> SPEC -> BRAINSTORM -> PLAN -> BRANCH -> IMPLEMENT -> TEST -> PR."
+description: "Complete feature development workflow from requirements through PR, including spec writing, brainstorming, planning, implementation, testing, and PR creation."
 ---
 
 # New Feature Workflow
@@ -13,83 +13,7 @@ description: "End-to-end feature workflow from requirements through PR. Eight ph
 
 **Config references**: Read `.claude/workflows.yml` for `project.language`, `project.type`, `git.branches.*`, and `workflows.new-feature.*` throughout this workflow.
 
-## BEFORE YOU START — Initialize State
-
-Check if `.workflows/current-state.md` exists (it may have been created by `/start`).
-
-**If it does NOT exist**, create it now. Run these commands and create the file:
-
-```bash
-mkdir -p .workflows/<name>
-```
-
-Then use your **Write tool** to create `.workflows/current-state.md`:
-
-```
-# Workflow State
-
-- **workflow**: new-feature
-- **feature**: <name>
-- **phase**: GATHER
-- **started**: <current ISO-8601 timestamp>
-- **updated**: <current ISO-8601 timestamp>
-- **branch**:
-- **output_dir**: .workflows/<name>/
-- **retry_count**: 0
-
-## Phase History
-
-| Phase | Status | Timestamp | Output | Notes |
-|-------|--------|-----------|--------|-------|
-| GATHER | ACTIVE | <timestamp> | | Starting workflow |
-
-## Phase Outputs
-
-_Documents produced by each phase:_
-
-## Context
-
-_Key decisions and resume context:_
-```
-
-**If it already exists**, read it and continue from the current active phase.
-
-**Verify**: Read `.workflows/current-state.md` to confirm it exists before proceeding.
-
----
-
-## AFTER EVERY PHASE — You MUST Create Files
-
-After completing each phase below, do these TWO things using your tools before moving on:
-
-**Action 1 — Create the phase output file.** Use your **Write tool** to create the file at the path shown at the end of each phase (the `>> Write output to` line). Use this format:
-
-```
-# <Phase Name> — <Feature>
-
-**Date**: <ISO-8601>
-**Status**: Complete
-
-## Summary
-<1-3 sentences>
-
-## Details
-<Phase-specific content>
-
-## Decisions
-<Key decisions>
-
-## Next Phase Input
-<What next phase needs>
-```
-
-**Action 2 — Rewrite the state file.** Use your **Write tool** to REWRITE the entire `.workflows/current-state.md` file. Read the current content first, then write the full file back with these updates:
-- Update `phase` and `updated` in the header
-- In Phase History table: change the completed phase status to `COMPLETED`, add output filename, add new row for next phase as `ACTIVE`
-- Under `## Phase Outputs`: add a link to the new output file
-- Under `## Context`: add key decisions from this phase
-
-**You must REWRITE the whole file — do not try to edit individual lines. Do NOT proceed to the next phase until both files are written.**
+> **State & Output**: Follow Rules 0-1 in `.claude/skills/_orchestration/RULES.md` — initialize state before starting, write phase output + update state after every phase.
 
 ---
 
@@ -110,12 +34,22 @@ After completing each phase below, do these TWO things using your tools before m
 
 Ask sequentially:
 1. "What does this feature do? (1-2 sentences)"
-2. "Who is this for?"
-3. "What are the acceptance criteria?"
-4. "Any UI designs? (Figma URL or description)"
-5. "Any API changes needed?"
-6. "What existing features does this interact with?"
-7. "Any performance requirements or constraints?"
+2. "What are the acceptance criteria?"
+3. "Any UI designs? (Figma URL or description)"
+4. "Any API changes needed?"
+5. "What existing features does this interact with, and any constraints?"
+
+### Adaptive depth
+
+If `workflows.new-feature.adaptive` is `true` in config, estimate complexity after gathering requirements:
+
+| Signal | Depth | Effect |
+|--------|-------|--------|
+| 1-2 files, <20 lines estimated | **Trivial** | Skip SPEC, BRAINSTORM. Lightweight plan. |
+| 3-10 files, clear scope | **Standard** | Normal workflow (all phases) |
+| >10 files, architectural changes | **Complex** | Force deep brainstorm, require spec approval |
+
+Announce: "Estimated complexity: [depth]. Adjusting workflow accordingly." User can override: `--depth full` forces all phases.
 
 ### Gate
 
@@ -159,14 +93,14 @@ Present spec summary. Ask: "Review the spec. Reply with changes or 'approved' to
 
 **Skip if**: `--skip-brainstorm` flag OR `workflows.new-feature.require_brainstorm` is `false` in config. If skipping, mark as `SKIPPED` in state and proceed to Phase 4.
 
-### Execute
+### Execute (Rule 9 delegation)
 
-Delegate to brainstorm skill:
-- **Input**: spec document from Phase 2
-- **Depth**: `standard` (default) or as configured
-- **Focus areas**: architecture fit, data flow, component reuse, state management, testing strategy
+Execute brainstorm inline per Rule 9: Read `.claude/skills/brainstorm/SKILL.md` and run its **EXPLORE -> EVALUATE -> RECOMMEND** phases within this workflow context.
 
-Use a sub-agent to scan the codebase for similar patterns, reusable components, and existing architecture conventions. Let the brainstorm skill handle technique selection and option generation.
+Delegation parameters:
+- **depth**: `standard` (or override from `workflows.new-feature.brainstorm_depth` in config)
+- **topic**: the feature spec produced in Phase 2
+- **output**: write to this workflow's `.workflows/<name>/` directory
 
 ### Approval gate
 
@@ -188,19 +122,39 @@ User selects an approach. Document choice under "## Chosen Approach" in the spec
 
 ### Generate plan
 
-Write the implementation plan to `.workflows/<name>/plan.md`. Generate phases dynamically based on the project's architecture, NOT a hardcoded layer structure. Analyze `project.type` and the existing code structure to determine appropriate phases.
+Write the implementation plan to `.workflows/<name>/plan.md` using this algorithm:
+
+**Step 1 — Identify layers touched** by the spec. Categorize required changes into:
+- **Data/Models**: entities, DTOs, database schemas, types
+- **Domain/Business**: use cases, services, business rules, interfaces
+- **Data Layer/API**: repositories, API clients, network, data sources
+- **Presentation/UI**: views, screens, components, view models, state
+- **Configuration**: DI, routing, build config, environment
+- **Tests**: unit tests, integration tests for new code
+
+**Step 2 — Order by dependency** (build from foundation up):
+- Phase A: Data models and types (if needed)
+- Phase B: Domain/business logic (if needed)
+- Phase C: Data layer / API integration (if needed)
+- Phase D: Presentation / UI (if needed)
+- Phase E: Wiring / DI / configuration (if needed)
+- Phase F: Tests for new code
+
+**Step 3 — Skip empty layers.** If no changes needed for a layer, omit it.
+
+**Step 4 — Split large layers.** If a layer touches >5 files, split into sub-phases (e.g., Phase C1: API client, Phase C2: Repository).
+
+**Step 5 — Cap at `workflows.new-feature.max_plan_phases`** (default 10). If over limit, ask user to split feature.
 
 Each phase MUST include:
 - **Files to create/modify**: checkable list with paths and descriptions
 - **Implementation details**: what to build and how
-- **Build check command**: detected from project (e.g., `./gradlew build`, `npm run build`, `cargo build`)
+- **Build check command**: detected from project
 - **Commit message**: conventional commit format `feat(<scope>): <description>`
 
 Also include:
 - **Rollback plan**: each phase independently revertable via git
 - **Risk assessment**: risks with mitigations
-
-Constraint: if plan exceeds 10 phases, split into multiple features.
 
 ### Approval gate
 
@@ -272,10 +226,6 @@ Trigger when: build fails 3+ times, plan step is wrong/impossible, or user reque
 4. Generate updated plan, present for approval.
 5. Resume from corrected phase.
 
-### Sub-agent usage
-
-Use sub-agents for: researching existing patterns, running build checks, generating boilerplate, writing test scaffolding.
-
 **>> Write output to**: `.workflows/<name>/06-implement.md` — then update `.workflows/current-state.md`. (Files changed, commits made, issues encountered)
 
 ---
@@ -341,16 +291,9 @@ Print: branch name, PR URL, commit count, files created/modified, spec path, pla
 
 ## Error Handling
 
+Errors documented inline per phase above. Additional edge cases:
+
 | Phase | Error | Resolution |
 |---|---|---|
-| GATHER | Jira MCP unavailable | Fall back to interactive gathering |
-| GATHER | Figma MCP unavailable | Ask user to describe UI manually |
-| SPEC | User rejects spec 3+ times | Ask if feature scope needs rethinking |
-| BRAINSTORM | No similar patterns found | Use generic architecture approach |
-| PLAN | Plan too large (>10 phases) | Split into multiple features |
 | BRANCH | Merge conflicts | Rebase on dev branch, resolve conflicts |
-| IMPLEMENT | Build fails 3+ times | Trigger REPLAN |
-| IMPLEMENT | Plan step is impossible | Trigger REPLAN |
-| TEST | Tests fail | Fix if feature-related, report if pre-existing |
 | PR | `gh` CLI not authenticated | Guide user through `gh auth login` |
-| PR | Quality gate violations found | Fix violations before creating PR |

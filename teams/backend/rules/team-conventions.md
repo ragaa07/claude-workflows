@@ -21,3 +21,10 @@
 
 - DO use SQLAlchemy or similar ORM for database access
 - DON'T introduce new dependencies without team discussion
+
+## Python Backend Conventions
+
+- DO use Pydantic for request/response validation
+- DO use dependency injection via FastAPI's Depends() or similar
+- DON'T use synchronous I/O in async endpoints
+- DO use structured logging (JSON) with correlation IDs
