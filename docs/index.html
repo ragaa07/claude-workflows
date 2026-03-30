@@ -316,7 +316,7 @@
     &mdash; across multiple sessions, without losing context.
   </p>
   <div class="hero-cmd">
-    <span class="dim">$</span> claude plugin install <span class="ev-str">ragaa07/claude-workflows</span>
+    <span class="dim">/</span>plugin install <span class="ev-str">claude-workflows</span>
   </div>
 </header>
 
@@ -780,10 +780,11 @@
   <div class="usage-steps reveal">
     <div class="usage-step">
       <h4>Install the Plugin</h4>
-      <p>Run the install command in your terminal. Claude Code will download the plugin and prompt you to configure 5 settings.</p>
+      <p>Run these commands inside Claude Code. It will download the plugin and prompt you to configure 5 settings.</p>
       <div class="cmd-block">
-        <span class="cmt"># In your terminal</span><br>
-        $ claude plugin install ragaa07/claude-workflows<br>
+        <span class="cmt"># Inside Claude Code</span><br>
+        /plugin marketplace add ragaa07/claude-workflows<br>
+        /plugin install claude-workflows<br>
         <br>
         <span class="cmt"># You'll be asked:</span><br>
         <span class="cmt"># - Project type (android, react, python, swift, go, generic)</span><br>
@@ -957,17 +958,20 @@
 <section class="wrap">
   <div class="sec-hdr reveal">
     <span class="sec-label">Get Started</span>
-    <h2>Three Commands. That's It.</h2>
+    <h2>Four Commands. That's It.</h2>
   </div>
 
   <div class="explainer-visual reveal" style="max-width:700px;margin:0 auto;font-size:14px;">
-    <div class="ev-line"><span class="ev-cmt"># 1. Install the plugin</span></div>
-    <div class="ev-line"><span class="ev-kw">$</span> claude plugin install <span class="ev-str">ragaa07/claude-workflows</span></div>
+    <div class="ev-line"><span class="ev-cmt"># 1. Add the marketplace (inside Claude Code)</span></div>
+    <div class="ev-line"><span class="ev-kw">/plugin marketplace add</span> <span class="ev-str">ragaa07/claude-workflows</span></div>
     <div class="ev-line">&nbsp;</div>
-    <div class="ev-line"><span class="ev-cmt"># 2. Set up your project</span></div>
+    <div class="ev-line"><span class="ev-cmt"># 2. Install the plugin</span></div>
+    <div class="ev-line"><span class="ev-kw">/plugin install</span> <span class="ev-str">claude-workflows</span></div>
+    <div class="ev-line">&nbsp;</div>
+    <div class="ev-line"><span class="ev-cmt"># 3. Set up your project</span></div>
     <div class="ev-line"><span class="ev-kw">/claude-workflows:setup</span></div>
     <div class="ev-line">&nbsp;</div>
-    <div class="ev-line"><span class="ev-cmt"># 3. Start building</span></div>
+    <div class="ev-line"><span class="ev-cmt"># 4. Start building</span></div>
     <div class="ev-line"><span class="ev-kw">/claude-workflows:start</span></div>
   </div>
 </section>
@@ -983,7 +987,7 @@
       Works with any project that uses Claude Code.
     </p>
     <div class="hero-cmd" style="animation:none;margin-bottom:16px;">
-      <span class="dim">$</span> claude plugin install ragaa07/claude-workflows
+      <span class="dim">/</span>plugin marketplace add ragaa07/claude-workflows
     </div>
     <p style="font-size:12px;color:var(--text-dim);margin-top:16px;">
       <a href="https://github.com/ragaa07/claude-workflows" style="color:var(--accent);text-decoration:none;">GitHub</a>

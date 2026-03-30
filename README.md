@@ -13,8 +13,12 @@ claude-workflows is a Claude Code plugin that provides 23 structured workflow sk
 
 Install as a Claude Code plugin:
 
-```
-claude plugin install ragaa07/claude-workflows
+```bash
+# Step 1: Add the marketplace
+/plugin marketplace add ragaa07/claude-workflows
+
+# Step 2: Install the plugin
+/plugin install claude-workflows
 ```
 
 During installation, you'll be prompted to configure:
@@ -270,7 +274,7 @@ node tests/validate-workflows.js
 
 If you previously used `npx claude-dev-workflows init`:
 
-1. Install the plugin: `claude plugin install ragaa07/claude-workflows`
+1. Install the plugin: `/plugin marketplace add ragaa07/claude-workflows` then `/plugin install claude-workflows`
 2. Run `/claude-workflows:setup` — it auto-detects old v2.x installations and migrates config
 3. You can safely remove the old files:
    - `.claude/skills/` (if installed by claude-workflows)

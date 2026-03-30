@@ -37,7 +37,9 @@ A **portable, spec-driven development workflow system** for Claude Code AI agent
 ### Step 1: Install the Plugin
 
 ```bash
-claude plugin install ragaa07/claude-workflows
+# Inside Claude Code
+/plugin marketplace add ragaa07/claude-workflows
+/plugin install claude-workflows
 ```
 
 During installation, Claude Code prompts for **userConfig** values:
@@ -502,12 +504,13 @@ cat $(claude plugin path claude-workflows)/VERSION
 # Reset workflow state
 rm .workflows/current-state.md .workflows/paused-*.md
 
-# Reinstall the plugin entirely
-claude plugin uninstall claude-workflows
-claude plugin install ragaa07/claude-workflows
+# Reinstall the plugin entirely (inside Claude Code)
+/plugin uninstall claude-workflows
+/plugin marketplace add ragaa07/claude-workflows
+/plugin install claude-workflows
 
 # Re-initialize the project
-# Then run /claude-workflows:setup inside Claude Code
+# Then run /claude-workflows:setup
 ```
 
 ### Inspect Plugin Contents
