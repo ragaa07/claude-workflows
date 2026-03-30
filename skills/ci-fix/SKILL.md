@@ -1,6 +1,7 @@
 ---
 name: ci-fix
 description: Diagnose and fix CI/CD pipeline failures automatically.
+rules: [0, 1, 3, 4, 5, 6, 7, 10, 11, 12, 17]
 ---
 
 # CI Fix Workflow
@@ -9,7 +10,7 @@ description: Diagnose and fix CI/CD pipeline failures automatically.
 
 `/ci-fix [--run <run-id>] [--pr <pr-number>]`
 
-> Follow orchestration Rules 0-1 for state and output.
+**Description for output paths**: Auto-generate `<description>` from the CI failure (e.g., `fix-compile-error-UserService` or `fix-test-failure-pr-42`). Use kebab-case, max 40 chars.
 
 ---
 
@@ -28,7 +29,7 @@ Retrieve CI failure details.
 
 ### Phase 2: DIAGNOSE
 
-Classify failure by parsing log output. Read `${CLAUDE_PLUGIN_ROOT}/rules/` for language-specific fix patterns.
+Classify failure by parsing log output. Read `<plugin-root>/rules/` for language-specific fix patterns.
 
 | Category | Indicators |
 |----------|-----------|
@@ -78,9 +79,8 @@ Verify the fix resolved the CI failure.
 
 1. Provide watch command: `gh run watch`
 2. Or check status: `gh run list --branch <current-branch> --limit 3`
-3. **Retry loop**: On failure, repeat FETCH->DIAGNOSE->FIX->PUSH->MONITOR (max 3 retries). Increment `retry_count` in state; append retry-suffixed output (e.g., `06-fetch-retry-1.md`). After 3 cycles, STOP and report.
+3. **Retry on failure**: If CI fails again, re-read the new failure log and apply a targeted fix. Commit and push. Check status again. Max 3 total fix attempts across the workflow. After 3, STOP and present the failure details to the user.
 
 **>> Write output to**: `.workflows/<description>/05-monitor.md` (CI run status, pass/fail)
 
-**After this final phase**: Move `.workflows/current-state.md` to `.workflows/history/<description>-<YYYY-MM-DD>.md`. Report completion.
 

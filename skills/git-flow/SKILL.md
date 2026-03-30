@@ -1,6 +1,7 @@
 ---
 name: git-flow
 description: Direct git operations — branch creation, commits, PRs, and merges using project-configured patterns and policies.
+rules: []
 ---
 
 # Git Flow Skill
@@ -57,7 +58,7 @@ Create a pull request with configured settings.
 1. Read `git.pr` from `.workflows/config.yml`
 2. Base branch: `--base` flag > `git.pr.base_branch` > `develop`
 3. **Protected branch check**: Warn if target is `main`/`master` and source is not `release/` or `hotfix/`
-4. Read `${CLAUDE_PLUGIN_ROOT}/reviews/` if it exists -- include findings in PR body
+4. Read `<plugin-root>/reviews/` if it exists — include findings in PR body
 5. Push: `git push -u origin <current-branch>`
 6. Generate title from branch name (e.g., `feature/add-login` -> `feat: add login`)
 7. Generate body from `git log <base>..HEAD --oneline --no-merges`; use `git.pr.template` if configured

@@ -26,10 +26,10 @@ guards:
     - ":(){:|:&};:"
 
   # Commands that trigger a WARNING (ask user before executing)
+  # Note: patterns here should not overlap with block_patterns above
   warn_patterns:
     - "git push --force"
     - "git reset"
-    - "rm -rf"
     - "rm -r"
     - "DELETE FROM"
     - "UPDATE .* SET .* WHERE"

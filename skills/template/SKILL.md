@@ -1,7 +1,7 @@
 ---
 name: template
 description: Save, list, and reuse workflow templates from completed specs and plans.
-rules: [0, 1]
+rules: []
 ---
 
 # Workflow Templates
@@ -47,11 +47,13 @@ If no templates exist: "No templates saved yet. Complete a workflow, then run `/
 
 ## `/template use <name> <feature>`
 
+**Note**: Templates are designed for the `new-feature` workflow. The phase structure (GATHER, SPEC, BRAINSTORM, PLAN) is assumed.
+
 1. Read `.workflows/templates/<name>/metadata.yml` — verify template exists
 2. Copy `spec-template.md` to `.workflows/<feature>/02-spec.md`, replacing `{feature}` with `<feature>`
 3. Copy `plan-template.md` to `.workflows/<feature>/plan.md`, replacing `{feature}` with `<feature>`
 4. Increment `used_count` in metadata.yml
-5. Create state file starting at PLAN phase (skip GATHER and SPEC — already populated)
+5. Create state file starting at PLAN phase. Mark GATHER, SPEC, and BRAINSTORM as `SKIPPED` in Phase History (template pre-populates their outputs).
 6. Present the pre-populated spec: "Template applied. Review the spec and plan, then approve to continue."
 7. On approval, continue with normal new-feature workflow from PLAN phase
 

@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "prompt",
-            "prompt": "Silently check if .workflows/current-state.md exists. If yes, read it and tell the user in ONE line: 'Active workflow: <workflow> — <feature> (phase: <phase>). Use /claude-workflows:resume to continue.' Also check for .workflows/paused-*.md files for paused workflows. If nothing found, say nothing at all."
+            "prompt": "Silently check if .workflows/current-state.md exists. If yes, read its YAML frontmatter and tell the user in ONE line: 'Active workflow: <workflow> — <feature> (phase: <phase>). Use /claude-workflows:resume to continue.' Also check for .workflows/paused-*.md files and mention any paused workflows. If nothing found, say nothing."
           }
         ]
       }
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "prompt",
-            "prompt": "Check if .workflows/current-state.md has an active workflow. If so, verify the quality gate was run (look for quality gate output in the workflow's output directory). If NOT run, BLOCK with: 'Run the pre-PR quality gate first — load review checklists and self-check all High/Critical items against the diff.' Otherwise allow."
+            "prompt": "Check if .workflows/current-state.md exists with an active workflow. If so, verify a quality gate was run by checking for review/checklist mentions in the workflow's output directory files. If NOT found, warn: 'Quality gate not detected — load review checklists and self-check High/Critical items before creating the PR.' This is a warning, not a block — the user can proceed if they choose."
           }
         ]
       }

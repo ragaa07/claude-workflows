@@ -189,6 +189,49 @@
   }
   .wf-tag.new { background: rgba(0,212,170,.12); color: var(--accent2); }
 
+  /* ── USAGE GUIDE ── */
+  .usage-steps { counter-reset: usage-step; max-width: 800px; margin: 0 auto; }
+  .usage-step {
+    counter-increment: usage-step;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 28px 28px 28px 72px; margin-bottom: 16px; position: relative; transition: all .3s;
+  }
+  .usage-step:hover { border-color: var(--accent); transform: translateX(4px); }
+  .usage-step::before {
+    content: counter(usage-step);
+    position: absolute; left: 24px; top: 26px;
+    width: 32px; height: 32px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff; font-weight: 800; font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .usage-step h4 { font-size: 16px; margin-bottom: 8px; }
+  .usage-step p { font-size: 13px; color: var(--text-mid); margin-bottom: 8px; }
+  .usage-step code { background: var(--surface2); padding: 2px 8px; border-radius: 4px; font-size: 12px; color: var(--accent2); }
+  .usage-step .cmd-block {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 16px; margin-top: 10px; font-family: 'SF Mono',monospace; font-size: 12px;
+    color: var(--accent2); line-height: 1.8;
+  }
+  .usage-step .cmd-block .cmt { color: #555568; }
+  .usage-step .expect {
+    margin-top: 12px; padding: 12px 16px;
+    background: rgba(108,99,255,0.06); border-left: 3px solid var(--accent);
+    border-radius: 0 8px 8px 0; font-size: 12px; color: var(--text-mid);
+  }
+  .usage-step .expect strong { color: var(--accent); }
+  .usage-tips {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+    max-width: 800px; margin: 32px auto 0;
+  }
+  .usage-tip {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 20px; font-size: 13px;
+  }
+  .usage-tip h5 { font-size: 13px; color: var(--accent2); margin-bottom: 6px; }
+  .usage-tip p { color: var(--text-dim); font-size: 12px; }
+  @media (max-width: 768px) { .usage-tips { grid-template-columns: 1fr; } }
+
   /* ── HOW IT GIVES ── */
   .gives-grid {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;
@@ -258,6 +301,7 @@
     <a href="#what">What It Does</a>
     <a href="#workflows">Workflows</a>
     <a href="#features">Features</a>
+    <a href="#usage">Usage Guide</a>
     <a href="#gives">What You Get</a>
   </div>
 </nav>
@@ -322,7 +366,7 @@
     </div>
     <div class="p-card solution">
       <div class="icon">&#128161;</div>
-      <h3>20 Specialized Workflows</h3>
+      <h3>23 Specialized Workflows</h3>
       <p>Hotfixes are fast and minimal. Features are thorough. Refactors have behavioral contracts. Each workflow is purpose-built for its task.</p>
     </div>
   </div>
@@ -346,7 +390,7 @@
         and executes each phase in order, writing output documents and updating state along the way.
       </p>
       <ul class="check">
-        <li>20 skills covering the full dev lifecycle</li>
+        <li>23 skills covering the full dev lifecycle</li>
         <li>Each skill has 3-8 phases with approval gates</li>
         <li>Phase outputs persist as markdown for context recovery</li>
         <li>Skills compose &mdash; new-feature delegates to brainstorm</li>
@@ -447,7 +491,7 @@
       </p>
       <ul class="dot">
         <li><strong>Layer 1: State file</strong> &mdash; current phase, branch, retry count, phase history</li>
-        <li><strong>Layer 2: Phase outputs + CONTEXT.md</strong> &mdash; full details from every phase, compressed decision log</li>
+        <li><strong>Layer 2: Phase outputs + Context section</strong> &mdash; full details from every phase, key decisions in state file</li>
         <li><strong>Layer 3: Git + Knowledge graph</strong> &mdash; commits, branches, and cross-workflow decision learning</li>
       </ul>
     </div>
@@ -515,7 +559,7 @@
 <!-- ════════════════════════════ ALL WORKFLOWS ════════════════════════════ -->
 <section id="workflows" class="wrap">
   <div class="sec-hdr reveal">
-    <span class="sec-label">20 Workflow Skills</span>
+    <span class="sec-label">23 Workflow Skills</span>
     <h2>The Right Process for Every Task</h2>
     <p>Purpose-built workflows for every development scenario, from emergency hotfixes to full features</p>
   </div>
@@ -653,6 +697,33 @@
     </div>
 
     <div class="wf-item">
+      <div class="emoji">&#128269;</div>
+      <h4>Diagnose</h4>
+      <div class="desc">Systematic bug investigation with hypothesis testing</div>
+      <div class="what"><strong>What it does:</strong> Reproduces the bug, generates ranked hypotheses with evidence, then eliminates them one by one using targeted tests or <code>git bisect</code>. Documents the confirmed root cause with exact file, line, and blast radius &mdash; without fixing it. Hands off to <code>/hotfix</code> or <code>/new-feature</code> for the fix.</div>
+      <div class="cmd">/claude-workflows:diagnose &lt;symptom&gt;</div>
+      <span class="wf-tag new">NEW</span>
+    </div>
+
+    <div class="wf-item">
+      <div class="emoji">&#128207;</div>
+      <h4>Scope</h4>
+      <div class="desc">Pre-flight complexity analysis before starting work</div>
+      <div class="what"><strong>What it does:</strong> Scans the codebase for affected files, counts layers touched, checks for breaking changes. Rates complexity: Trivial, Small, Medium, Large, or Epic. Recommends which workflow to use and suggests concrete splits for oversized tasks with dependency ordering.</div>
+      <div class="cmd">/claude-workflows:scope &lt;description&gt;</div>
+      <span class="wf-tag new">NEW</span>
+    </div>
+
+    <div class="wf-item">
+      <div class="emoji">&#128200;</div>
+      <h4>Retrospective</h4>
+      <div class="desc">Analyze workflow history for process improvements</div>
+      <div class="what"><strong>What it does:</strong> Reads telemetry and workflow history to identify wins (high success rate workflows), issues (recurring replan triggers), and bottlenecks (phases that consistently cause trouble). Generates actionable recommendations with specific config changes. Can auto-apply approved config updates.</div>
+      <div class="cmd">/claude-workflows:retrospective</div>
+      <span class="wf-tag new">NEW</span>
+    </div>
+
+    <div class="wf-item">
       <div class="emoji">&#128737;&#65039;</div>
       <h4>Guards</h4>
       <div class="desc">Safety checks for credentials and dangerous operations</div>
@@ -677,7 +748,7 @@
     </div>
     <div class="wf-item">
       <h4>&#128248; Context Snapshots</h4>
-      <div class="what">After every phase, key decisions are appended to CONTEXT.md (3-5 bullet points). When Claude's context window compresses old messages during long workflows, it reloads CONTEXT.md to recover all prior reasoning. No more "I forgot what we decided in Phase 2."</div>
+      <div class="what">After every phase, key decisions are appended to the Context section in the state file (3-5 bullet points). When Claude's context window compresses old messages during long workflows, it reloads the Context section to recover all prior reasoning. No more "I forgot what we decided in Phase 2."</div>
     </div>
     <div class="wf-item">
       <h4>&#9889; Adaptive Depth</h4>
@@ -692,8 +763,150 @@
       <div class="what">Independent sub-steps within phases are marked for parallel execution. Review's FETCH phase fires off 4 API calls concurrently instead of sequentially. Same correctness, faster completion.</div>
     </div>
     <div class="wf-item">
-      <h4>&#128736; 16 Orchestration Rules</h4>
+      <h4>&#128736; 18 Orchestration Rules</h4>
       <div class="what">Universal rules that apply to every workflow: state initialization, phase outputs, skip logic, quality gates, build detection, completion, pausing, error recovery (REPLAN), skill composition, checkpoints, telemetry, dry-run, chaining, and knowledge extraction. The engine behind every skill.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════ USAGE GUIDE ════════════════════════════ -->
+<section id="usage" class="wrap">
+  <div class="sec-hdr reveal">
+    <span class="sec-label">Usage Guide</span>
+    <h2>How to Use the Plugin</h2>
+    <p>From installation to your first feature &mdash; here's exactly what to expect</p>
+  </div>
+
+  <div class="usage-steps reveal">
+    <div class="usage-step">
+      <h4>Install the Plugin</h4>
+      <p>Run the install command in your terminal. Claude Code will download the plugin and prompt you to configure 5 settings.</p>
+      <div class="cmd-block">
+        <span class="cmt"># In your terminal</span><br>
+        $ claude plugin install ragaa07/claude-workflows<br>
+        <br>
+        <span class="cmt"># You'll be asked:</span><br>
+        <span class="cmt"># - Project type (android, react, python, swift, go, generic)</span><br>
+        <span class="cmt"># - Team (android, ios, frontend, backend, or none)</span><br>
+        <span class="cmt"># - Main branch name (default: main)</span><br>
+        <span class="cmt"># - Dev branch name (default: develop)</span><br>
+        <span class="cmt"># - Commit format (conventional, angular, simple)</span>
+      </div>
+      <div class="expect"><strong>What happens:</strong> The plugin's skills, rules, and checklists become available as <code>/claude-workflows:*</code> commands in every Claude Code session within this project.</div>
+    </div>
+
+    <div class="usage-step">
+      <h4>Initialize Your Project</h4>
+      <p>Run setup to detect your project's stack and create the <code>.workflows/</code> directory structure.</p>
+      <div class="cmd-block">
+        <span class="cmt"># Inside Claude Code</span><br>
+        /claude-workflows:setup<br>
+        <br>
+        <span class="cmt"># Or for new projects (does setup + generates CLAUDE.md):</span><br>
+        /claude-workflows:new-project
+      </div>
+      <div class="expect"><strong>What happens:</strong> Creates <code>.workflows/config.yml</code> with your project's detected settings (build system, language, git conventions). Also creates history and learned directories for workflow state. You can customize <code>config.yml</code> after generation.</div>
+    </div>
+
+    <div class="usage-step">
+      <h4>Start Your First Workflow</h4>
+      <p>Use <code>/start</code> to see all available workflows, or jump straight to a specific one.</p>
+      <div class="cmd-block">
+        <span class="cmt"># Browse available workflows</span><br>
+        /claude-workflows:start<br>
+        <br>
+        <span class="cmt"># Or go directly to a specific workflow</span><br>
+        /claude-workflows:new-feature user-authentication<br>
+        /claude-workflows:hotfix null-crash-login<br>
+        /claude-workflows:review 42<br>
+        /claude-workflows:brainstorm --topic "caching strategy"
+      </div>
+      <div class="expect"><strong>What happens:</strong> Claude creates a state file at <code>.workflows/current-state.md</code>, shows a progress indicator, and begins the first phase. For <code>/new-feature</code>, it starts by gathering requirements interactively.</div>
+    </div>
+
+    <div class="usage-step">
+      <h4>Work Through Each Phase</h4>
+      <p>Claude executes phases sequentially. Some ask for your approval before continuing, others proceed automatically.</p>
+      <div class="cmd-block">
+        <span class="cmt"># Typical interaction during a new-feature workflow:</span><br>
+        <br>
+        <span class="cmt"># GATHER: Claude asks you questions about the feature</span><br>
+        <span class="cmt"># SPEC: Claude writes a spec, asks "approved?"</span><br>
+        <span class="cmt"># BRAINSTORM: Interactive back-and-forth exploring approaches</span><br>
+        <span class="cmt"># PLAN: Claude creates an implementation plan, asks "approved?"</span><br>
+        <span class="cmt"># BRANCH: Creates git branch automatically</span><br>
+        <span class="cmt"># IMPLEMENT: Builds phase by phase with build checks</span><br>
+        <span class="cmt"># TEST: Runs tests, reports coverage</span><br>
+        <span class="cmt"># PR: Runs quality gate, creates pull request</span>
+      </div>
+      <div class="expect"><strong>What to expect:</strong> After each phase, Claude writes an output file (e.g., <code>01-gather.md</code>) and updates the state. A progress line shows where you are: <code>&#10003;GATHER &#10003;SPEC &#9655;BRAINSTORM &#183;PLAN &#183;IMPLEMENT &#183;TEST &#183;PR</code></div>
+    </div>
+
+    <div class="usage-step">
+      <h4>Pause, Resume, and Recover</h4>
+      <p>You can pause at any time and resume later &mdash; even in a new session days later.</p>
+      <div class="cmd-block">
+        <span class="cmt"># Pause current workflow (say "pause" at any time)</span><br>
+        <span class="cmt"># Claude saves progress and renames state to paused-&lt;feature&gt;.md</span><br>
+        <br>
+        <span class="cmt"># Resume later (next session, Claude auto-detects active workflows)</span><br>
+        /claude-workflows:resume<br>
+        <br>
+        <span class="cmt"># If build fails 3+ times, Claude triggers REPLAN</span><br>
+        <span class="cmt"># You review the adjusted plan and approve before continuing</span>
+      </div>
+      <div class="expect"><strong>What to expect:</strong> On resume, Claude validates the branch, checks output files, loads the Context section (key decisions), and picks up exactly where you left off. Session hooks automatically remind you of active workflows when you start Claude Code.</div>
+    </div>
+
+    <div class="usage-step">
+      <h4>Review Quality and Ship</h4>
+      <p>Before every PR, Claude runs a self-review against severity-rated checklists.</p>
+      <div class="cmd-block">
+        <span class="cmt"># Quality gate runs automatically in PR phase</span><br>
+        <span class="cmt"># Claude loads general + language-specific + team checklists</span><br>
+        <span class="cmt"># Checks each Critical/High item with explicit evidence</span><br>
+        <span class="cmt"># Fixes Critical/High violations before creating the PR</span><br>
+        <br>
+        <span class="cmt"># You can also review others' PRs:</span><br>
+        /claude-workflows:review 42 --strict
+      </div>
+      <div class="expect"><strong>What to expect:</strong> The PR is created with a structured body: summary, changes organized by phase, test results, and quality checklist. Critical issues are fixed before the PR is created &mdash; not after.</div>
+    </div>
+
+    <div class="usage-step">
+      <h4>Learn and Improve Over Time</h4>
+      <p>After workflows complete, capture patterns and track metrics to improve your process.</p>
+      <div class="cmd-block">
+        <span class="cmt"># Capture patterns from last workflow</span><br>
+        /claude-workflows:learn capture<br>
+        <br>
+        <span class="cmt"># Check workflow metrics</span><br>
+        /claude-workflows:metrics<br>
+        /claude-workflows:metrics health<br>
+        <br>
+        <span class="cmt"># Run a retrospective on recent workflows</span><br>
+        /claude-workflows:retrospective --last 10
+      </div>
+      <div class="expect"><strong>What to expect:</strong> Learned patterns surface automatically during future brainstorming. The knowledge graph grows with every completed workflow. Metrics show completion rates, replan frequency, and bottleneck phases.</div>
+    </div>
+  </div>
+
+  <div class="usage-tips reveal">
+    <div class="usage-tip">
+      <h5>Skip the ceremony for small tasks</h5>
+      <p>Use <code>--depth trivial</code> to skip SPEC and BRAINSTORM for simple changes. Or use <code>/scope</code> first to check if you even need a full workflow.</p>
+    </div>
+    <div class="usage-tip">
+      <h5>Automate approval gates</h5>
+      <p>Use <code>--auto</code> flag on <code>/new-feature</code>, <code>/extend-feature</code>, <code>/refactor</code>, or <code>/migrate</code> to skip interactive approvals. Useful when requirements are well-defined.</p>
+    </div>
+    <div class="usage-tip">
+      <h5>Reuse past work</h5>
+      <p>After completing a good workflow, run <code>/template save api-endpoint</code>. Next time: <code>/template use api-endpoint user-mgmt</code> pre-populates spec and plan.</p>
+    </div>
+    <div class="usage-tip">
+      <h5>Customize everything</h5>
+      <p>Edit <code>.workflows/config.yml</code> to disable brainstorm for hotfixes, change PR base branch, set max plan phases, configure merge strategy, or set up workflow chaining.</p>
     </div>
   </div>
 </section>
@@ -774,7 +987,7 @@
     </div>
     <p style="font-size:12px;color:var(--text-dim);margin-top:16px;">
       <a href="https://github.com/ragaa07/claude-workflows" style="color:var(--accent);text-decoration:none;">GitHub</a>
-      &nbsp;&middot;&nbsp; MIT License &nbsp;&middot;&nbsp; v3.0
+      &nbsp;&middot;&nbsp; MIT License &nbsp;&middot;&nbsp; v3.0.0
     </p>
   </div>
 </section>

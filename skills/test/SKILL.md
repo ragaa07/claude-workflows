@@ -1,6 +1,7 @@
 ---
 name: test
 description: Generate comprehensive tests for a target class, file, module, or feature with coverage analysis, boundary classification, and gap reporting.
+rules: [0, 1, 3, 4, 5, 6, 7, 10, 11, 12, 17]
 ---
 
 # Test Workflow
@@ -9,11 +10,11 @@ description: Generate comprehensive tests for a target class, file, module, or f
 /test <target> [--coverage <pct>] [--type <unit|integration>]
 ```
 
-**Targets**: `class:Name`, `file:path/to/file`, `module:name`, `feature:name` | **Defaults**: coverage=90%, type=unit
+**Targets**: `class:Name`, `file:path/to/file`, `module:name`, `feature:name` | **Defaults**: coverage from `workflows.test.default_coverage` in config (default 90%), type=unit
 
-**Before starting**: Read `${CLAUDE_PLUGIN_ROOT}/rules/` for language-specific testing conventions. Scan build files to detect test framework, runner, mocking library, and coverage tooling.
+**Before starting**: Read `<plugin-root>/rules/` for language-specific testing conventions. Scan build files to detect test framework, runner, mocking library, and coverage tooling.
 
-> Follow orchestration Rules 0-1 for state and output.
+> **Orchestration**: Rules 0, 1 handle state and phase output.
 
 ---
 
@@ -105,7 +106,7 @@ Verify new tests don't break existing tests.
 Each test: tests ONE behavior, uses Given/When/Then naming, mocks only outside boundary, is deterministic, tests behavior not implementation details.
 
 ### 4.4 Coverage
-Run coverage tool if available. Compare against target.
+Run coverage tool if available. Compare against target from `--coverage` flag or `workflows.test.default_coverage` in config.
 
 **>> Write output to**: `.workflows/<target>/04-verify.md`.
 
@@ -136,7 +137,7 @@ git commit -m "test(<scope>): add tests for <target> (<coverage>% coverage)"
 
 **>> Write output to**: `.workflows/<target>/05-report.md`.
 
-**After this final phase**: Move `.workflows/current-state.md` to `.workflows/history/<target>-<YYYY-MM-DD>.md`. Report completion.
+Rule 5 handles completion after the last phase.
 
 ---
 

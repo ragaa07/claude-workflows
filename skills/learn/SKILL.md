@@ -1,6 +1,7 @@
 ---
 name: learn
-description: "Extract and store successful workflow patterns for reuse. Surfaces relevant patterns during brainstorming to accelerate decisions. Use when discussing patterns, lessons learned, or reusable approaches."
+description: "Extract and store successful workflow patterns for reuse. Surfaces relevant patterns during brainstorming to accelerate decisions."
+rules: []
 ---
 
 # Pattern Learning
@@ -14,6 +15,8 @@ description: "Extract and store successful workflow patterns for reuse. Surfaces
 Extracts reusable patterns from completed workflows, stores as markdown in `.workflows/learned/`. Patterns with 2+ reuses are marked **proven**.
 
 **Prerequisite**: `learning.enabled` must be `true` in `.workflows/config.yml`. If disabled, inform user and exit.
+
+**Distinction from knowledge.jsonl**: `/learn` stores human-readable pattern descriptions for manual browsing. `knowledge.jsonl` (Rule 16) stores structured decision data for automated matching during brainstorming.
 
 ---
 
@@ -46,11 +49,12 @@ Read all `.md` files in `.workflows/learned/`. Sort by reuse count descending:
 
 ```
 Learned Patterns (<N> total):
-  ★ event-driven-state — Use event-driven state for complex forms
+  * event-driven-state — Use event-driven state for complex forms
     Category: architecture | Reused: 4 | Tags: state, forms
     snapshot-testing — Compose snapshot tests for UI regression
     Category: testing | Reused: 0 | Tags: ui, testing
-  ★ = proven (2+ reuses)
+
+  * = proven (2+ reuses)
 ```
 
 ---
@@ -58,15 +62,5 @@ Learned Patterns (<N> total):
 ## `/learn apply <topic>` — Find Relevant Patterns
 
 1. Load patterns from `.workflows/learned/`. Match by tag, name/description keywords, category.
-2. Present top 5 by relevance then reuse count:
-
-```
-Patterns relevant to "<topic>":
-  1. ★ event-driven-state — Use event-driven state for complex forms (4 reuses)
-  2.   retry-with-backoff — Exponential backoff for flaky API calls (1 reuse)
-Apply a pattern? (pick number or skip)
-```
-
+2. Present top 5 by relevance then reuse count.
 3. If selected, increment `Reused` count in the pattern file.
-
-Additionally, append a one-line summary to `${CLAUDE_PLUGIN_DATA}/global-patterns.jsonl` for cross-project pattern sharing.

@@ -1,19 +1,26 @@
 ---
 name: new-feature
 description: "Complete feature development workflow from requirements through PR, including spec writing, brainstorming, planning, implementation, testing, and PR creation."
+rules: [0, 1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 15, 16, 17]
 ---
 
 # New Feature Workflow
 
 ```
-/new-feature <name> [--from-jira <ticket>] [--from-figma <url>] [--from-spec <path>] [--skip-brainstorm]
+/new-feature <name> [--from-ticket <url-or-id>] [--from-figma <url>] [--from-spec <path>] [--skip-brainstorm] [--depth full] [--auto]
 ```
 
 **Prerequisites**: Plugin configured (run /claude-workflows:setup if needed). Git working tree is clean.
 
-**Config references**: Read `.workflows/config.yml` (if exists) or use `${user_config.*}` values for `project.language`, `project.type`, `git.branches.*`, and `workflows.new-feature.*` throughout this workflow.
+**Variants**: This workflow supports adaptive depth (see GATHER phase). You can also force a variant:
+- `/new-feature <name> --depth trivial` → GATHER → PLAN → BRANCH → IMPLEMENT → PR (skip SPEC, BRAINSTORM, TEST)
+- `/new-feature <name> --depth full` → All 8 phases, no auto-skipping
 
-> **State & Output**: Follow Rules 0-1 in `${CLAUDE_PLUGIN_ROOT}/skills/_orchestration/RULES.md` — initialize state before starting, write phase output + update state after every phase.
+**Auto mode**: `--auto` skips all approval gates (spec approval, plan approval, brainstorm decisions). Uses the first/recommended option at each decision point. Useful for well-defined tasks where human review happens at PR stage.
+
+**Config**: Read `.workflows/config.yml` for `project.language`, `project.type`, `git.branches.*`, and `workflows.new-feature.*`. Fall back to user plugin settings, then `<plugin-root>/config/defaults.yml`.
+
+> **Orchestration**: Rules 0, 1, 5 handle state, phase output, and completion.
 
 ---
 
@@ -25,8 +32,8 @@ description: "Complete feature development workflow from requirements through PR
 
 | Flag | Action |
 |---|---|
-| `--from-jira <ticket>` | Fetch via `mcp__atlassian__getJiraIssue`. Extract title, description, acceptance criteria, subtasks, priority. Fetch subtasks via JQL `parent = <ticket>`. **If MCP unavailable**: print warning, fall back to interactive. |
-| `--from-figma <url>` | Fetch via `mcp__figma__get_design_context` + `mcp__figma__get_screenshot`. Extract screens, components, design tokens, interactions. **If MCP unavailable**: ask user to describe UI manually. |
+| `--from-ticket <url-or-id>` | If an issue tracker MCP is available (Jira, Linear, GitHub Issues), fetch issue details. Extract title, description, acceptance criteria, subtasks, priority. **If MCP unavailable**: ask user to paste the ticket details. |
+| `--from-figma <url>` | If Figma MCP is available, fetch design context + screenshot. Extract screens, components, design tokens, interactions. **If MCP unavailable**: ask user to describe UI manually. |
 | `--from-spec <path>` | Read and parse the file directly. |
 | No flags | Interactive mode (see below). |
 
@@ -41,7 +48,7 @@ Ask sequentially:
 
 ### Adaptive depth
 
-If `workflows.new-feature.adaptive` is `true` in config, estimate complexity after gathering requirements:
+If `workflows.new-feature.adaptive` is `true` in config, estimate complexity after gathering:
 
 | Signal | Depth | Effect |
 |--------|-------|--------|
@@ -49,13 +56,15 @@ If `workflows.new-feature.adaptive` is `true` in config, estimate complexity aft
 | 3-10 files, clear scope | **Standard** | Normal workflow (all phases) |
 | >10 files, architectural changes | **Complex** | Force deep brainstorm, require spec approval |
 
-Announce: "Estimated complexity: [depth]. Adjusting workflow accordingly." User can override: `--depth full` forces all phases.
+**Decision criteria**: Count files by searching the codebase for related code (grep for feature keywords, check imports). Count lines by estimating from the spec's acceptance criteria. When uncertain, default to **Standard**.
+
+Announce: "Estimated complexity: [depth]. Adjusting workflow accordingly." User can override with `--depth full`.
 
 ### Gate
 
 Do NOT proceed if acceptance criteria are undefined. List missing info and ask user to provide or confirm.
 
-**>> Write output to**: `.workflows/<name>/01-gather.md` — then update `.workflows/current-state.md` (see State Tracking above).
+**>> Write output to**: `.workflows/<name>/01-gather.md`
 
 ---
 
@@ -65,9 +74,8 @@ Do NOT proceed if acceptance criteria are undefined. List missing info and ask u
 
 ### Generate spec
 
-If `${CLAUDE_PLUGIN_ROOT}/templates/spec.md.tmpl` exists, use it as the template. Otherwise use this structure:
+If `<plugin-root>/templates/spec.md.tmpl` exists, use it as the template. Otherwise use this structure:
 
-Write the spec document with this structure:
 - **Metadata**: date, source, status (Draft), author
 - **Summary**: 1-3 sentences
 - **User Stories**: derived from requirements
@@ -85,28 +93,29 @@ Present spec summary. Ask: "Review the spec. Reply with changes or 'approved' to
 - Approved: proceed.
 - Rejected 3+ times: ask if feature scope needs rethinking.
 
-**>> Write output to**: `.workflows/<name>/02-spec.md` — then update `.workflows/current-state.md`.
+**>> Write output to**: `.workflows/<name>/02-spec.md`
 
 ---
 
 ## Phase 3: BRAINSTORM
 
-**Skip if**: `--skip-brainstorm` flag OR `workflows.new-feature.require_brainstorm` is `false` in config. If skipping, mark as `SKIPPED` in state and proceed to Phase 4.
+**Skip if**: `--skip-brainstorm` flag OR `workflows.new-feature.require_brainstorm` is `false`. Mark `SKIPPED` in state and proceed to Phase 4.
 
 ### Execute (Rule 9 delegation)
 
-Execute brainstorm inline per Rule 9: Read `${CLAUDE_PLUGIN_ROOT}/skills/brainstorm/SKILL.md` and run its **EXPLORE -> EVALUATE -> RECOMMEND** phases within this workflow context.
+Read `<plugin-root>/skills/brainstorm/SKILL.md` and run its **EXPLORE → EVALUATE → RECOMMEND** phases inline.
 
 Delegation parameters:
-- **depth**: `standard` (or override from `workflows.new-feature.brainstorm_depth` in config)
+- **depth**: `standard` (or override from `workflows.new-feature.brainstorm_depth`)
 - **topic**: the feature spec produced in Phase 2
 - **output**: write to this workflow's `.workflows/<name>/` directory
+- **auto mode**: If `--auto` flag is set, use the recommended option at each decision point without waiting for user input
 
 ### Approval gate
 
 User selects an approach. Document choice under "## Chosen Approach" in the spec.
 
-**>> Write output to**: `.workflows/<name>/03-brainstorm.md` — then update `.workflows/current-state.md`.
+**>> Write output to**: `.workflows/<name>/03-brainstorm.md`
 
 ---
 
@@ -116,15 +125,14 @@ User selects an approach. Document choice under "## Chosen Approach" in the spec
 
 ### Read context
 
-1. Read `.workflows/config.yml` -> `project.type`, `project.language`, build/test commands.
-2. Read `tasks/lessons.md` -- apply relevant lessons.
-3. Read chosen approach from brainstorm output.
+1. Read `.workflows/config.yml` → `project.type`, `project.language`, build/test commands.
+2. Read chosen approach from brainstorm output (or spec if brainstorm was skipped).
 
 ### Generate plan
 
-Write the implementation plan to `.workflows/<name>/plan.md` using this algorithm:
+Write the implementation plan to `.workflows/<name>/plan.md` (this standalone file is the executable plan, referenced by IMPLEMENT and resume. The phase output `04-plan.md` captures the planning process summary and approval).
 
-**Step 1 — Identify layers touched** by the spec. Categorize required changes into:
+**Step 1 — Identify layers touched** by the spec:
 - **Data/Models**: entities, DTOs, database schemas, types
 - **Domain/Business**: use cases, services, business rules, interfaces
 - **Data Layer/API**: repositories, API clients, network, data sources
@@ -142,15 +150,15 @@ Write the implementation plan to `.workflows/<name>/plan.md` using this algorith
 
 **Step 3 — Skip empty layers.** If no changes needed for a layer, omit it.
 
-**Step 4 — Split large layers.** If a layer touches >5 files, split into sub-phases (e.g., Phase C1: API client, Phase C2: Repository).
+**Step 4 — Split large layers.** If a layer touches >5 files, split into sub-phases.
 
 **Step 5 — Cap at `workflows.new-feature.max_plan_phases`** (default 10). If over limit, ask user to split feature.
 
 Each phase MUST include:
-- **Files to create/modify**: checkable list with paths and descriptions
+- **Files to create/modify**: checkable list with paths
 - **Implementation details**: what to build and how
 - **Build check command**: detected from project
-- **Commit message**: conventional commit format `feat(<scope>): <description>`
+- **Commit message**: conventional commit format
 
 Also include:
 - **Rollback plan**: each phase independently revertable via git
@@ -162,17 +170,17 @@ Present plan summary. Ask: "Review the plan. Reply with changes or 'approved' to
 
 ### Update tracking
 
-Add feature to `tasks/todo.md` with a checkable item per phase.
+If `tasks/todo.md` exists, add feature to it with a checkable item per phase.
 
-**>> Write output to**: `.workflows/<name>/04-plan.md` — then rewrite `.workflows/current-state.md`. (The detailed plan is in `.workflows/<name>/plan.md`)
+**>> Write output to**: `.workflows/<name>/04-plan.md`
 
 ---
 
 ## Phase 5: BRANCH
 
-**Goal**: Create a properly named feature branch.
+**Preconditions**: `clean-tree`, `phase-complete:PLAN`
 
-### Execute
+**Goal**: Create a properly named feature branch.
 
 1. Read `git.branches.development` and `git.branches.feature` pattern from config.
 2. Replace `{name}` in pattern with kebab-case feature name.
@@ -181,13 +189,9 @@ Add feature to `tasks/todo.md` with a checkable item per phase.
    git checkout <dev_branch> && git pull origin <dev_branch> && git checkout -b <branch_name>
    ```
 
-### Error handling
+**Error handling**: Dirty tree → tell user to stash. Branch exists → ask to switch or rename. Dev branch behind → pull first.
 
-- Dirty working tree: tell user to stash or commit first.
-- Branch exists: ask to switch or rename.
-- Dev branch behind remote: pull first, then branch.
-
-**>> Write output to**: `.workflows/<name>/05-branch.md` — then update `.workflows/current-state.md`.
+**>> Write output to**: `.workflows/<name>/05-branch.md`
 
 ---
 
@@ -197,36 +201,24 @@ Add feature to `tasks/todo.md` with a checkable item per phase.
 
 ### Before starting
 
-1. Read `${CLAUDE_PLUGIN_ROOT}/rules/` for language-specific coding rules. Follow ALL DO/DON'T directives.
-2. Read `tasks/lessons.md` for relevant lessons.
+1. Read `<plugin-root>/rules/` for language-specific coding rules (Rule 3). Follow ALL DO/DON'T directives.
 
 ### Per-phase loop
 
 For each phase in the plan:
 
 1. **Read** phase details from `.workflows/<name>/plan.md`.
-2. **Implement** changes. Rules:
+2. **Implement** changes:
    - One concern per phase. Do not mix layers.
    - Match existing codebase conventions exactly.
    - Only create/modify files listed in the plan.
    - No placeholder code. Every line production-ready.
-3. **Build check**: run the phase's build command. If it fails:
-   - Read error, fix, re-run.
-   - After 3 failures: trigger REPLAN.
+3. **Build check**: run the phase's build command. If it fails: read error, fix, re-run. After 3 failures: trigger REPLAN (Rule 7).
 4. **Commit**: `git add <specific-files> && git commit -m "<message>"`.
-5. **Continue**: proceed automatically for straightforward phases. For complex phases, confirm with user.
+5. **Checkpoint** (Rule 11): record files changed, commit hash, status.
+6. **Continue**: proceed automatically for straightforward phases. For complex phases, confirm with user.
 
-### REPLAN protocol
-
-Trigger when: build fails 3+ times, plan step is wrong/impossible, or user requests mid-flight change.
-
-1. STOP all implementation.
-2. Document what went wrong under "## Replan Notes" in the plan file.
-3. Re-analyze remaining phases.
-4. Generate updated plan, present for approval.
-5. Resume from corrected phase.
-
-**>> Write output to**: `.workflows/<name>/06-implement.md` — then update `.workflows/current-state.md`. (Files changed, commits made, issues encountered)
+**>> Write output to**: `.workflows/<name>/06-implement.md` (files changed, commits, issues encountered)
 
 ---
 
@@ -234,45 +226,40 @@ Trigger when: build fails 3+ times, plan step is wrong/impossible, or user reque
 
 **Goal**: Verify correctness and quality.
 
-### Detect test framework
-
-Read `project.language` and `project.type` from config. Detect test runner and coverage tools from the project's build files (e.g., `package.json`, `build.gradle`, `Cargo.toml`, `pyproject.toml`). Do NOT assume any specific test framework.
-
 ### Execute
 
-1. **Run all tests**: use the project's test command. All existing tests MUST pass. If failures are caused by the new feature, fix them. If pre-existing, report but do not block.
-2. **Run new tests**: if the plan included a testing phase, verify those tests pass.
-3. **Coverage check**: if coverage tooling is configured, report coverage for new code. Target: 80%+ for new code.
-4. **Present verification checklist**:
+1. Detect test framework from build files. Do NOT assume any specific framework.
+2. **Run all tests**: all existing tests MUST pass. If failures caused by new feature, fix them. If pre-existing, report but don't block.
+3. **Run new tests**: verify tests from the plan pass.
+4. **Coverage check**: if coverage tooling is configured, report coverage for new code. Target: `workflows.test.default_coverage` from config (default 90%).
+5. **Verification checklist**:
    - All existing tests pass
    - New tests pass
    - Build succeeds
    - Feature works as specified
-   - No regressions in related features
+   - No regressions
 
-**>> Write output to**: `.workflows/<name>/07-test.md` — then update `.workflows/current-state.md`.
+**>> Write output to**: `.workflows/<name>/07-test.md`
 
 ---
 
 ## Phase 8: PR
 
+**Preconditions**: `tests-pass`, `clean-tree`
+
 **Goal**: Create a well-documented pull request after passing quality gates.
 
-### Pre-PR quality gate
+### Pre-PR quality gate (Rule 3)
 
-1. Load `${CLAUDE_PLUGIN_ROOT}/reviews/general-checklist.md`.
-2. Load language-specific checklist: `${CLAUDE_PLUGIN_ROOT}/reviews/<language>-checklist.md` (based on `project.language`).
-3. If a framework checklist exists (e.g., `${CLAUDE_PLUGIN_ROOT}/reviews/<framework>-checklist.md`), load that too.
-4. Self-check ALL High and Critical severity items from loaded checklists.
-5. Fix any violations before proceeding. Document fixes as additional commits.
+Load checklists proportional to change size. Self-check applicable items. Fix Critical/High violations before proceeding.
 
 ### Create PR
 
 1. Generate PR body:
    - **Summary**: 2-3 sentences from spec
    - **Changes**: bulleted list organized by phase
-   - **Testing**: what was tested, coverage numbers
-   - **Checklist**: items from quality gate, all checked
+   - **Testing**: what was tested, coverage
+   - **Checklist**: items from quality gate
 2. Push and create:
    ```bash
    git push -u origin <branch>
@@ -281,19 +268,17 @@ Read `project.language` and `project.type` from config. Detect test runner and c
 
 ### Final summary
 
-Print: branch name, PR URL, commit count, files created/modified, spec path, plan path. Suggest next steps: add screenshots (if UI), request review, address feedback.
+Print: branch name, PR URL, commit count, files created/modified, spec path, plan path. Suggest next steps.
 
-**>> Write output to**: `.workflows/<name>/08-pr.md` — then update `.workflows/current-state.md`.
-
-**After this final phase**: Move `.workflows/current-state.md` to `.workflows/history/<name>-<YYYY-MM-DD>.md`. Report completion.
+**>> Write output to**: `.workflows/<name>/08-pr.md`
 
 ---
 
 ## Error Handling
 
-Errors documented inline per phase above. Additional edge cases:
-
 | Phase | Error | Resolution |
 |---|---|---|
+| GATHER | Missing acceptance criteria | Ask user to define before proceeding |
 | BRANCH | Merge conflicts | Rebase on dev branch, resolve conflicts |
-| PR | `gh` CLI not authenticated | Guide user through `gh auth login` |
+| IMPLEMENT | Build fails 3+ times | REPLAN (Rule 7) |
+| PR | `gh` CLI not authenticated | Guide user: run `! gh auth login` |

@@ -1,15 +1,18 @@
 ---
 name: release
 description: Automate versioned releases with changelog, version bump, release branch, PR, and tagging.
+rules: [0, 1, 3, 4, 5, 6, 10, 12, 17]
 ---
 
 # Release Workflow
 
 ## Command
 
-`/release <version>`
+`/release <version> [--type <major|minor|patch>]`
 
-> Follow orchestration Rules 0-1 for state and output.
+If `--type` is provided instead of an explicit version, auto-calculate the next version from the latest git tag using semver rules.
+
+> **Orchestration**: Rules 0, 1, 5 handle state, phase output, and completion.
 
 ---
 
@@ -25,7 +28,7 @@ Generate changelog from git history since last tag.
    - **Features** (`feat:`), **Bug Fixes** (`fix:`), **Refactoring** (`refactor:`)
    - **Performance** (`perf:`), **Docs** (`docs:`), **Tests** (`test:`), **Chores** (`chore:`)
    - **Breaking Changes**: commits with `BREAKING CHANGE:` or `!:` suffix
-4. Generate CHANGELOG.md entry with version header and date
+4. Generate a standard CHANGELOG.md entry with version header (`## [<version>] — <YYYY-MM-DD>`) and categorized commit list.
 5. Prepend entry to CHANGELOG.md (create if missing)
 6. Present to user for review before proceeding
 
@@ -69,7 +72,7 @@ Create release branch from development branch.
 
 Create pull request from release branch to production.
 
-**Quality gate**: Load `${CLAUDE_PLUGIN_ROOT}/reviews/general-checklist.md` and the language-specific checklist from `${CLAUDE_PLUGIN_ROOT}/reviews/`. Verify all High/Critical items pass. Run full build and test suite to confirm release readiness.
+**Quality gate** (Rule 3): Load `<plugin-root>/reviews/general-checklist.md` and language-specific checklist. Verify High/Critical items pass. Run full build and test suite to confirm release readiness.
 
 1. Target: main branch (from `git.branches.main` in `.workflows/config.yml`)
 2. Title: `Release v{version}`
@@ -88,8 +91,6 @@ After PR is merged, provide tagging commands.
 3. Optional: `gh release create v{version} --title "v{version}" --notes "See CHANGELOG.md"`
 
 **>> Write output to**: `.workflows/<version>/05-tag.md`
-
-**After this final phase**: Move `.workflows/current-state.md` to `.workflows/history/<version>-<YYYY-MM-DD>.md`. Report completion.
 
 ## Configuration
 

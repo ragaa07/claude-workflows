@@ -1,19 +1,20 @@
 ---
 name: refactor
 description: Safely refactor code with dependency graph mapping, behavioral contracts, incremental migration, and rollback at every step.
+rules: [0, 1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 16, 17]
 ---
 
 # Refactor Workflow
 
-`/refactor <target> [--scope <file|module|feature>] [--goal <description>] [--skip-brainstorm]`
+`/refactor <target> [--scope <file|module|feature>] [--goal <description>] [--skip-brainstorm] [--auto]`
 
 **Targets**: `class:Name`, `file:path/to/file`, `module:name`, `feature:name`
 
-Restructure existing code while preserving all external behavior. **Phases**: ANALYZE -> BRAINSTORM -> CONTRACT -> DESIGN -> MIGRATE -> VERIFY -> PR.
+Restructure existing code while preserving all external behavior. **Phases**: ANALYZE → BRAINSTORM → CONTRACT → DESIGN → MIGRATE → VERIFY → PR.
 
-**Core principle**: Identical outputs for identical inputs. Every step must compile and pass tests. Breaks behavior -> roll back.
+**Core principle**: Identical outputs for identical inputs. Every step must compile and pass tests. Breaks behavior → roll back.
 
-> Follow orchestration Rules 0-1 for state and output.
+> **Orchestration**: Rules 0, 1, 5 handle state, phase output, and completion.
 
 ---
 
@@ -21,31 +22,23 @@ Restructure existing code while preserving all external behavior. **Phases**: AN
 
 **Goal**: Build complete dependency graph and assess blast radius.
 
-1. **Identify target** — Locate definition and all related files using project-appropriate patterns.
-2. **Map inbound deps** — All consumers: direct callers, subclasses/implementors, DI consumers, test consumers.
-3. **Map outbound deps** — Imports: libraries, project modules, system resources.
-4. **Map public API surface** — Every public member: functions, properties, types.
-5. **Measure current state** — LOC, public member count, complexity estimate, dependent count, test coverage.
+1. **Identify target** — Locate definition and all related files
+2. **Map inbound deps** — All consumers: direct callers, subclasses, DI consumers, test consumers
+3. **Map outbound deps** — Imports: libraries, project modules, system resources
+4. **Map public API surface** — Every public member: functions, properties, types
+5. **Measure current state** — LOC, public member count, complexity estimate, dependent count, test coverage
 
-**>> Write output to**: `.workflows/<target>/01-analyze.md` (Dependency graph and blast radius)
+**>> Write output to**: `.workflows/<target>/01-analyze.md`
 
 ---
 
 ## Phase 2: BRAINSTORM
 
-**Goal**: Explore refactoring approaches before committing to a plan.
+**Skip if**: `--skip-brainstorm` OR `workflows.refactor.require_brainstorm` is `false`. Mark `SKIPPED`, proceed to Phase 3.
 
-**Skip condition**: Skip if `--skip-brainstorm` passed OR `workflows.refactor.require_brainstorm` is `false` in `.workflows/config.yml`. If skipping, mark as `SKIPPED` in state and proceed to Phase 3.
+Run brainstorm inline (Rule 9): Constraint Mapping → Generate Options → Trade-off Matrix (blast radius as highest weight) → Recommend. Lowest blast radius wins ties.
 
-### Execute (inline brainstorm — see Rule 9)
-
-Run brainstorm within this workflow context:
-1. **Constraint Mapping**: Ask user for constraints. Focus on: structural approach (extract, inline, reshape), migration strategy (parallel run, strangler fig, big bang), dependency management.
-2. **Generate Options**: Seed with 1 approach from the analysis. Build alternatives.
-3. **Trade-off Matrix**: Score with blast radius as highest-weighted criterion.
-4. **Recommend**: Present recommendation. Lowest blast radius wins ties. Ask: "Which approach? Or suggest an alternative."
-
-**>> Write output to**: `.workflows/<target>/02-brainstorm.md`.
+**>> Write output to**: `.workflows/<target>/02-brainstorm.md`
 
 ---
 
@@ -55,11 +48,11 @@ Run brainstorm within this workflow context:
 
 Document: **Invariants** (I/O pairs, side effects, error conditions), **Public API** (signatures that must not change), **Performance** (latency/memory bounds), **Threading** (context/dispatcher requirements), **Test coverage** (count, gaps).
 
-Map every test assertion to an invariant. Missing coverage -> add tests BEFORE refactoring.
+Map every test assertion to an invariant. Missing coverage → add tests BEFORE refactoring.
 
-**Decision Point**: Present contract. Ask: "Does this capture all expected behaviors?"
+Present contract. Ask: "Does this capture all expected behaviors?"
 
-**>> Write output to**: `.workflows/<target>/03-contract.md`.
+**>> Write output to**: `.workflows/<target>/03-contract.md`
 
 ---
 
@@ -67,30 +60,15 @@ Map every test assertion to an invariant. Missing coverage -> add tests BEFORE r
 
 **Goal**: Create incremental migration plan where every step compiles and passes tests.
 
-### 4.1 — Design Target State
+1. Describe post-refactor target state
+2. Plan migration steps in `.workflows/<target>/plan.md` (this standalone file is the executable plan, referenced by MIGRATE and resume. The phase output `04-design.md` captures the design summary and approval). Each step: action, files, compile command, test command, rollback command, commit message.
+3. Estimate blast radius per step
 
-Describe post-refactor code: new structure, new abstractions, new module boundaries.
-
-### 4.2 — Plan Migration Steps
-
-Write the migration plan to `.workflows/<target>/plan.md`. Each step must include:
-- Action, files affected, compile command, test command, rollback command, commit message
-
-Each step MUST satisfy: project compiles, all tests pass, step is independently revertable.
-
-**Migration safety rules**:
-1. Never delete old code until new code is proven equivalent
-2. Use language-appropriate deprecation mechanism during transition
-3. Run full test suite after each step, not just target tests
-4. If any step fails tests: revert immediately, do not debug in-place
-
-### 4.3 — Estimate Blast Radius Per Step
-
-For each step: files directly changed, transitive dependents affected, risk level.
+**Migration safety**: Never delete old code until new code is proven. Use deprecation during transition. Full test suite after each step. Test failure → revert immediately.
 
 Present plan. Ask: "Approve migration plan or request changes?"
 
-**>> Write output to**: `.workflows/<target>/04-design.md`.
+**>> Write output to**: `.workflows/<target>/04-design.md`
 
 ---
 
@@ -98,26 +76,11 @@ Present plan. Ask: "Approve migration plan or request changes?"
 
 **Goal**: Execute migration step by step with strict verification.
 
-### Per-Step Protocol
+Per step: Read → Implement (this step ONLY) → Compile (fail → revert, max 3, then REPLAN) → Test full suite (fail → revert) → Contract check → Commit → Record rollback hash.
 
-For each step:
-1. **Read** — Re-read files (they may have changed since analysis)
-2. **Implement** — Make changes for this step ONLY
-3. **Compile** — Run build. Fail -> revert, retry (max 3). 3 failures -> REPLAN
-4. **Test** — Run FULL test suite. Fail -> revert immediately. Behavior change -> REPLAN. Test depends on internals -> update test (document why)
-5. **Contract check** — Verify invariants still hold
-6. **Commit** — Atomic commit: `refactor(<scope>): <step description>`
-7. **Record rollback** — Note commit hash
+**Parallel deprecation**: Create new alongside old → mark old deprecated → migrate consumers → delete old → verify no references.
 
-### Parallel Deprecation Pattern
-
-Create new alongside old -> mark old deprecated (language-appropriate) -> migrate consumers one-by-one -> delete old after all migrated -> verify no references remain.
-
-### REPLAN Protocol
-
-Revert to last good commit -> document failure -> re-evaluate approach -> revised plan -> user approval.
-
-**>> Write output to**: `.workflows/<target>/05-migrate.md`.
+**>> Write output to**: `.workflows/<target>/05-migrate.md`
 
 ---
 
@@ -125,35 +88,22 @@ Revert to last good commit -> document failure -> re-evaluate approach -> revise
 
 **Goal**: Prove the refactoring preserves all behavior.
 
-1. **Full test suite** — Every test must pass. Zero tolerance.
-2. **Contract verification** — Check each invariant: VERIFIED or FAILED. Point to covering test.
-3. **Metrics comparison** — Compare before/after: LOC, public members, dependents, test count.
-4. **Cleanup check** — No deprecation markers remain, no unused imports, no dead code, no refactor TODOs. Check `${CLAUDE_PLUGIN_ROOT}/rules/` for project-specific style rules.
+1. Full test suite — zero tolerance
+2. Contract verification — each invariant: VERIFIED or FAILED
+3. Metrics comparison — before/after: LOC, public members, dependents, test count
+4. Cleanup check — no deprecation markers, unused imports, dead code, refactor TODOs
 
-**Verification failure**: Critical -> revert entire refactor. Minor -> fix and re-verify.
-
-**>> Write output to**: `.workflows/<target>/06-verify.md`.
+**>> Write output to**: `.workflows/<target>/06-verify.md`
 
 ---
 
 ## Phase 7: PR
 
-**Goal**: Create PR with full context for reviewers.
+**Quality gate** (Rule 3): proportional review. Confirm all tests pass, all contract invariants VERIFIED, no deprecation markers remain.
 
-### Quality Gate
+PR body: summary, motivation, approach, contract verification, per-step changes, metrics table, rollback plan (`git revert <first>..<last>`).
 
-Confirm ALL: full tests pass, all contract invariants VERIFIED, no deprecation markers remain, metrics documented. Load `${CLAUDE_PLUGIN_ROOT}/reviews/general-checklist.md` + language-specific checklist. Self-check High/Critical items. Fix violations before creating PR. Gate failure -> return to appropriate phase.
-
-PR body: summary, motivation, approach, contract verification checklist, per-step changes, metrics table, rollback plan (`git revert <first>..<last>`).
-
-```bash
-git push -u origin <branch>
-gh pr create --base <dev_branch> --title "refactor(<scope>): <goal>" --body "<pr-body>"
-```
-
-**>> Write output to**: `.workflows/<target>/07-pr.md`.
-
-**After this final phase**: Move `.workflows/current-state.md` to `.workflows/history/<target>-<YYYY-MM-DD>.md`. Report completion.
+**>> Write output to**: `.workflows/<target>/07-pr.md`
 
 ---
 
@@ -161,8 +111,8 @@ gh pr create --base <dev_branch> --title "refactor(<scope>): <goal>" --body "<pr
 
 | Error | Resolution |
 |---|---|
-| Target exceeds `workflows.refactor.max_dependents` (default 50) | Warn user; split into smaller refactors or get confirmation to proceed |
+| Target exceeds `max_dependents` (default 50) | Warn; split into smaller refactors or get confirmation |
 | No tests exist for target | Write contract-based tests first, then refactor |
-| Circular dependencies discovered | Address as separate prerequisite refactor |
-| Performance regression detected | Profile, optimize, or revert to previous approach |
+| Circular dependencies | Address as separate prerequisite refactor |
+| Performance regression | Profile, optimize, or revert |
 | Migration step breaks unrelated test | Investigate transitive dependency; likely hidden coupling |

@@ -1,6 +1,7 @@
 ---
 name: new-project
 description: Initialize a new project with Claude Code configuration, detecting build systems, conventions, and generating CLAUDE.md and task scaffolding.
+rules: [0, 1, 5, 6, 10, 12, 17]
 ---
 
 # New Project Initialization
@@ -11,7 +12,9 @@ description: Initialize a new project with Claude Code configuration, detecting 
 
 Four phases: **DETECT -> CONFIGURE -> GENERATE -> SETUP**
 
-> Follow orchestration Rules 0-1 for state and output.
+**Note**: This skill supersedes `/claude-workflows:setup` — it performs full project detection plus setup. You do NOT need to run `/setup` separately if you use `/new-project`.
+
+> **Orchestration**: Rules 0, 1, 5 handle state, phase output, and completion.
 
 ---
 
@@ -65,7 +68,7 @@ Display detection summary (stack, commands, CI, conventions, architecture). Ask:
 
 ### 2.2 — Generate workflows.yml
 
-Create `.workflows/config.yml` from `${CLAUDE_PLUGIN_ROOT}/config/defaults.yml` with: `project` (name, type, language), `git.branches` (main, development, feature/bugfix/hotfix/release patterns), `git.commits` (format, types), `git.pr` (base_branch). Populate from detected values.
+Create `.workflows/config.yml` from `<plugin-root>/config/defaults.yml` with: `project` (name, type, language), `git.branches` (main, development, feature/bugfix/hotfix/release patterns), `git.commits` (format, types), `git.pr` (base_branch). Populate from detected values.
 
 **>> Write output to**: `.workflows/<project-name>/02-configure.md`
 
@@ -92,7 +95,7 @@ If CLAUDE.md exists, ask: **overwrite**, **merge** (preserve custom, update dete
 ### 4.1 — Create Scaffolding
 
 ```bash
-mkdir -p tasks .claude/skills .workflows
+mkdir -p tasks .workflows
 ```
 
 Create `tasks/todo.md` (with `# Todo`, `## In Progress`, `## Backlog` sections).
@@ -102,11 +105,9 @@ Create `tasks/lessons.md` (with `# Lessons Learned` header).
 
 ### 4.2 — Final Summary
 
-Print created files (CLAUDE.md, .workflows/config.yml, tasks/todo.md, tasks/lessons.md, .claude/skills/) and next steps: review CLAUDE.md, commit files, run `/new-feature`.
+Print created files (CLAUDE.md, .workflows/config.yml, tasks/todo.md, tasks/lessons.md) and next steps: review CLAUDE.md, commit files, run `/claude-workflows:new-feature`.
 
 **>> Write output to**: `.workflows/<project-name>/04-setup.md`
-
-**After this final phase**: Move `.workflows/current-state.md` to `.workflows/history/<project-name>-<YYYY-MM-DD>.md`. Report completion.
 
 ---
 

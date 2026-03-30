@@ -10,7 +10,7 @@ rules: []
 /compose-skill <name>
 ```
 
-Interactively build a new workflow skill for your team.
+Interactively build a new workflow skill for your project.
 
 ---
 
@@ -22,15 +22,21 @@ Ask sequentially:
 3. For each phase: "What should **<phase>** produce? (1 sentence)"
 4. "Does this skill need brainstorming? (y/n)"
 5. "Does this skill create a PR at the end? (y/n)"
-6. "Which orchestration rules apply?" -- suggest based on answers:
+6. "Which orchestration rules apply?" — suggest based on answers:
    - Always: `[0, 1]` (state + output)
    - If has PR: add `3, 5` (quality gate + completion)
    - If multi-step execution: add `7, 11` (REPLAN + checkpoints)
    - If brainstorm: add `2` (skip support)
 
-## Step 2: Generate Skill
+## Step 2: Determine Output Location
 
-Write `.claude/skills/<name>/SKILL.md` with this structure:
+Ask: "Where should this skill live?"
+- **Project-local** (default): `.workflows/skills/<name>/SKILL.md` — only available in this project
+- **Team-shared**: `<plugin-root>/teams/<team>/skills/<name>/SKILL.md` — if team is configured
+
+## Step 3: Generate Skill
+
+Write the skill file with proper structure:
 
 ```markdown
 ---
@@ -43,32 +49,25 @@ rules: [<selected-rules>]
 
 ## Command
 
-` ` `
 /<name> <target> [flags based on phases]
-` ` `
 
-> Follow orchestration Rules <list> for state and output.
+> Follow orchestration Rules <list> for state and output. Rule 5 handles completion after the last phase.
 
 ---
 
-<For each phase, generate:>
+<For each phase:>
 
 ## Phase N: <PHASE-NAME>
 
-**Goal**: <user's description of what this phase produces>
+**Goal**: <what this phase produces>
 
 ### Execute
 
-<Placeholder instructions -- tell the user to fill in the details>
-
-1. <Step 1 placeholder>
-2. <Step 2 placeholder>
+<Placeholder instructions — fill in the details>
 
 **>> Write output to**: `.workflows/<target>/NN-<phase>.md`
 
 ---
-
-<If has PR phase, add quality gate boilerplate>
 
 ## Error Handling
 
@@ -78,23 +77,14 @@ rules: [<selected-rules>]
 | Build fails | Fix and retry, REPLAN after 3 failures |
 ```
 
-## Step 3: Validate
+## Step 4: Validate
 
-1. Verify the file was written successfully
-2. Check that phase output numbering is sequential (01, 02, 03...)
-3. Verify frontmatter has required fields (name, description, rules)
-4. Print summary:
-   ```
-   Skill created: .claude/skills/<name>/SKILL.md
-     Phases: <list>
-     Rules: <list>
-     PR phase: yes/no
+1. Verify file was written
+2. Check phase output numbering is sequential
+3. Verify frontmatter has required fields
+4. Print summary with location and next steps
 
-   Next: Edit the skill to fill in phase-specific instructions.
-   Then use /<name> to run it.
-   ```
+## Step 5: Register (Optional)
 
-## Step 4: Register (Optional)
-
-Ask: "Add an alias for this skill? (e.g., /build -> /new-feature)"
+Ask: "Add an alias for this skill? (e.g., /audit → /claude-workflows:<name>)"
 If yes, suggest adding to `skills.aliases` in `.workflows/config.yml`.

@@ -3,9 +3,9 @@
 [![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)](VERSION)
 [![GitHub Pages](https://img.shields.io/badge/docs-live-brightgreen)](https://ragaa07.github.io/claude-workflows/)
 
-**Structured development workflows for Claude Code — 20 skills, quality gates, multi-session state, and team extensibility.**
+**Structured development workflows for Claude Code — 23 skills, proportional quality gates, multi-session state, and team extensibility.**
 
-claude-workflows is a Claude Code plugin that provides 20 structured workflow skills covering the full dev lifecycle. Skills adapt to your project's language and team conventions via plugin configuration. Quality gates enforce coding rules and review checklists before every PR. Workflow state persists across sessions.
+claude-workflows is a Claude Code plugin that provides 23 structured workflow skills covering the full dev lifecycle. Skills adapt to your project's language and team conventions via plugin configuration. Proportional quality gates scale review intensity to change size. Workflow state persists across sessions.
 
 ---
 
@@ -73,6 +73,7 @@ All skills are namespaced under `claude-workflows`. Invoke with `/claude-workflo
 |-------|---------|-------------|
 | Hotfix | `/claude-workflows:hotfix` | Emergency production fix with regression testing |
 | CI Fix | `/claude-workflows:ci-fix` | Diagnose and fix failing CI/CD pipelines |
+| Diagnose | `/claude-workflows:diagnose` | Systematic bug investigation via hypothesis testing |
 | Migrate | `/claude-workflows:migrate` | Upgrade dependencies, APIs, or patterns |
 | Refactor | `/claude-workflows:refactor` | Safely restructure code with behavioral contracts |
 
@@ -88,7 +89,9 @@ All skills are namespaced under `claude-workflows`. Invoke with `/claude-workflo
 | Skill | Command | Description |
 |-------|---------|-------------|
 | Brainstorm | `/claude-workflows:brainstorm` | 5 structured brainstorming techniques |
+| Scope | `/claude-workflows:scope` | Analyze task complexity before choosing a workflow |
 | Test | `/claude-workflows:test` | Generate tests with coverage analysis |
+| Retrospective | `/claude-workflows:retrospective` | Analyze workflow history for improvements |
 | Learn | `/claude-workflows:learn` | Capture and reuse workflow patterns |
 | Metrics | `/claude-workflows:metrics` | Workflow execution analytics |
 
@@ -108,17 +111,18 @@ All skills are namespaced under `claude-workflows`. Invoke with `/claude-workflo
 
 ## Configuration
 
-### Three-tier config (priority order)
+### Four-tier config (priority order)
 
-1. **`.workflows/config.yml`** — project-level overrides (created by `/claude-workflows:setup`)
-2. **Plugin userConfig** — values set during `claude plugin install`
-3. **Built-in defaults** — `config/defaults.yml` in the plugin
+1. **CLI flags** — per-invocation overrides (e.g., `--skip-brainstorm`)
+2. **`.workflows/config.yml`** — project-level overrides (created by `/claude-workflows:setup`)
+3. **Plugin userConfig** — values set during `claude plugin install`
+4. **Built-in defaults** — `config/defaults.yml` in the plugin
 
 ### What `.workflows/config.yml` controls
 
 - **Git flow**: branch naming patterns, commit format, PR settings, merge strategy
 - **Workflow behavior**: require/skip brainstorm, tests, spec; plan phase limits
-- **Quality gates**: review checklist selection, self-review enforcement
+- **Quality gates**: proportional review scaling, checklist selection
 - **Telemetry**: opt-in execution metrics
 - **Skill aliases**: custom command shortcuts
 - **Chains**: automatic workflow sequencing
@@ -139,12 +143,50 @@ Every workflow that produces a PR runs through quality gates automatically:
 | swift | Swift conventions |
 | go | Go conventions |
 
-**Before creating a PR** — Review checklists are loaded and self-checked:
-- General checklist (always)
-- Language-specific checklist (based on type)
-- Team checklist (if team is set)
+**Before creating a PR** — Proportional review gates scale to change size:
 
-All High/Critical severity items must pass before the PR is created.
+| Change Size | Gate Level |
+|---|---|
+| 1-3 files, ≤50 lines | **Light**: Critical security checks only |
+| 4-15 files | **Standard**: General + language checklists (High/Critical) |
+| 15+ files | **Full**: All checklists, all severity levels |
+
+All Critical/High severity items must pass before the PR is created.
+
+---
+
+## Visual Progress
+
+Workflows display a Mermaid state diagram that updates after every phase transition. The diagram shows at a glance what's done, what's active, and what's ahead.
+
+Example — `new-feature` workflow at the IMPLEMENT phase (BRAINSTORM was skipped):
+
+```mermaid
+stateDiagram-v2
+    direction LR
+
+    [*] --> GATHER
+    GATHER --> SPEC
+    SPEC --> BRAINSTORM
+    BRAINSTORM --> PLAN
+    PLAN --> BRANCH
+    BRANCH --> IMPLEMENT
+    IMPLEMENT --> TEST
+    TEST --> PR
+    PR --> [*]
+
+    classDef completed fill:#2da44e,color:#fff,stroke:#2da44e
+    classDef active fill:#bf8700,color:#fff,stroke:#bf8700
+    classDef skipped fill:#656d76,color:#fff,stroke:#656d76
+    classDef pending fill:#444c56,color:#adbac7,stroke:#444c56
+
+    class GATHER,SPEC,PLAN,BRANCH completed
+    class BRAINSTORM skipped
+    class IMPLEMENT active
+    class TEST,PR pending
+```
+
+The diagram is stored in `.workflows/current-state.md` and also displayed directly in the conversation. Disable with `progress.visual: false` in config.
 
 ---
 
@@ -154,26 +196,19 @@ All High/Critical severity items must pass before the PR is created.
 
 | File | Purpose |
 |------|---------|
-| `current-state.md` | Active workflow state (YAML frontmatter + phase history) |
+| `current-state.md` | Active workflow state (YAML frontmatter + phase history + decisions) |
 | `paused-*.md` | Paused workflows |
 | `<feature>/` | Per-workflow output directory (specs, plans, phase outputs) |
 | `history/` | Completed workflow archives |
 | `learned/` | Captured patterns from `/claude-workflows:learn` |
 | `config.yml` | Project configuration |
-| `telemetry.jsonl` | Per-phase timing metrics (opt-in) |
+| `telemetry.jsonl` | Per-phase metrics (opt-in) |
 | `knowledge.jsonl` | Extracted decisions for future brainstorms |
-
-### Cross-project (`${CLAUDE_PLUGIN_DATA}/`)
-
-| File | Purpose |
-|------|---------|
-| `global-patterns.jsonl` | Patterns learned across all projects |
-| `usage-stats.json` | Aggregate usage statistics |
 
 ### Session hooks
 
 - **SessionStart**: Automatically detects active/paused workflows and prompts to resume
-- **PreToolUse**: Enforces quality gate before PR creation
+- **PreToolUse**: Warns if quality gate wasn't run before PR creation
 
 ---
 
@@ -194,14 +229,16 @@ Set your team during plugin install or via `claude plugin configure claude-workf
 
 ## Orchestration Rules
 
-All workflows follow 16 centralized orchestration rules that ensure consistency:
+All workflows follow 18 centralized orchestration rules that ensure consistency:
 
+- **Path resolution**: Deterministic `<plugin-root>` convention for finding bundled files
 - **State management**: Initialize, update, and archive workflow state
 - **Phase protocol**: Write output files after every phase
-- **Quality gates**: Load rules before coding, checklists before PR
+- **Quality gates**: Proportional — scales review intensity to change size
 - **Error recovery**: REPLAN protocol after 3+ build failures
-- **Telemetry**: Optional per-phase metrics collection
+- **Telemetry**: Optional per-phase metrics (only measurable fields)
 - **Knowledge extraction**: Capture decisions for future brainstorms
+- **Visual progress**: Mermaid state diagrams showing workflow progress in real time
 
 Rules are in `skills/_orchestration/RULES.md`.
 
@@ -215,7 +252,11 @@ Rules are in `skills/_orchestration/RULES.md`.
 claude --plugin-dir /path/to/claude-workflows
 ```
 
-This loads the plugin from your local directory for the current session.
+### Run validation tests
+
+```bash
+node tests/validate-workflows.js
+```
 
 ### Reload after changes
 

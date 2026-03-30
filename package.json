@@ -1,7 +1,7 @@
 {
   "name": "claude-workflows",
   "version": "3.0.0",
-  "description": "Structured development workflows for Claude Code — plugin with 20 skills, quality gates, multi-session state, and team extensibility.",
+  "description": "Structured development workflows for Claude Code — plugin with 23 skills, quality gates, multi-session state, and team extensibility.",
   "private": true,
   "repository": {
     "type": "git",

@@ -1,24 +1,25 @@
-# Workflow State
+---
+workflow: {workflow_type}
+feature: {task_name}
+phase: {current_phase}
+phases: [{phases_list}]
+started: {start_date}
+updated: {start_date}
+branch:
+output_dir: .workflows/{task_name}/
+replan_count: 0
+---
+## Progress
 
-- **workflow**: {workflow_type}
-- **feature**: {task_name}
-- **phase**: {current_phase}
-- **started**: {start_date}
-- **updated**: {start_date}
-- **branch**:
-- **output_dir**: .workflows/{task_name}/
-- **retry_count**: 0
+{mermaid_diagram}
 
 ## Phase History
-
-| Phase | Status | Timestamp | Output | Notes |
-|-------|--------|-----------|--------|-------|
-| {current_phase} | ACTIVE | {start_date} | | Starting workflow |
-
-## Phase Outputs
-
-_Documents produced by each phase:_
+| Phase | Status | Output | Notes |
+|-------|--------|--------|-------|
+| {current_phase} | ACTIVE | | Starting workflow |
 
 ## Context
-
 _Key decisions and resume context:_
+
+## Constraints
+_Hard and soft requirements for remaining phases:_

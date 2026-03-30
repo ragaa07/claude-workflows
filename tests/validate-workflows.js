@@ -10,13 +10,14 @@
  * 3. Skills have valid YAML frontmatter (name, description)
  * 4. Phase ordering matches declared phases
  * 5. Phase output paths are sequential (01-, 02-, 03-...)
- * 6. Implementation skills reference ${CLAUDE_PLUGIN_ROOT}/rules/
- * 7. PR skills reference ${CLAUDE_PLUGIN_ROOT}/reviews/ (quality gate)
+ * 6. Implementation skills reference rules/ for language rules
+ * 7. PR skills reference reviews/ or Rule 3 for quality gate
  * 8. Language rule files exist for all supported types
  * 9. Review checklist files exist for all supported types
  * 10. No old .claude/ path references remain (except intentional ones)
  * 11. hooks.json is valid
  * 12. settings.json is valid
+ * 13. No fake template variables (${CLAUDE_PLUGIN_ROOT}, ${user_config})
  */
 
 const fs = require("fs");
@@ -79,6 +80,11 @@ const WORKFLOW_PHASES = {
   },
   "new-project": {
     phases: ["DETECT", "CONFIGURE", "GENERATE", "SETUP"],
+    hasImplement: false,
+    hasPR: false,
+  },
+  "diagnose": {
+    phases: ["REPRODUCE", "HYPOTHESIZE", "NARROW", "ROOT-CAUSE"],
     hasImplement: false,
     hasPR: false,
   },
@@ -205,6 +211,16 @@ function validateDirectoryStructure() {
   test("reviews/ directory exists", fs.existsSync(path.join(PLUGIN_ROOT, "reviews")));
   test("templates/ directory exists", fs.existsSync(path.join(PLUGIN_ROOT, "templates")));
   test("teams/ directory exists", fs.existsSync(path.join(PLUGIN_ROOT, "teams")));
+
+  // State template uses YAML frontmatter (not bullet format)
+  const stateTemplate = path.join(PLUGIN_ROOT, "templates", "state.md.tmpl");
+  if (fs.existsSync(stateTemplate)) {
+    const stateContent = fs.readFileSync(stateTemplate, "utf8");
+    test("State template uses YAML frontmatter", stateContent.startsWith("---\n"));
+    test("State template has Phase History table", stateContent.includes("Phase History"));
+    test("State template has Context section", stateContent.includes("## Context"));
+    test("State template has Constraints section", stateContent.includes("## Constraints"));
+  }
   test("_orchestration/RULES.md exists", fs.existsSync(path.join(PLUGIN_ROOT, "skills", "_orchestration", "RULES.md")));
 
   // No old directories
@@ -255,13 +271,29 @@ function validateSkills() {
       test(`${entry.name}: has description field`, fm.includes("description:"));
     }
 
+    // No fake template variables — these don't work in Claude Code plugins
+    test(
+      `${entry.name}: no \${CLAUDE_PLUGIN_ROOT} references`,
+      !content.includes("${CLAUDE_PLUGIN_ROOT}"),
+      "Use <plugin-root> instead of ${CLAUDE_PLUGIN_ROOT}",
+    );
+    test(
+      `${entry.name}: no \${user_config} references`,
+      !content.includes("${user_config"),
+      "Use plain English references to plugin settings",
+    );
+    test(
+      `${entry.name}: no \${CLAUDE_PLUGIN_DATA} references`,
+      !content.includes("${CLAUDE_PLUGIN_DATA}"),
+      "This variable does not exist in Claude Code plugins",
+    );
+
     // Check for stale .claude/ references (excluding allowed skills)
     if (!ALLOWED_CLAUDE_REFS.includes(entry.name)) {
       const lines = content.split("\n");
       const staleRefs = lines.filter(l =>
         l.includes(".claude/") &&
-        !l.includes("${CLAUDE_PLUGIN_ROOT}") &&
-        !l.includes("${CLAUDE_PLUGIN_DATA}") &&
+        !l.includes("<plugin-root>") &&
         !l.trim().startsWith("#") &&
         !l.trim().startsWith("//")
       );
@@ -298,21 +330,21 @@ function validateSkills() {
       `Found ${phasePositions.length}/${spec.phases.length}: ${phasePositions.map(p => p.phase).join(", ")}`,
     );
 
-    // Implementation skills reference plugin rules
+    // Implementation skills reference rules for language rules
     if (spec.hasImplement) {
       test(
-        `${entry.name}: references plugin rules/ for language rules`,
-        content.includes("${CLAUDE_PLUGIN_ROOT}/rules/") || content.includes("PLUGIN_ROOT}/rules/"),
-        "Implementation skills must reference ${CLAUDE_PLUGIN_ROOT}/rules/",
+        `${entry.name}: references rules/ for language rules`,
+        content.includes("<plugin-root>/rules/") || content.includes("rules/") || content.includes("Rule 3"),
+        "Implementation skills must reference <plugin-root>/rules/ or Rule 3",
       );
     }
 
-    // PR skills reference plugin reviews
+    // PR skills reference reviews for quality gate
     if (spec.hasPR) {
       test(
-        `${entry.name}: references plugin reviews/ for quality gate`,
-        content.includes("${CLAUDE_PLUGIN_ROOT}/reviews/") || content.includes("PLUGIN_ROOT}/reviews/"),
-        "PR skills must reference ${CLAUDE_PLUGIN_ROOT}/reviews/",
+        `${entry.name}: references quality gate`,
+        content.includes("<plugin-root>/reviews/") || content.includes("reviews/") || content.includes("Rule 3") || content.includes("quality gate"),
+        "PR skills must reference quality gate (Rule 3 or <plugin-root>/reviews/)",
       );
     }
   }
@@ -322,24 +354,81 @@ function validateOrchestrationRules() {
   section("Orchestration Rules");
   const rulesPath = path.join(PLUGIN_ROOT, "skills", "_orchestration", "RULES.md");
   if (!fs.existsSync(rulesPath)) {
-    test("RULES.md exists", false);
+    test("RULES.md index exists", false);
     return;
   }
 
   const content = fs.readFileSync(rulesPath, "utf8");
 
-  // Check all 16 rules exist
-  for (let i = 0; i <= 16; i++) {
-    test(`Rule ${i} exists`, content.includes(`Rule ${i}`));
+  // --- Individual rule files directory ---
+  const rulesDir = path.join(PLUGIN_ROOT, "skills", "_orchestration", "rules");
+  test("rules/ directory exists", fs.existsSync(rulesDir));
+
+  // Expected rule file names (rule-00 through rule-17)
+  const RULE_FILES = [
+    "rule-00-state-init.md",
+    "rule-01-phase-output.md",
+    "rule-02-skip-phases.md",
+    "rule-03-quality-gate.md",
+    "rule-04-build-detection.md",
+    "rule-05-completion.md",
+    "rule-06-pause.md",
+    "rule-07-error-recovery.md",
+    "rule-08-common-errors.md",
+    "rule-09-skill-composition.md",
+    "rule-10-phase-statuses.md",
+    "rule-11-checkpoints.md",
+    "rule-12-telemetry.md",
+    "rule-13-focused-gate.md",
+    "rule-14-dry-run.md",
+    "rule-15-chaining.md",
+    "rule-16-knowledge.md",
+    "rule-17-visual-progress.md",
+  ];
+
+  // Check all 18 individual rule files exist and are non-empty
+  for (const file of RULE_FILES) {
+    const filePath = path.join(rulesDir, file);
+    const exists = fs.existsSync(filePath);
+    test(`Rule file ${file} exists`, exists);
+    if (exists) {
+      const fileContent = fs.readFileSync(filePath, "utf8");
+      test(`Rule file ${file} is non-empty`, fileContent.trim().length > 0);
+    }
   }
 
-  // Plugin path references
-  test("Rule 3 references ${CLAUDE_PLUGIN_ROOT}/rules/", content.includes("${CLAUDE_PLUGIN_ROOT}/rules/"));
-  test("Rule 3 references ${CLAUDE_PLUGIN_ROOT}/reviews/", content.includes("${CLAUDE_PLUGIN_ROOT}/reviews/"));
-  test("Rule 3 has project_type mapping table", content.includes("project_type"));
+  // --- Checks against individual rule files ---
+  const readRule = (file) => {
+    const filePath = path.join(rulesDir, file);
+    return fs.existsSync(filePath) ? fs.readFileSync(filePath, "utf8") : "";
+  };
 
-  // Config references updated
-  test("References .workflows/config.yml (not .claude/workflows.yml)", content.includes(".workflows/config.yml"));
+  const rule03 = readRule("rule-03-quality-gate.md");
+  test("Rule 3 has project_type mapping table", rule03.includes("project_type"));
+  test("Rule 3 references rules/", rule03.includes("<plugin-root>/rules/"));
+  test("Has proportional quality gate", rule03.includes("Proportional"));
+  test("Has explicit quality gate evidence format", rule03.includes("PASS:") && rule03.includes("FAIL:"));
+  test("Has rust in project_type mapping", rule03.includes("rust"));
+
+  const rule17 = readRule("rule-17-visual-progress.md");
+  test("Has visual progress rule (Rule 17)", rule17.includes("Mermaid") && rule17.includes("stateDiagram"));
+
+  const rule01 = readRule("rule-01-phase-output.md");
+  test("Has Phase Preconditions in Rule 1", rule01.includes("Phase Preconditions"));
+
+  const rule05 = readRule("rule-05-completion.md");
+  test("Has diff report in completion rule", rule05.includes("diff report"));
+
+  // Constraints check — may be in RULES.md index or rule-00
+  const rule00 = readRule("rule-00-state-init.md");
+  test("Has Constraints section in state template", content.includes("Constraints") || rule00.includes("Constraints"));
+
+  // --- Checks against RULES.md index ---
+  test("Uses <plugin-root> for path references", content.includes("<plugin-root>"));
+  test("No fake ${CLAUDE_PLUGIN_ROOT} variables", !content.includes("${CLAUDE_PLUGIN_ROOT}"));
+  test("Has Quick Reference table", content.includes("Quick Reference"));
+  test("Has path resolution section", content.includes("Path Resolution"));
+  test("References .workflows/config.yml", content.includes(".workflows/config.yml"));
   test("No stale .claude/workflows.yml reference", !content.includes(".claude/workflows.yml"));
   test("No stale .claude/rules/ reference", !content.includes(".claude/rules/"));
   test("No stale .claude/reviews/ reference", !content.includes(".claude/reviews/"));

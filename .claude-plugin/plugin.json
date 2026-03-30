@@ -1,7 +1,7 @@
 {
   "name": "claude-workflows",
   "version": "3.0.0",
-  "description": "Structured development workflows for Claude Code — 20 skills, quality gates, multi-session state, team extensibility.",
+  "description": "Structured development workflows for Claude Code — 23 skills, proportional quality gates, multi-session state, team extensibility.",
   "author": {
     "name": "ragaa07",
     "url": "https://github.com/ragaa07"

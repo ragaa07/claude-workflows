@@ -1,6 +1,7 @@
 ---
 name: review
 description: Review a GitHub pull request by fetching changes, categorizing by architecture, checking against dynamically loaded checklists, and generating inline comments with severity levels.
+rules: [0, 1, 5, 6, 7, 10, 12, 17]
 ---
 
 # Code Review Workflow
@@ -12,9 +13,9 @@ description: Review a GitHub pull request by fetching changes, categorizing by a
 - `--strict`: Treat warnings as errors
 - `--focus <area>`: Prioritize checks matching area (security, performance, architecture, tests)
 
-Four phases: **FETCH -> CATEGORIZE -> CHECK -> COMMENT**
+Four phases: **FETCH → CATEGORIZE → CHECK → COMMENT**
 
-> Follow orchestration Rules 0-1 for state and output.
+> **Orchestration**: Rules 0, 1, 5 handle state, phase output, and completion.
 
 ---
 
@@ -26,15 +27,14 @@ Detect repository: `gh repo view --json owner,name -q '.owner.login + "/" + .nam
 
 **Steps 1.1–1.4 are independent — execute in parallel.**
 
-Fetch via `gh`: PR metadata (`gh pr view --json`), diff (`gh pr diff`), changed files, CI checks (flag failures), existing comments (to avoid duplicates). Read each changed file in FULL (not just diff) for context.
+Fetch via `gh`: PR metadata (`gh pr view --json`), diff (`gh pr diff`), changed files list, CI checks (flag failures), existing comments (to avoid duplicates).
 
-**Size Decision** (thresholds configurable via `review.size_thresholds` in `.workflows/config.yml`):
-- **Small** (below `small` threshold, default 10 files): Review inline
-- **Medium** (up to `medium` threshold, default 30 files): Review by category
-- **Large** (above medium threshold): Search per category, warn PR should be split
-- **Extra-large** (>50 files or >1000 lines): Recommend user split PR before review
+**Context loading strategy** — do NOT read every file in full:
+- **Small PRs** (≤10 files): Read each changed file in full for context
+- **Medium PRs** (11-30 files): Read files only when checking them in Phase 3
+- **Large PRs** (>30 files): Warn PR should be split. Read files per-category during CHECK.
 
-**>> Write output to**: `.workflows/<pr-name>/01-fetch.md`.
+**>> Write output to**: `.workflows/<pr-name>/01-fetch.md`
 
 ---
 
@@ -42,42 +42,27 @@ Fetch via `gh`: PR metadata (`gh pr view --json`), diff (`gh pr diff`), changed 
 
 **Goal**: Organize changes by architectural layer.
 
-**2.1 — Classify files** by reading `project.type` from `.workflows/config.yml`. Common categories:
+Classify files into: UI, Logic/Controllers, Domain/Business, Data/API, Models, Config, Tests, Other. Adapt to project's actual architecture.
 
-| Category | Description |
-|---|---|
-| **UI** | Views, screens, components, templates, styles |
-| **Logic/Controllers** | ViewModels, controllers, presenters, state management |
-| **Domain/Business** | Use cases, services, business rules, interfaces |
-| **Data/API** | Repositories, data sources, API clients, DTOs, mappers |
-| **Models** | Domain entities, data classes, types, schemas |
-| **Config** | Build files, CI/CD, environment config |
-| **Tests** | Unit, integration, e2e tests, test utilities |
-| **Other** | Documentation, scripts, assets |
+Review order (foundations first): Models/Data → Domain → Logic/Controllers → UI → Config → Tests
 
-Adapt to the project's actual architecture (e.g., Rails: Models/Views/Controllers; React: Components/Hooks/Store/Utils).
+Summarize file counts per category with additions/deletions.
 
-**2.2 — Review order** (foundations first): Models/Data -> Domain -> Logic/Controllers -> UI -> Config -> Tests
-
-**2.3 — Summarize** file counts per category with additions/deletions.
-
-**>> Write output to**: `.workflows/<pr-name>/02-categorize.md`.
+**>> Write output to**: `.workflows/<pr-name>/02-categorize.md`
 
 ---
 
 ## Phase 3: CHECK
 
-**Goal**: Review each file against dynamically loaded quality checklists.
+**Goal**: Review each file against quality checklists.
 
-**Load checklists**: Always `${CLAUDE_PLUGIN_ROOT}/reviews/general-checklist.md` + language-specific (from `project.language` config). No checklists found -> warn, use fallback checks.
+**Load checklists**: General checklist + language-specific (from `project.language`). If a team is configured, also load `<plugin-root>/teams/<team>/reviews/team-review-checklist.md`. No checklists found → use fallback checks (architecture, code quality, security, performance, test coverage, consistency).
 
 **Apply focus**: If `--focus` provided, weight matching violations higher. Still run all checks.
 
-**Fallback checks** (no checklist files): Architecture (layer boundaries, deps), Code Quality (naming, function size, duplication, error handling), Security (no secrets, input validation), Performance (no blocking/N+1, caching), Test Coverage (new APIs tested, edge cases), Consistency (matches codebase patterns).
+**Execute**: For each changed file, check applicable items. Record violations with: severity (Critical/High/Medium/Low), file+line, issue, actionable suggestion.
 
-**Execute**: For each changed file, check ALL loaded items. Record violations with: severity (error/warning/suggestion/nitpick), file+line, issue description, actionable suggestion.
-
-**>> Write output to**: `.workflows/<pr-name>/03-check.md`.
+**>> Write output to**: `.workflows/<pr-name>/03-check.md`
 
 ---
 
@@ -85,45 +70,24 @@ Adapt to the project's actual architecture (e.g., Rails: Models/Views/Controller
 
 **Goal**: Generate and submit review comments.
 
-### Severity Definitions
+| Severity | Blocks Merge? |
+|---|---|
+| **Critical** | Yes — bug, security issue, crash risk |
+| **High** | No (but should fix) — code smell, perf issue, correctness risk |
+| **Medium** | No — improvement idea, minor code quality |
+| **Low** | No — style, naming, nitpicks |
 
-| Severity | Meaning | Blocks Merge? |
-|---|---|---|
-| **error** | Bug, security issue, architecture violation, crash risk | Yes |
-| **warning** | Code smell, performance issue, missing best practice | No (but should fix) |
-| **suggestion** | Improvement idea, alternative approach | No |
-| **nitpick** | Style, naming, minor formatting | No |
+**Verdict**: Critical → REQUEST_CHANGES | High only → COMMENT (or APPROVE if minor) | none → APPROVE | `--strict`: High also REQUEST_CHANGES.
 
-**4.1 Compile**: Format as `[SEVERITY] file:line — Title` with description and suggestion.
+**User Approval**: "(1) submit as-is, (2) remove comments, (3) adjust severities, (4) cancel."
 
-**4.2 Summary**: Verdict, stats, key findings, positive observations, action items.
+Submit: `gh pr review <pr-number> --approve|--request-changes|--comment --body "<summary>"` for verdict. For inline comments: `gh api repos/{owner}/{repo}/pulls/{pr}/comments -f body="<comment>" -f path="<file>" -F line=<line> -f commit_id="<sha>"`.
 
-**Verdict**: error -> REQUEST_CHANGES | warnings only -> COMMENT (or APPROVE if minor) | none -> APPROVE | `--strict`: warnings also REQUEST_CHANGES.
+Print verdict, counts by severity (Critical/High/Medium/Low), PR URL.
 
-**4.3 User Approval**: "(1) submit as-is, (2) remove comments, (3) adjust severities, (4) cancel."
-
-**4.4 Submit**: `gh pr review` for verdict + `gh api` for inline comments.
-
-**4.5 Report**: Print verdict, counts by severity, PR URL.
-
-**>> Write output to**: `.workflows/<pr-name>/04-comment.md`.
-
-**After this final phase**: Move `.workflows/current-state.md` to `.workflows/history/<pr-name>-<YYYY-MM-DD>.md`. Report completion.
+**>> Write output to**: `.workflows/<pr-name>/04-comment.md`
 
 ---
-
-## Error Handling
-
-| Error | Resolution |
-|---|---|
-| PR not found | Verify PR number and repository |
-| gh CLI not authenticated | Guide user through `gh auth login` |
-| PR already merged | Report status, skip review |
-| PR is draft | Review anyway, note draft status |
-| Diff too large | Search per category, warn about PR size |
-| Cannot determine file context | Read full file from head branch |
-| API rate limit hit | Wait and retry, or batch comments |
-| No checklist files found | Warn user, proceed with fallback checks |
 
 ## Review Principles
 

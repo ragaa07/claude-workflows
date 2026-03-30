@@ -1,44 +1,31 @@
 # claude-workflows configuration
-# Edit this file to configure workflows for your project.
-# Documentation: https://github.com/ragaa07/claude-workflows
+# Copy to .workflows/config.yml and customize for your project.
+version: "3.0"
 
-version: "2.0"  # Config schema version (not package version)
-
-# ============================================================
-# Project Identity
-# ============================================================
 project:
-  name: "My Project"                   # Your project name
-  type: "generic"                      # android | react | python | generic
-  language: ""                         # Primary language (kotlin, typescript, python, etc.)
-  team: ""                             # Team name (e.g., "android", "ios", "backend")
+  name: ""
+  type: "generic"        # android | react | python | swift | go | generic
+  language: ""            # kotlin, typescript, python, swift, go, rust
+  team: ""                # android | ios | frontend | backend | (empty)
 
-# ============================================================
-# Git Flow Configuration
-# ============================================================
 git:
   branches:
-    main: "main"                       # Production branch
-    development: "develop"             # Development/integration branch
-    feature: "feature/{name}"          # Feature branch pattern ({name} replaced)
-    bugfix: "bugfix/{name}"            # Bugfix branch pattern
-    hotfix: "hotfix/{name}"            # Hotfix branch pattern
-    release: "release/v{version}"      # Release branch pattern ({version} replaced)
-
+    main: "main"
+    development: "develop"
+    feature: "feature/{name}"
+    bugfix: "bugfix/{name}"
+    hotfix: "hotfix/{name}"
+    release: "release/v{version}"
   commits:
-    format: "conventional"             # conventional | angular | simple
-    # conventional: feat: | fix: | refactor: | chore: | docs: | test: | style: | perf:
-    # angular: feat(scope): | fix(scope):
-    # simple: Free-form messages
+    format: "conventional" # conventional | angular | simple
     types: [feat, fix, refactor, test, docs, chore, style, perf]
-    scopes: true                       # Allow scopes in commit messages
-    ticket_reference: false            # Require ticket ID in commits
-
+    scopes: true
+    ticket_reference: false
   pr:
-    base_branch: "develop"             # Default PR target branch
-    draft: false                       # Create PRs as drafts
-    reviewers: []                      # Auto-assign reviewers
-    labels: []                         # Auto-apply labels
+    base_branch: "develop"
+    draft: false
+    reviewers: []
+    labels: []
     template: |
       ## Summary
       {summary}
@@ -48,134 +35,77 @@ git:
 
       ## Test Plan
       {test_plan}
-
-      ## Checklist
-      - [ ] Code compiles
-      - [ ] Tests pass
-      - [ ] No breaking changes
-
   merge:
-    strategy: "squash"                 # squash | merge | rebase
-    delete_branch: true                # Delete branch after merge
+    strategy: "squash"     # squash | merge | rebase
+    delete_branch: true
+  protected: ["main", "master", "develop"]
 
-  protected:                           # Branches that require PR (warn on direct commit)
-    - "main"
-    - "master"
-    - "develop"
-
-# ============================================================
-# Workflow Configuration
-# ============================================================
 workflows:
   new-feature:
-    require_spec: true                 # Must create spec before planning
-    require_tests: true                # Must write tests before PR
-    require_brainstorm: true           # Run brainstorm phase
-    max_plan_phases: 10                # Maximum phases in implementation plan
-    adaptive: true                     # Auto-detect complexity and skip phases for trivial changes
-
+    require_spec: true
+    require_tests: true
+    require_brainstorm: true
+    max_plan_phases: 10
+    adaptive: true
   extend-feature:
     require_brainstorm: true
     require_tests: true
-
   hotfix:
-    base_branch: ""                    # Empty = use git.branches.main
-    require_tests: true                # Always true for hotfixes — regression test is mandatory
-    max_lines: 15                      # Warn if fix exceeds this many lines
-
+    base_branch: ""        # empty = falls back to git.branches.main at runtime
+    require_tests: true
+    max_lines: 15
   refactor:
     require_brainstorm: true
     require_tests: true
-    max_dependents: 50                 # Warn if target has more dependents than this
-
+    max_dependents: 50
   release:
-    changelog: true                    # Generate changelog entries
-    tag_format: "v{version}"           # Git tag format
-
+    changelog: true
+    tag_format: "v{version}"
   review:
-    standards: []                      # Custom review checklist items
-    checklist: "auto"                  # auto (detect from project.language) | none | path
-    auto_self_review: false            # Chain self-review before PR
-    size_thresholds:
-      small: 10                        # files — review inline
-      medium: 30                       # files — review by category
-      large: 50                        # files — warn PR should be split
-
+    checklist: "auto"      # auto | none | <path>
+    size_thresholds: { small: 10, medium: 30, large: 50 }
   migrate:
     require_brainstorm: true
-
-  ci-fix: {}
-
   test:
     default_coverage: 90
     default_type: "unit"
-
   brainstorm:
-    default_depth: "standard"          # quick | standard | deep
-    techniques:                        # Available techniques
-      - "trade-off-matrix"
-      - "six-thinking-hats"
-      - "scamper"
-      - "reverse-brainstorm"
-      - "constraint-mapping"
+    default_depth: "standard"
+    techniques: ["trade-off-matrix", "six-thinking-hats", "scamper", "reverse-brainstorm", "constraint-mapping"]
 
-# ============================================================
-# State Management
-# ============================================================
 state:
-  directory: ".workflows"              # Where workflow state is stored
-  history: true                        # Keep completed workflow history
-  max_history: 50                      # Max history entries to keep
+  directory: ".workflows"
+  history: true
+  max_history: 50
 
-# ============================================================
-# Skill Configuration
-# ============================================================
 skills:
-  disabled: []                         # Skills to disable (by name)
-  aliases:                             # Command aliases
-    build: "new-feature"               # /build → /new-feature
-    fix: "hotfix"                      # /fix → /hotfix
-    ship: "release"                    # /ship → /release
+  disabled: []
+  aliases:
+    build: "new-feature"
+    fix: "hotfix"
+    ship: "release"
 
-# ============================================================
-# Workflow Chaining
-# ============================================================
-chains:
-  # Auto-suggest next workflow after completion
-  # Format: <completed-workflow>: <next-command>
-  # new-feature: "review --self"       # Auto-review after feature
-  # hotfix: "ci-fix --pr latest"       # Check CI after hotfix push
-  # review: "release --auto patch"     # Release after approval
+chains: {}
+  # new-feature: "review --self"
+  # hotfix: "ci-fix --pr latest"
 
-# ============================================================
-# Safety Guards
-# ============================================================
 guards:
-  enabled: false                       # Enable with --with-guards during install
-  config: ".claude/guards.yml"         # Path to guards configuration
+  enabled: false
+  config: ".workflows/guards.yml"
 
-# ============================================================
-# Auto-Learning
-# ============================================================
 learning:
-  enabled: true                        # Auto-capture patterns from completed workflows
-  min_confidence: 0.5                  # Minimum confidence to surface in brainstorming
-  storage: ".workflows/learned"        # Where learned patterns are stored
-  knowledge_graph: true                # Extract decisions to knowledge.jsonl for cross-workflow learning
+  enabled: true
+  storage: ".workflows/learned"
+  knowledge_graph: true
 
-# ============================================================
-# Quality Gate
-# ============================================================
 quality:
-  self_review: true                    # Run review checklists before PR creation
-  focused_gate: true                   # Only check rules relevant to changed files (Rule 13)
-  review_checklists:                   # Loaded in order; all applicable checks run
-    - "general-checklist.md"           # Always loaded
-    # Language-specific checklist auto-detected from project.language
+  self_review: true
+  focused_gate: true
+  proportional: true
 
-# ============================================================
-# Telemetry (Optional)
-# ============================================================
+progress:
+  visual: true
+
 telemetry:
-  enabled: true                        # Enable JSON-line logging per phase
-  file: ".workflows/telemetry.jsonl"   # Telemetry output file
+  enabled: false           # opt-in, not opt-out
+  file: ".workflows/telemetry.jsonl"
