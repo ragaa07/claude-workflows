@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "claude-workflows",
+  "owner": {
+    "name": "ragaa07"
+  },
+  "plugins": [
+    {
+      "name": "claude-workflows",
+      "version": "3.2.0",
+      "description": "23 workflow skills with proportional quality gates, multi-session state, and team extensibility.",
+      "source": "./",
+      "category": "development",
+      "homepage": "https://ragaa07.github.io/claude-workflows/"
+    }
+  ]
+}
