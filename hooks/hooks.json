@@ -24,6 +24,26 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write(.workflows/*)",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "You just wrote a file under .workflows/. If this was a phase output file (e.g., 01-gather.md, 02-spec.md, etc.) and NOT current-state.md itself, you MUST now update .workflows/current-state.md BEFORE doing anything else: (1) Read current-state.md, (2) Update frontmatter: set 'phase' to the next phase, 'updated' to now, (3) Mark the completed phase as COMPLETED with the output filename in Phase History, (4) Add a new ACTIVE row for the next phase, (5) Append key decisions to ## Context, (6) Regenerate the Progress section. Do NOT proceed to the next phase until this is done."
+          }
+        ]
+      },
+      {
+        "matcher": "Edit(.workflows/*)",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "You just edited a file under .workflows/. If this was a phase output file (e.g., 01-gather.md, 02-spec.md, etc.) and NOT current-state.md itself, you MUST now update .workflows/current-state.md BEFORE doing anything else: (1) Read current-state.md, (2) Update frontmatter: set 'phase' to the next phase, 'updated' to now, (3) Mark the completed phase as COMPLETED with the output filename in Phase History, (4) Add a new ACTIVE row for the next phase, (5) Append key decisions to ## Context, (6) Regenerate the Progress section. Do NOT proceed to the next phase until this is done."
+          }
+        ]
+      }
     ]
   }
 }
