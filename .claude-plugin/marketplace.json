@@ -7,7 +7,7 @@
   "plugins": [
     {
       "name": "claude-workflows",
-      "version": "3.2.0",
+      "version": "3.2.1",
       "description": "23 workflow skills with proportional quality gates, multi-session state, and team extensibility.",
       "source": "./",
       "category": "development",
